@@ -8,6 +8,7 @@
     "email": "mohammed.saqr@uef.fi",
     "url": "https://www.saqr.me"
   },
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",

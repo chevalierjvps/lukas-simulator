@@ -82,7 +82,9 @@ University of Eastern Finland
 
 ## License
 
-All rights reserved.
+MIT License - Copyright (c) 2026 Mohammed Saqr
+
+See [LICENSE](LICENSE) file for details.
 
 ## Version
 
