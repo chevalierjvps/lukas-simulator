@@ -351,38 +351,49 @@ export default function PatientMonitor({ caseParams, caseData, sessionId }) {
    useEffect(() => {
       if (caseData) {
          // Load initial vitals from case config
+         // Check both new structure (initialVitals) and legacy flat structure (config.hr, etc.)
          const initialVitals = caseData.config?.initialVitals;
-         if (initialVitals) {
+         const legacyConfig = caseData.config;
+
+         // Determine if we have any vitals to load (new or legacy format)
+         const hasNewVitals = initialVitals && Object.keys(initialVitals).length > 0;
+         const hasLegacyVitals = legacyConfig && (legacyConfig.hr || legacyConfig.spo2 || legacyConfig.rr);
+
+         if (hasNewVitals || hasLegacyVitals) {
             // Set baseline from case (for reset functionality)
+            // Prioritize new initialVitals structure, fall back to legacy flat config
             const baselineParams = {
-               hr: initialVitals.hr ?? FACTORY_DEFAULTS.params.hr,
-               spo2: initialVitals.spo2 ?? FACTORY_DEFAULTS.params.spo2,
-               rr: initialVitals.rr ?? FACTORY_DEFAULTS.params.rr,
-               bpSys: initialVitals.bpSys ?? FACTORY_DEFAULTS.params.bpSys,
-               bpDia: initialVitals.bpDia ?? FACTORY_DEFAULTS.params.bpDia,
-               temp: initialVitals.temp ?? FACTORY_DEFAULTS.params.temp,
-               etco2: initialVitals.etco2 ?? FACTORY_DEFAULTS.params.etco2
+               hr: initialVitals?.hr ?? legacyConfig?.hr ?? FACTORY_DEFAULTS.params.hr,
+               spo2: initialVitals?.spo2 ?? legacyConfig?.spo2 ?? FACTORY_DEFAULTS.params.spo2,
+               rr: initialVitals?.rr ?? legacyConfig?.rr ?? FACTORY_DEFAULTS.params.rr,
+               bpSys: initialVitals?.bpSys ?? legacyConfig?.sbp ?? legacyConfig?.bpSys ?? FACTORY_DEFAULTS.params.bpSys,
+               bpDia: initialVitals?.bpDia ?? legacyConfig?.dbp ?? legacyConfig?.bpDia ?? FACTORY_DEFAULTS.params.bpDia,
+               temp: initialVitals?.temp ?? legacyConfig?.temp ?? FACTORY_DEFAULTS.params.temp,
+               etco2: initialVitals?.etco2 ?? legacyConfig?.etco2 ?? FACTORY_DEFAULTS.params.etco2
             };
+            console.log('[PatientMonitor] Loading case vitals:', baselineParams);
             setCaseBaseline(baselineParams);
             setParams(baselineParams);
 
             // Set rhythm from case
-            if (initialVitals.rhythm) {
-               setCaseBaselineRhythm(initialVitals.rhythm);
-               setRhythm(initialVitals.rhythm);
+            const caseRhythm = initialVitals?.rhythm || legacyConfig?.rhythm;
+            if (caseRhythm) {
+               setCaseBaselineRhythm(caseRhythm);
+               setRhythm(caseRhythm);
             }
 
             // Set ECG conditions from case
-            if (initialVitals.conditions) {
-               const caseConditions = {
-                  pvc: initialVitals.conditions.pvc ?? false,
-                  stElev: initialVitals.conditions.stElev ?? 0,
-                  tInv: initialVitals.conditions.tInv ?? false,
-                  wideQRS: initialVitals.conditions.wideQRS ?? false,
-                  noise: initialVitals.conditions.noise ?? 0
+            const caseConditions = initialVitals?.conditions || legacyConfig?.conditions;
+            if (caseConditions) {
+               const conditionsToApply = {
+                  pvc: caseConditions.pvc ?? false,
+                  stElev: caseConditions.stElev ?? 0,
+                  tInv: caseConditions.tInv ?? false,
+                  wideQRS: caseConditions.wideQRS ?? false,
+                  noise: caseConditions.noise ?? 0
                };
-               setCaseBaselineConditions(caseConditions);
-               setConditions(caseConditions);
+               setCaseBaselineConditions(conditionsToApply);
+               setConditions(conditionsToApply);
             }
 
             // Clear overrides when new case loads
