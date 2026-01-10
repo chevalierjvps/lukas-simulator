@@ -202,12 +202,15 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
         // Ensure config exists
         const config = editingCase.config || {};
         
-        const payload = { 
-            ...editingCase, 
+        const payload = {
+            ...editingCase,
             system_prompt: sysPrompt,
             config: config,
-            description: editingCase.description || ''
+            description: editingCase.description || '',
+            scenario: editingCase.scenario || null  // Explicitly include scenario
         };
+
+        console.log('[ConfigPanel] Saving case with scenario:', editingCase.scenario ? 'present' : 'null');
 
         const token = AuthService.getToken();
         
@@ -2228,17 +2231,36 @@ PERSONALITY: You are anxious but cooperative. You're worried this might be a hea
                         {/* Scenario status indicator */}
                         {hasScenario ? (
                             <div className={`p-3 rounded-lg border ${vitalsOverridden ? 'bg-orange-900/20 border-orange-700/50' : 'bg-blue-900/20 border-blue-700/50'}`}>
-                                <div className="flex items-center gap-2">
-                                    {vitalsOverridden ? (
-                                        <>
-                                            <span className="text-orange-400 font-bold text-sm">Override Mode</span>
-                                            <span className="text-xs text-orange-300">- Custom vitals will replace scenario's first frame</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="text-blue-400 font-bold text-sm">Reading from Scenario</span>
-                                            <span className="text-xs text-blue-300">- Values below show scenario's starting vitals</span>
-                                        </>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        {vitalsOverridden ? (
+                                            <>
+                                                <span className="text-orange-400 font-bold text-sm">Override Mode</span>
+                                                <span className="text-xs text-orange-300">- Custom vitals will replace scenario's first frame</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="text-blue-400 font-bold text-sm">Reading from Scenario</span>
+                                                <span className="text-xs text-blue-300">- Values below show scenario's starting vitals</span>
+                                            </>
+                                        )}
+                                    </div>
+                                    {vitalsOverridden && (
+                                        <button
+                                            onClick={() => {
+                                                // Clear initial vitals to reset to scenario
+                                                setCaseData(prev => ({
+                                                    ...prev,
+                                                    config: {
+                                                        ...prev.config,
+                                                        initialVitals: null
+                                                    }
+                                                }));
+                                            }}
+                                            className="px-3 py-1 text-xs font-bold bg-orange-600 hover:bg-orange-500 text-white rounded"
+                                        >
+                                            Reset to Scenario
+                                        </button>
                                     )}
                                 </div>
                             </div>

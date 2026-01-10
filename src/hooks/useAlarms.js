@@ -221,9 +221,16 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
 
   // Check vitals every 2 seconds
   useEffect(() => {
+    // Check immediately when vitals change
+    checkVitals();
     const interval = setInterval(checkVitals, 2000);
     return () => clearInterval(interval);
   }, [checkVitals]);
+
+  // Debug: Log when thresholds change
+  useEffect(() => {
+    console.log('[Alarms] Thresholds updated:', thresholds);
+  }, [thresholds]);
 
   // Acknowledge alarm
   const acknowledgeAlarm = useCallback((alarmKey) => {
