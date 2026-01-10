@@ -1280,4 +1280,258 @@ router.post('/proxy/llm', async (req, res) => {
     }
 });
 
+// ========================================
+// SCENARIO REPOSITORY ROUTES
+// ========================================
+
+// Get all scenarios (public + user's private ones)
+router.get('/scenarios', authenticateToken, (req, res) => {
+    const userId = req.user?.id;
+    
+    const query = `
+        SELECT s.*, u.username as created_by_username 
+        FROM scenarios s
+        LEFT JOIN users u ON s.created_by = u.id
+        WHERE s.is_public = 1 OR s.created_by = ?
+        ORDER BY s.created_at DESC
+    `;
+    
+    db.all(query, [userId], (err, rows) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        // Parse JSON timeline
+        const scenarios = rows.map(row => ({
+            ...row,
+            timeline: JSON.parse(row.timeline || '[]')
+        }));
+        
+        res.json({ scenarios });
+    });
+});
+
+// Get single scenario
+router.get('/scenarios/:id', authenticateToken, (req, res) => {
+    const { id } = req.params;
+    
+    db.get('SELECT * FROM scenarios WHERE id = ?', [id], (err, row) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (!row) {
+            return res.status(404).json({ error: 'Scenario not found' });
+        }
+        
+        res.json({
+            ...row,
+            timeline: JSON.parse(row.timeline || '[]')
+        });
+    });
+});
+
+// Create scenario
+router.post('/scenarios', authenticateToken, (req, res) => {
+    const { name, description, duration_minutes, category, timeline, is_public } = req.body;
+    const created_by = req.user.id;
+    
+    if (!name || !timeline || !duration_minutes) {
+        return res.status(400).json({ error: 'Name, timeline, and duration are required' });
+    }
+    
+    const query = `
+        INSERT INTO scenarios (name, description, duration_minutes, category, timeline, created_by, is_public)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    
+    db.run(
+        query,
+        [name, description, duration_minutes, category, JSON.stringify(timeline), created_by, is_public ? 1 : 0],
+        function(err) {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            res.json({ 
+                id: this.lastID,
+                message: 'Scenario created successfully' 
+            });
+        }
+    );
+});
+
+// Update scenario
+router.put('/scenarios/:id', authenticateToken, (req, res) => {
+    const { id } = req.params;
+    const { name, description, duration_minutes, category, timeline, is_public } = req.body;
+    const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    
+    // Check ownership or admin
+    db.get('SELECT created_by FROM scenarios WHERE id = ?', [id], (err, row) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (!row) {
+            return res.status(404).json({ error: 'Scenario not found' });
+        }
+        if (row.created_by !== userId && !isAdmin) {
+            return res.status(403).json({ error: 'Not authorized to edit this scenario' });
+        }
+        
+        const query = `
+            UPDATE scenarios 
+            SET name = ?, description = ?, duration_minutes = ?, category = ?, timeline = ?, is_public = ?
+            WHERE id = ?
+        `;
+        
+        db.run(
+            query,
+            [name, description, duration_minutes, category, JSON.stringify(timeline), is_public ? 1 : 0, id],
+            (err) => {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+                res.json({ message: 'Scenario updated successfully' });
+            }
+        );
+    });
+});
+
+// Delete scenario
+router.delete('/scenarios/:id', authenticateToken, (req, res) => {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const isAdmin = req.user.role === 'admin';
+    
+    // Check ownership or admin
+    db.get('SELECT created_by FROM scenarios WHERE id = ?', [id], (err, row) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (!row) {
+            return res.status(404).json({ error: 'Scenario not found' });
+        }
+        if (row.created_by !== userId && !isAdmin) {
+            return res.status(403).json({ error: 'Not authorized to delete this scenario' });
+        }
+        
+        db.run('DELETE FROM scenarios WHERE id = ?', [id], (err) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            res.json({ message: 'Scenario deleted successfully' });
+        });
+    });
+});
+
+// Seed default scenarios (admin only)
+router.post('/scenarios/seed', requireAdmin, (req, res) => {
+    const defaultScenarios = [
+        {
+            name: "STEMI Progression",
+            description: "Acute MI progressing to cardiogenic shock - late stage",
+            duration_minutes: 40,
+            category: "Cardiac",
+            timeline: [
+                { time: 0, label: "Initial presentation", params: { hr: 80, spo2: 98, rr: 16, bpSys: 125, bpDia: 82, temp: 37.0, etco2: 38 }, conditions: { stElev: 0 }, rhythm: "NSR" },
+                { time: 600, label: "STEMI develops", params: { hr: 110, spo2: 96, rr: 22, bpSys: 145, bpDia: 95, temp: 37.0, etco2: 40 }, conditions: { stElev: 2.0 } },
+                { time: 1500, label: "Worsening ischemia", params: { hr: 125, spo2: 92, rr: 26, bpSys: 100, bpDia: 60, temp: 37.0, etco2: 42 }, conditions: { stElev: 2.5, pvc: true } },
+                { time: 2400, label: "Late stage", params: { hr: 135, spo2: 85, rr: 28, bpSys: 70, bpDia: 45, temp: 37.0, etco2: 44 }, conditions: { stElev: 2.5, pvc: true, noise: 2 } }
+            ]
+        },
+        {
+            name: "Septic Shock Progression",
+            description: "Vasodilation leading to severe hypotension - late stage",
+            duration_minutes: 40,
+            category: "Sepsis",
+            timeline: [
+                { time: 0, label: "Early sepsis", params: { hr: 95, spo2: 94, rr: 20, bpSys: 110, bpDia: 70, temp: 38.5, etco2: 35 }, conditions: { stElev: 0 }, rhythm: "NSR" },
+                { time: 900, label: "Progressive shock", params: { hr: 115, spo2: 90, rr: 26, bpSys: 90, bpDia: 50, temp: 39.5, etco2: 32 }, conditions: { noise: 1 } },
+                { time: 1800, label: "Severe shock", params: { hr: 135, spo2: 85, rr: 32, bpSys: 70, bpDia: 35, temp: 39.5, etco2: 28 }, conditions: { noise: 2 } },
+                { time: 2400, label: "Late stage", params: { hr: 145, spo2: 80, rr: 36, bpSys: 60, bpDia: 25, temp: 39.8, etco2: 26 }, conditions: { noise: 3 } }
+            ]
+        },
+        {
+            name: "Respiratory Failure",
+            description: "Gradual onset of hypoxia and hypercapnia - late stage",
+            duration_minutes: 30,
+            category: "Respiratory",
+            timeline: [
+                { time: 0, label: "Early distress", params: { hr: 90, spo2: 93, rr: 24, bpSys: 125, bpDia: 80, temp: 37.0, etco2: 42 }, rhythm: "NSR" },
+                { time: 600, label: "Worsening hypoxia", params: { hr: 100, spo2: 88, rr: 32, bpSys: 130, bpDia: 85, temp: 37.0, etco2: 48 }, conditions: { noise: 1 } },
+                { time: 1200, label: "Severe hypoxia", params: { hr: 115, spo2: 82, rr: 36, bpSys: 140, bpDia: 90, temp: 37.5, etco2: 54 }, conditions: { noise: 2 } },
+                { time: 1800, label: "Late stage", params: { hr: 125, spo2: 78, rr: 38, bpSys: 145, bpDia: 92, temp: 37.5, etco2: 60 }, conditions: { noise: 3 } }
+            ]
+        },
+        {
+            name: "Hypertensive Crisis",
+            description: "Rapid increase in blood pressure - late stage",
+            duration_minutes: 45,
+            category: "Cardiovascular",
+            timeline: [
+                { time: 0, label: "Baseline", params: { hr: 75, spo2: 99, rr: 14, bpSys: 130, bpDia: 85, temp: 37.0, etco2: 38 }, rhythm: "NSR" },
+                { time: 900, label: "BP rising", params: { hr: 90, spo2: 98, rr: 18, bpSys: 180, bpDia: 110, temp: 37.0, etco2: 40 } },
+                { time: 1800, label: "Crisis peak", params: { hr: 105, spo2: 96, rr: 22, bpSys: 220, bpDia: 130, temp: 37.0, etco2: 42 }, conditions: { stElev: -1.0 } },
+                { time: 2700, label: "Late stage", params: { hr: 115, spo2: 94, rr: 24, bpSys: 240, bpDia: 150, temp: 37.0, etco2: 45 } }
+            ]
+        },
+        {
+            name: "Anaphylactic Shock",
+            description: "Rapid onset of severe allergic reaction - late stage",
+            duration_minutes: 10,
+            category: "Allergic",
+            timeline: [
+                { time: 0, label: "Initial exposure", params: { hr: 85, spo2: 98, rr: 16, bpSys: 120, bpDia: 80, temp: 37.0, etco2: 38 }, rhythm: "NSR" },
+                { time: 120, label: "Rapid onset", params: { hr: 115, spo2: 92, rr: 28, bpSys: 100, bpDia: 65, temp: 37.0, etco2: 42 }, conditions: { noise: 2 } },
+                { time: 300, label: "Severe reaction", params: { hr: 135, spo2: 85, rr: 35, bpSys: 75, bpDia: 45, temp: 37.0, etco2: 48 }, conditions: { noise: 3 } },
+                { time: 600, label: "Late stage", params: { hr: 150, spo2: 80, rr: 36, bpSys: 60, bpDia: 35, temp: 36.5, etco2: 50 }, conditions: { pvc: true, noise: 3 } }
+            ]
+        },
+        {
+            name: "Post-Resuscitation Recovery",
+            description: "Patient recovering after successful resuscitation",
+            duration_minutes: 30,
+            category: "Recovery",
+            timeline: [
+                { time: 0, label: "Post-ROSC", params: { hr: 130, spo2: 85, rr: 30, bpSys: 80, bpDia: 50, temp: 35.0, etco2: 30 }, conditions: { noise: 1 }, rhythm: "NSR" },
+                { time: 900, label: "Stabilizing", params: { hr: 110, spo2: 92, rr: 20, bpSys: 100, bpDia: 60, temp: 36.0, etco2: 35 }, conditions: { noise: 0 } },
+                { time: 1800, label: "Improving", params: { hr: 90, spo2: 96, rr: 16, bpSys: 120, bpDia: 75, temp: 37.0, etco2: 38 } }
+            ]
+        }
+    ];
+    
+    let inserted = 0;
+    let errors = 0;
+    
+    defaultScenarios.forEach(scenario => {
+        const query = `
+            INSERT INTO scenarios (name, description, duration_minutes, category, timeline, created_by, is_public)
+            VALUES (?, ?, ?, ?, ?, NULL, 1)
+        `;
+        
+        db.run(
+            query,
+            [scenario.name, scenario.description, scenario.duration_minutes, scenario.category, JSON.stringify(scenario.timeline)],
+            (err) => {
+                if (err) {
+                    console.error(`Error seeding scenario ${scenario.name}:`, err.message);
+                    errors++;
+                } else {
+                    inserted++;
+                }
+                
+                // After all scenarios processed
+                if (inserted + errors === defaultScenarios.length) {
+                    res.json({ 
+                        message: `Seeded ${inserted} scenarios, ${errors} errors`,
+                        inserted,
+                        errors
+                    });
+                }
+            }
+        );
+    });
+});
+
 export default router;

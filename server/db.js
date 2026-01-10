@@ -226,7 +226,21 @@ function initDb() {
             }
         });
 
-        console.log('Database tables initialized with comprehensive logging.');
+        // 13. Scenarios Repository Table - Reusable scenario templates
+        db.run(`CREATE TABLE IF NOT EXISTS scenarios (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            description TEXT,
+            duration_minutes INTEGER NOT NULL,
+            category TEXT,
+            timeline JSON NOT NULL,
+            created_by INTEGER,
+            is_public BOOLEAN DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(created_by) REFERENCES users(id)
+        )`);
+
+        console.log('Database tables initialized with comprehensive logging and scenario repository.');
     });
 }
 
