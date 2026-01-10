@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { X, RotateCcw, User, UserCheck, Brain, Download } from 'lucide-react';
+import { X, RotateCcw, User, UserCheck, Brain, Download, Users } from 'lucide-react';
 import BodyMap from './BodyMap';
 import ExamTypeSelector from './ExamTypeSelector';
 import FindingDisplay from './FindingDisplay';
@@ -15,15 +15,18 @@ import { BODY_REGIONS, getDefaultFinding, SAMPLE_ABNORMAL_EXAM } from '../../dat
  * - physicalExam: object containing configured findings for each region/exam type
  *                 Format: { regionId: { examType: { finding, abnormal } } }
  * - onExamPerformed: callback when an exam is performed (for logging/analytics)
+ * - patientGender: 'male' or 'female' (optional, defaults to 'male')
  */
 export default function ManikinPanel({
     isOpen,
     onClose,
     physicalExam = null, // If null, uses default findings
-    onExamPerformed
+    onExamPerformed,
+    patientGender = 'male'
 }) {
     // State
     const [view, setView] = useState('anterior'); // anterior | posterior
+    const [gender, setGender] = useState(patientGender); // male | female
     const [selectedRegion, setSelectedRegion] = useState(null);
     const [selectedExamType, setSelectedExamType] = useState(null);
     const [examLog, setExamLog] = useState([]);
@@ -215,7 +218,7 @@ export default function ManikinPanel({
                     {/* Left Panel - Body Map */}
                     <div className="w-1/3 border-r border-slate-700 p-4 flex flex-col">
                         {/* View Toggle */}
-                        <div className="flex gap-2 mb-4">
+                        <div className="flex gap-2 mb-3">
                             <button
                                 onClick={() => setView('anterior')}
                                 className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
@@ -238,10 +241,37 @@ export default function ManikinPanel({
                             </button>
                         </div>
 
+                        {/* Gender Toggle */}
+                        <div className="flex gap-2 mb-4">
+                            <button
+                                onClick={() => setGender('male')}
+                                className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
+                                    gender === 'male'
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                }`}
+                            >
+                                <User className="w-3 h-3" />
+                                Male
+                            </button>
+                            <button
+                                onClick={() => setGender('female')}
+                                className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-colors flex items-center justify-center gap-1 ${
+                                    gender === 'female'
+                                        ? 'bg-pink-600 text-white'
+                                        : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+                                }`}
+                            >
+                                <Users className="w-3 h-3" />
+                                Female
+                            </button>
+                        </div>
+
                         {/* Body Map */}
-                        <div className="flex-1 flex items-center justify-center">
+                        <div className="flex-1 flex items-center justify-center overflow-hidden">
                             <BodyMap
                                 view={view}
+                                gender={gender}
                                 selectedRegion={selectedRegion}
                                 onRegionClick={handleRegionClick}
                                 examinedRegions={examinedRegions}
