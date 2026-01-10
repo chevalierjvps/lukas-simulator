@@ -7,6 +7,7 @@ import EventLog from '../monitor/EventLog';
 import SessionLogViewer from '../analytics/SessionLogViewer';
 import ScenarioRepository from './ScenarioRepository';
 import LabInvestigationEditor from './LabInvestigationEditor';
+import ClinicalRecordsEditor from './ClinicalRecordsEditor';
 import { SCENARIO_TEMPLATES, scaleScenarioTimeline } from '../../data/scenarioTemplates';
 
 export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
@@ -2636,69 +2637,13 @@ PERSONALITY: You are anxious but cooperative. You're worried this might be a hea
                     </div>
                 )}
 
-                {/* STEP 6: CLINICAL PAGES */}
+                {/* STEP 6: CLINICAL RECORDS */}
                 {step === 6 && (
-                    <div className="space-y-6">
-                        <div className="flex justify-between items-center">
-                            <h4 className="text-lg font-bold text-purple-400">6. Clinical Records</h4>
-                            <button
-                                onClick={() => {
-                                    const newPages = [...(caseData.config?.pages || [])];
-                                    newPages.push({ title: 'New Section', content: '' });
-                                    updateConfig('pages', newPages);
-                                }}
-                                className="btn-secondary text-xs"
-                            >
-                                <Plus className="w-3 h-3 mr-1" /> Add Page
-                            </button>
-                        </div>
-                        <p className="text-xs text-neutral-500">These pages are hidden context for the AI and can be requested by the student (e.g. 'Show me the ECG').</p>
-
-                        <div className="space-y-4">
-                            {(caseData.config?.pages || []).map((page, idx) => (
-                                <div key={idx} className="p-4 bg-neutral-800 border border-neutral-700 rounded-lg animate-in slide-in-from-bottom-2">
-                                    <div className="flex justify-between mb-2">
-                                        <input
-                                            type="text"
-                                            value={page.title}
-                                            onChange={e => {
-                                                const newPages = [...caseData.config.pages];
-                                                newPages[idx].title = e.target.value;
-                                                updateConfig('pages', newPages);
-                                            }}
-                                            className="bg-transparent border-b border-neutral-600 font-bold focus:border-purple-500 outline-none text-sm"
-                                            placeholder="Page Title (e.g. History)"
-                                        />
-                                        <button
-                                            onClick={() => {
-                                                const newPages = caseData.config.pages.filter((_, i) => i !== idx);
-                                                updateConfig('pages', newPages);
-                                            }}
-                                            className="text-neutral-500 hover:text-red-400"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                    <textarea
-                                        rows={4}
-                                        value={page.content}
-                                        onChange={e => {
-                                            const newPages = [...caseData.config.pages];
-                                            newPages[idx].content = e.target.value;
-                                            updateConfig('pages', newPages);
-                                        }}
-                                        className="input-dark text-xs font-mono"
-                                        placeholder="Content for the AI to know..."
-                                    />
-                                </div>
-                            ))}
-                            {(caseData.config?.pages || []).length === 0 && (
-                                <div className="text-center py-10 bg-neutral-800/50 rounded-lg border border-dashed border-neutral-700 text-neutral-500">
-                                    No clinical pages added yet.
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                    <ClinicalRecordsEditor
+                        caseData={caseData}
+                        setCaseData={setCaseData}
+                        updateConfig={updateConfig}
+                    />
                 )}
 
             </div>
