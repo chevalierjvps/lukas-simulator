@@ -316,20 +316,74 @@ router.post('/upload', upload.single('photo'), (req, res) => {
 
 // --- CASES ---
 
-// GET /api/cases - Authenticated users can view cases
+// GET /api/cases - Authenticated users can view cases (students only see available cases)
 router.get('/cases', authenticateToken, (req, res) => {
-    db.all("SELECT * FROM cases ORDER BY created_at DESC", [], (err, rows) => {
+    const isAdmin = req.user?.role === 'admin';
+
+    // Students only see available cases, admins see all
+    const sql = isAdmin
+        ? "SELECT * FROM cases ORDER BY is_default DESC, created_at DESC"
+        : "SELECT * FROM cases WHERE is_available = 1 ORDER BY is_default DESC, created_at DESC";
+
+    db.all(sql, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
-        
+
         // Parse JSON fields
         const cases = rows.map(row => ({
             ...row,
             config: row.config ? JSON.parse(row.config) : {},
-            scenario: row.scenario ? JSON.parse(row.scenario) : null
+            scenario: row.scenario ? JSON.parse(row.scenario) : null,
+            is_available: Boolean(row.is_available),
+            is_default: Boolean(row.is_default)
         }));
-        
+
         res.json({ cases });
     });
+});
+
+// PUT /api/cases/:id/availability - Toggle case availability (Admin only)
+router.put('/cases/:id/availability', authenticateToken, requireAdmin, (req, res) => {
+    const { is_available } = req.body;
+    db.run(
+        "UPDATE cases SET is_available = ? WHERE id = ?",
+        [is_available ? 1 : 0, req.params.id],
+        function(err) {
+            if (err) return res.status(500).json({ error: err.message });
+            if (this.changes === 0) return res.status(404).json({ error: 'Case not found' });
+            res.json({ success: true, is_available: Boolean(is_available) });
+        }
+    );
+});
+
+// PUT /api/cases/:id/default - Set case as default (Admin only)
+router.put('/cases/:id/default', authenticateToken, requireAdmin, (req, res) => {
+    const { is_default } = req.body;
+
+    // If setting as default, first clear any existing defaults
+    if (is_default) {
+        db.run("UPDATE cases SET is_default = 0", [], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            db.run(
+                "UPDATE cases SET is_default = 1, is_available = 1 WHERE id = ?",
+                [req.params.id],
+                function(err) {
+                    if (err) return res.status(500).json({ error: err.message });
+                    if (this.changes === 0) return res.status(404).json({ error: 'Case not found' });
+                    res.json({ success: true, is_default: true });
+                }
+            );
+        });
+    } else {
+        db.run(
+            "UPDATE cases SET is_default = 0 WHERE id = ?",
+            [req.params.id],
+            function(err) {
+                if (err) return res.status(500).json({ error: err.message });
+                res.json({ success: true, is_default: false });
+            }
+        );
+    }
 });
 
 // POST /api/cases - Admin only
@@ -439,6 +493,31 @@ router.post('/sessions', authenticateToken, (req, res) => {
             user_id, 
             student_name: student_name || req.user.username 
         });
+    });
+});
+
+// GET /api/sessions/:id - Get session details for validation
+router.get('/sessions/:id', authenticateToken, (req, res) => {
+    const sessionId = req.params.id;
+    const userId = req.user.id;
+
+    const sql = `
+        SELECT s.*, c.name as case_name
+        FROM sessions s
+        LEFT JOIN cases c ON s.case_id = c.id
+        WHERE s.id = ?
+    `;
+
+    db.get(sql, [sessionId], (err, session) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!session) return res.status(404).json({ error: 'Session not found' });
+
+        // Check ownership (users can only access their own sessions, admins can access all)
+        if (session.user_id !== userId && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        res.json({ session });
     });
 });
 
@@ -1084,6 +1163,423 @@ router.get('/sessions/:id/events', authenticateToken, (req, res) => {
     });
 });
 
+// --- LEARNING ANALYTICS ENDPOINTS ---
+
+// Standard xAPI-style verbs for learning analytics
+const LEARNING_VERBS = [
+    // Session lifecycle
+    'STARTED_SESSION', 'ENDED_SESSION', 'RESUMED_SESSION',
+    // Navigation
+    'VIEWED', 'OPENED', 'CLOSED', 'NAVIGATED', 'SWITCHED_TAB',
+    // Interactions
+    'CLICKED', 'SELECTED', 'DESELECTED', 'TOGGLED', 'EXPANDED', 'COLLAPSED',
+    // Lab/Investigation actions
+    'ORDERED_LAB', 'VIEWED_LAB_RESULT', 'SEARCHED_LABS', 'FILTERED_LABS',
+    // Chat interactions
+    'SENT_MESSAGE', 'RECEIVED_MESSAGE', 'COPIED_MESSAGE',
+    // Monitor interactions
+    'ADJUSTED_VITAL', 'ACKNOWLEDGED_ALARM', 'SILENCED_ALARM',
+    // Settings
+    'CHANGED_SETTING', 'SAVED_SETTING',
+    // Case interactions
+    'LOADED_CASE', 'VIEWED_PATIENT_INFO', 'VIEWED_RECORDS',
+    // Scenario interactions
+    'STARTED_SCENARIO', 'PAUSED_SCENARIO', 'RESUMED_SCENARIO',
+    // Submissions
+    'SUBMITTED', 'ANSWERED', 'ATTEMPTED'
+];
+
+// POST /api/learning-events - Log a learning event
+router.post('/learning-events', authenticateToken, (req, res) => {
+    const {
+        session_id,
+        case_id,
+        verb,
+        object_type,
+        object_id,
+        object_name,
+        component,
+        parent_component,
+        result,
+        duration_ms,
+        context,
+        message_content,
+        message_role
+    } = req.body;
+
+    const user_id = req.user.id;
+
+    // Validate verb
+    if (!verb || !LEARNING_VERBS.includes(verb)) {
+        return res.status(400).json({
+            error: `Invalid verb. Must be one of: ${LEARNING_VERBS.join(', ')}`
+        });
+    }
+
+    if (!object_type) {
+        return res.status(400).json({ error: 'object_type is required' });
+    }
+
+    const sql = `
+        INSERT INTO learning_events (
+            session_id, user_id, case_id, verb,
+            object_type, object_id, object_name,
+            component, parent_component,
+            result, duration_ms, context,
+            message_content, message_role
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    db.run(sql, [
+        session_id,
+        user_id,
+        case_id,
+        verb,
+        object_type,
+        object_id || null,
+        object_name || null,
+        component || null,
+        parent_component || null,
+        result || null,
+        duration_ms || null,
+        context ? JSON.stringify(context) : null,
+        message_content || null,
+        message_role || null
+    ], function(err) {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ id: this.lastID });
+    });
+});
+
+// POST /api/learning-events/batch - Log multiple events at once
+router.post('/learning-events/batch', authenticateToken, (req, res) => {
+    const { events } = req.body;
+    const user_id = req.user.id;
+
+    if (!Array.isArray(events) || events.length === 0) {
+        return res.status(400).json({ error: 'events array is required' });
+    }
+
+    const sql = `
+        INSERT INTO learning_events (
+            session_id, user_id, case_id, verb,
+            object_type, object_id, object_name,
+            component, parent_component,
+            result, duration_ms, context,
+            message_content, message_role, timestamp
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const stmt = db.prepare(sql);
+    let inserted = 0;
+
+    events.forEach(event => {
+        stmt.run([
+            event.session_id,
+            user_id,
+            event.case_id,
+            event.verb,
+            event.object_type,
+            event.object_id || null,
+            event.object_name || null,
+            event.component || null,
+            event.parent_component || null,
+            event.result || null,
+            event.duration_ms || null,
+            event.context ? JSON.stringify(event.context) : null,
+            event.message_content || null,
+            event.message_role || null,
+            event.timestamp || new Date().toISOString()
+        ], function(err) {
+            if (!err) inserted++;
+        });
+    });
+
+    stmt.finalize((err) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({ inserted, total: events.length });
+    });
+});
+
+// GET /api/learning-events/session/:id - Get all learning events for a session
+router.get('/learning-events/session/:id', authenticateToken, (req, res) => {
+    const sessionId = req.params.id;
+    const userId = req.user.id;
+
+    // Verify user owns session or is admin
+    db.get('SELECT user_id FROM sessions WHERE id = ?', [sessionId], (err, session) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!session) return res.status(404).json({ error: 'Session not found' });
+        if (session.user_id !== userId && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+
+        const sql = `
+            SELECT le.*, c.name as case_name
+            FROM learning_events le
+            LEFT JOIN cases c ON le.case_id = c.id
+            WHERE le.session_id = ?
+            ORDER BY le.timestamp ASC
+        `;
+
+        db.all(sql, [sessionId], (err, events) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ events });
+        });
+    });
+});
+
+// GET /api/learning-events/user/:id - Get all learning events for a user (admin only)
+router.get('/learning-events/user/:id', authenticateToken, (req, res) => {
+    const targetUserId = req.params.id;
+
+    // Only admin or the user themselves can view
+    if (req.user.id !== parseInt(targetUserId) && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const { start_date, end_date, verb, case_id, limit = 1000 } = req.query;
+
+    let sql = `
+        SELECT le.*, s.start_time as session_start, c.name as case_name
+        FROM learning_events le
+        LEFT JOIN sessions s ON le.session_id = s.id
+        LEFT JOIN cases c ON le.case_id = c.id
+        WHERE le.user_id = ?
+    `;
+    const params = [targetUserId];
+
+    if (start_date) {
+        sql += ` AND le.timestamp >= ?`;
+        params.push(start_date);
+    }
+    if (end_date) {
+        sql += ` AND le.timestamp <= ?`;
+        params.push(end_date);
+    }
+    if (verb) {
+        sql += ` AND le.verb = ?`;
+        params.push(verb);
+    }
+    if (case_id) {
+        sql += ` AND le.case_id = ?`;
+        params.push(case_id);
+    }
+
+    sql += ` ORDER BY le.timestamp DESC LIMIT ?`;
+    params.push(parseInt(limit));
+
+    db.all(sql, params, (err, events) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ events });
+    });
+});
+
+// GET /api/learning-events/analytics/summary - Get analytics summary
+router.get('/learning-events/analytics/summary', authenticateToken, (req, res) => {
+    const { session_id, user_id, case_id } = req.query;
+
+    // Build where clause
+    let whereClause = '';
+    const params = [];
+
+    if (session_id) {
+        whereClause = 'WHERE session_id = ?';
+        params.push(session_id);
+    } else if (user_id) {
+        // Check permission
+        if (req.user.id !== parseInt(user_id) && req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        whereClause = 'WHERE user_id = ?';
+        params.push(user_id);
+    } else if (req.user.role !== 'admin') {
+        // Non-admins can only see their own data
+        whereClause = 'WHERE user_id = ?';
+        params.push(req.user.id);
+    }
+
+    if (case_id) {
+        whereClause += whereClause ? ' AND case_id = ?' : 'WHERE case_id = ?';
+        params.push(case_id);
+    }
+
+    const sql = `
+        SELECT
+            verb,
+            object_type,
+            COUNT(*) as count,
+            AVG(duration_ms) as avg_duration_ms
+        FROM learning_events
+        ${whereClause}
+        GROUP BY verb, object_type
+        ORDER BY count DESC
+    `;
+
+    db.all(sql, params, (err, summary) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ summary });
+    });
+});
+
+// GET /api/learning-events/verbs - Get list of valid verbs
+router.get('/learning-events/verbs', (req, res) => {
+    res.json({ verbs: LEARNING_VERBS });
+});
+
+// GET /api/learning-events/recent - Get recent events across all sessions (for current user)
+router.get('/learning-events/recent', authenticateToken, (req, res) => {
+    const userId = req.user.id;
+    const limit = parseInt(req.query.limit) || 200;
+
+    const sql = `
+        SELECT le.*, s.case_id, c.name as case_name
+        FROM learning_events le
+        LEFT JOIN sessions s ON le.session_id = s.id
+        LEFT JOIN cases c ON s.case_id = c.id
+        WHERE le.user_id = ?
+        ORDER BY le.timestamp DESC
+        LIMIT ?
+    `;
+
+    db.all(sql, [userId, limit], (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Parse JSON fields
+        const events = rows.map(row => ({
+            ...row,
+            context: row.context ? JSON.parse(row.context) : null
+        }));
+
+        res.json({ events });
+    });
+});
+
+// GET /api/learning-events/all - Get ALL events across all users and sessions (admin) or user's events
+router.get('/learning-events/all', authenticateToken, (req, res) => {
+    const isAdmin = req.user.role === 'admin';
+    const limit = parseInt(req.query.limit) || 500;
+
+    // Admin sees all events, regular users see only their own
+    const sql = isAdmin ? `
+        SELECT le.*,
+               s.case_id,
+               c.name as case_name,
+               u.username
+        FROM learning_events le
+        LEFT JOIN sessions s ON le.session_id = s.id
+        LEFT JOIN cases c ON s.case_id = c.id
+        LEFT JOIN users u ON le.user_id = u.id
+        ORDER BY le.timestamp DESC
+        LIMIT ?
+    ` : `
+        SELECT le.*,
+               s.case_id,
+               c.name as case_name,
+               u.username
+        FROM learning_events le
+        LEFT JOIN sessions s ON le.session_id = s.id
+        LEFT JOIN cases c ON s.case_id = c.id
+        LEFT JOIN users u ON le.user_id = u.id
+        WHERE le.user_id = ?
+        ORDER BY le.timestamp DESC
+        LIMIT ?
+    `;
+
+    const params = isAdmin ? [limit] : [req.user.id, limit];
+
+    db.all(sql, params, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Parse JSON fields and add session info
+        const events = rows.map(row => ({
+            ...row,
+            context: row.context ? JSON.parse(row.context) : null
+        }));
+
+        // Get unique sessions for filtering
+        const sessions = [...new Map(events.filter(e => e.session_id).map(e => [
+            e.session_id,
+            { id: e.session_id, case_name: e.case_name, username: e.username }
+        ])).values()];
+
+        res.json({ events, sessions });
+    });
+});
+
+// GET /api/learning-events/detailed/:sessionId - Get detailed events with lab workflow info
+router.get('/learning-events/detailed/:sessionId', authenticateToken, (req, res) => {
+    const sessionId = req.params.sessionId;
+
+    // Get all learning events for this session with full details
+    const eventsSql = `
+        SELECT le.*,
+               u.username,
+               c.name as case_name
+        FROM learning_events le
+        LEFT JOIN users u ON le.user_id = u.id
+        LEFT JOIN sessions s ON le.session_id = s.id
+        LEFT JOIN cases c ON s.case_id = c.id
+        WHERE le.session_id = ?
+        ORDER BY le.timestamp ASC
+    `;
+
+    // Get lab orders with timing info
+    const labOrdersSql = `
+        SELECT io.*, ci.test_name, ci.test_group,
+               ROUND((julianday(io.available_at) - julianday(io.ordered_at)) * 24 * 60, 1) as wait_minutes,
+               ROUND((julianday(io.viewed_at) - julianday(io.available_at)) * 24 * 60, 1) as view_delay_minutes
+        FROM investigation_orders io
+        LEFT JOIN case_investigations ci ON io.investigation_id = ci.id
+        WHERE io.session_id = ?
+        ORDER BY io.ordered_at ASC
+    `;
+
+    // Get chat messages
+    const chatSql = `
+        SELECT * FROM interactions
+        WHERE session_id = ?
+        ORDER BY timestamp ASC
+    `;
+
+    db.all(eventsSql, [sessionId], (err, events) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        db.all(labOrdersSql, [sessionId], (err, labOrders) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            db.all(chatSql, [sessionId], (err, chatMessages) => {
+                if (err) return res.status(500).json({ error: err.message });
+
+                // Parse JSON fields in events
+                const parsedEvents = events.map(row => ({
+                    ...row,
+                    context: row.context ? JSON.parse(row.context) : null
+                }));
+
+                res.json({
+                    events: parsedEvents,
+                    labOrders,
+                    chatMessages,
+                    summary: {
+                        totalEvents: parsedEvents.length,
+                        totalLabsOrdered: labOrders.length,
+                        totalMessages: chatMessages.length,
+                        labsViewed: labOrders.filter(l => l.viewed_at).length,
+                        avgLabWaitTime: labOrders.length > 0
+                            ? (labOrders.reduce((sum, l) => sum + (l.wait_minutes || 0), 0) / labOrders.length).toFixed(1)
+                            : 0
+                    }
+                });
+            });
+        });
+    });
+});
+
 // --- ALARM ENDPOINTS ---
 
 // POST /api/alarms/log - Log an alarm event
@@ -1239,33 +1735,45 @@ router.post('/sessions/:id/order', authenticateToken, (req, res) => {
 // GET /api/sessions/:id/orders - Get all orders for session
 router.get('/sessions/:id/orders', authenticateToken, (req, res) => {
     const sessionId = req.params.id;
-    
+
     const sql = `
-        SELECT 
+        SELECT
             io.*,
             ci.investigation_type,
             ci.test_name,
+            ci.test_group,
+            ci.gender_category,
+            ci.min_value,
+            ci.max_value,
+            ci.current_value,
+            ci.unit,
             ci.result_data,
             ci.image_url,
-            ci.turnaround_minutes
+            ci.turnaround_minutes,
+            ci.is_abnormal
         FROM investigation_orders io
         JOIN case_investigations ci ON io.investigation_id = ci.id
         WHERE io.session_id = ?
         ORDER BY io.ordered_at DESC
     `;
-    
+
     db.all(sql, [sessionId], (err, rows) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        
-        // Parse JSON result_data
+
+        // Parse JSON result_data and ensure all values are present
         const orders = rows.map(row => ({
             ...row,
             result_data: row.result_data ? JSON.parse(row.result_data) : null,
-            is_ready: new Date(row.available_at) <= new Date()
+            is_ready: new Date(row.available_at) <= new Date(),
+            test_group: row.test_group || 'General',
+            unit: row.unit || '',
+            min_value: row.min_value ?? null,
+            max_value: row.max_value ?? null,
+            current_value: row.current_value ?? null
         }));
-        
+
         res.json({ orders });
     });
 });
@@ -1273,14 +1781,82 @@ router.get('/sessions/:id/orders', authenticateToken, (req, res) => {
 // PUT /api/orders/:id/view - Mark investigation as viewed
 router.put('/orders/:id/view', authenticateToken, (req, res) => {
     const orderId = req.params.id;
-    
-    const sql = `UPDATE investigation_orders SET viewed_at = CURRENT_TIMESTAMP WHERE id = ?`;
-    
-    db.run(sql, [orderId], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json({ message: 'Investigation marked as viewed' });
+    const userId = req.user.id;
+
+    // First get the order details for logging
+    const getOrderSql = `
+        SELECT io.*, ci.test_name, ci.test_group, ci.current_value, ci.unit, ci.is_abnormal,
+               s.case_id, s.id as session_id
+        FROM investigation_orders io
+        LEFT JOIN case_investigations ci ON io.investigation_id = ci.id
+        LEFT JOIN sessions s ON io.session_id = s.id
+        WHERE io.id = ?
+    `;
+
+    db.get(getOrderSql, [orderId], (err, order) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (!order) return res.status(404).json({ error: 'Order not found' });
+
+        const now = new Date();
+        const orderedAt = new Date(order.ordered_at);
+        const availableAt = new Date(order.available_at);
+
+        // Calculate timing metrics
+        const waitTimeMs = availableAt - orderedAt;
+        const viewDelayMs = order.viewed_at ? 0 : (now - availableAt);
+        const totalTimeMs = now - orderedAt;
+
+        // Update viewed_at
+        const updateSql = `UPDATE investigation_orders SET viewed_at = CURRENT_TIMESTAMP WHERE id = ?`;
+
+        db.run(updateSql, [orderId], function(updateErr) {
+            if (updateErr) return res.status(500).json({ error: updateErr.message });
+
+            // Log detailed learning event
+            const logSql = `
+                INSERT INTO learning_events (
+                    session_id, user_id, case_id, verb, object_type, object_id, object_name,
+                    component, result, duration_ms, context
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+
+            const context = {
+                test_group: order.test_group,
+                value: order.current_value,
+                unit: order.unit,
+                is_abnormal: order.is_abnormal,
+                wait_time_ms: waitTimeMs,
+                view_delay_ms: viewDelayMs,
+                total_time_ms: totalTimeMs,
+                ordered_at: order.ordered_at,
+                available_at: order.available_at
+            };
+
+            const resultText = `${order.current_value} ${order.unit || ''}${order.is_abnormal ? ' (ABNORMAL)' : ''}`;
+
+            db.run(logSql, [
+                order.session_id,
+                userId,
+                order.case_id,
+                'VIEWED_LAB_RESULT',
+                'lab_result',
+                String(order.investigation_id),
+                order.test_name,
+                'OrdersDrawer',
+                resultText,
+                viewDelayMs,
+                JSON.stringify(context)
+            ]);
+
+            res.json({
+                message: 'Investigation marked as viewed',
+                timing: {
+                    wait_time_minutes: Math.round(waitTimeMs / 60000 * 10) / 10,
+                    view_delay_minutes: Math.round(viewDelayMs / 60000 * 10) / 10,
+                    total_time_minutes: Math.round(totalTimeMs / 60000 * 10) / 10
+                }
+            });
+        });
     });
 });
 
@@ -1343,6 +1919,97 @@ router.get('/labs/grouped', authenticateToken, (req, res) => {
         res.json({ tests: grouped });
     } catch (error) {
         res.status(500).json({ error: 'Error fetching grouped tests', details: error.message });
+    }
+});
+
+// GET /api/labs/stats - Get database statistics (Admin only)
+router.get('/labs/stats', authenticateToken, requireAdmin, (req, res) => {
+    try {
+        const stats = labDb.getDatabaseStats();
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ error: 'Error fetching stats', details: error.message });
+    }
+});
+
+// POST /api/labs/test - Add a new lab test (Admin only)
+router.post('/labs/test', authenticateToken, requireAdmin, (req, res) => {
+    try {
+        const result = labDb.addTest(req.body);
+        if (!result.success) {
+            return res.status(400).json({ error: result.error });
+        }
+        res.status(201).json({ message: 'Test added successfully', test: result.test });
+    } catch (error) {
+        res.status(500).json({ error: 'Error adding test', details: error.message });
+    }
+});
+
+// PUT /api/labs/test - Update a lab test (Admin only)
+router.put('/labs/test', authenticateToken, requireAdmin, (req, res) => {
+    const { test_name, category, ...updates } = req.body;
+
+    if (!test_name || !category) {
+        return res.status(400).json({ error: 'test_name and category are required' });
+    }
+
+    try {
+        const result = labDb.updateTest(test_name, category, updates);
+        if (!result.success) {
+            return res.status(404).json({ error: result.error });
+        }
+        res.json({ message: 'Test updated successfully', test: result.test });
+    } catch (error) {
+        res.status(500).json({ error: 'Error updating test', details: error.message });
+    }
+});
+
+// DELETE /api/labs/test - Delete a lab test (Admin only)
+router.delete('/labs/test', authenticateToken, requireAdmin, (req, res) => {
+    const { test_name, category } = req.body;
+
+    if (!test_name || !category) {
+        return res.status(400).json({ error: 'test_name and category are required' });
+    }
+
+    try {
+        const result = labDb.deleteTest(test_name, category);
+        if (!result.success) {
+            return res.status(404).json({ error: result.error });
+        }
+        res.json({ message: 'Test deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: 'Error deleting test', details: error.message });
+    }
+});
+
+// POST /api/labs/import - Import lab tests from CSV (Admin only)
+router.post('/labs/import', authenticateToken, requireAdmin, (req, res) => {
+    const { tests, overwrite = false } = req.body;
+
+    if (!tests || !Array.isArray(tests) || tests.length === 0) {
+        return res.status(400).json({ error: 'tests array is required' });
+    }
+
+    try {
+        const results = labDb.importFromCSV(tests, overwrite);
+        res.json({
+            message: 'Import completed',
+            results
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Error importing tests', details: error.message });
+    }
+});
+
+// POST /api/labs/reload - Force reload the lab database (Admin only)
+router.post('/labs/reload', authenticateToken, requireAdmin, (req, res) => {
+    try {
+        labDb.clearCache();
+        const tests = labDb.loadLabDatabase();
+        res.json({ message: 'Database reloaded', totalTests: tests.length });
+    } catch (error) {
+        res.status(500).json({ error: 'Error reloading database', details: error.message });
     }
 });
 
@@ -1491,21 +2158,50 @@ router.get('/sessions/:sessionId/available-labs', authenticateToken, (req, res) 
             ORDER BY test_group, test_name
         `;
         
-        db.all(labsSql, [session.case_id], (err, configuredLabs) => {
+        db.all(labsSql, [session.case_id], (err, dbConfiguredLabs) => {
             if (err) {
                 return res.status(500).json({ error: err.message });
             }
-            
+
+            // ALSO get labs from config JSON (case editor saves here)
+            const configJsonLabs = caseConfig.investigations?.labs || [];
+
+            // Merge: DB labs take precedence, then config JSON labs
+            const configuredMap = {};
+
+            // First add config JSON labs (with generated IDs)
+            configJsonLabs.forEach(lab => {
+                if (lab.test_name) {
+                    configuredMap[lab.test_name] = {
+                        id: lab.id || `config_${lab.test_name.replace(/[^a-zA-Z0-9]/g, '_')}`,
+                        test_name: lab.test_name,
+                        test_group: lab.test_group || 'General',
+                        gender_category: lab.gender_category || 'Both',
+                        min_value: lab.min_value,
+                        max_value: lab.max_value,
+                        current_value: lab.current_value,
+                        unit: lab.unit || '',
+                        normal_samples: lab.normal_samples || [],
+                        is_abnormal: lab.is_abnormal || false,
+                        turnaround_minutes: lab.turnaround_minutes || 30,
+                        source: 'config'
+                    };
+                }
+            });
+
+            // Then DB labs override (they have proper IDs)
+            dbConfiguredLabs.forEach(lab => {
+                configuredMap[lab.test_name] = {
+                    ...lab,
+                    normal_samples: JSON.parse(lab.normal_samples || '[]'),
+                    source: 'database'
+                };
+            });
+
             if (defaultLabsEnabled) {
                 // Return ALL labs from database, with configured abnormals overriding normals
                 const allLabs = labDb.loadLabDatabase();
                 const patientGender = caseConfig.demographics?.gender || 'Male';
-                
-                // Create a map of configured labs by test name
-                const configuredMap = {};
-                configuredLabs.forEach(lab => {
-                    configuredMap[lab.test_name] = lab;
-                });
                 
                 // Get unique test names from database
                 const uniqueTests = {};
@@ -1522,10 +2218,15 @@ router.get('/sessions/:sessionId/available-labs', authenticateToken, (req, res) 
                     // Check if this test has a configured abnormal value
                     if (configuredMap[testName]) {
                         // Use configured abnormal value
+                        const configLab = configuredMap[testName];
+                        // normal_samples might be array (config JSON) or string (DB)
+                        const normalSamples = Array.isArray(configLab.normal_samples)
+                            ? configLab.normal_samples
+                            : (typeof configLab.normal_samples === 'string' ? JSON.parse(configLab.normal_samples || '[]') : []);
                         responseLabs.push({
-                            ...configuredMap[testName],
-                            normal_samples: JSON.parse(configuredMap[testName].normal_samples || '[]'),
-                            source: 'configured'
+                            ...configLab,
+                            normal_samples: normalSamples,
+                            source: configLab.source || 'configured'
                         });
                     } else {
                         // Use default normal value from database
@@ -1552,14 +2253,9 @@ router.get('/sessions/:sessionId/available-labs', authenticateToken, (req, res) 
                 
                 res.json({ labs: responseLabs, defaultLabsEnabled: true });
             } else {
-                // Only return configured labs
-                const parsedLabs = configuredLabs.map(lab => ({
-                    ...lab,
-                    normal_samples: JSON.parse(lab.normal_samples || '[]'),
-                    source: 'configured'
-                }));
-                
-                res.json({ labs: parsedLabs, defaultLabsEnabled: false });
+                // Only return configured labs (from both DB and config JSON)
+                const allConfiguredLabs = Object.values(configuredMap);
+                res.json({ labs: allConfiguredLabs, defaultLabsEnabled: false });
             }
         });
     });
@@ -1568,12 +2264,12 @@ router.get('/sessions/:sessionId/available-labs', authenticateToken, (req, res) 
 // POST /api/sessions/:sessionId/order-labs - Order multiple lab tests
 router.post('/sessions/:sessionId/order-labs', authenticateToken, (req, res) => {
     const { sessionId } = req.params;
-    const { lab_ids } = req.body; // Array of lab investigation IDs or default_ IDs
-    
+    const { lab_ids, turnaround_override } = req.body; // Array of lab investigation IDs + optional turnaround override
+
     if (!Array.isArray(lab_ids) || lab_ids.length === 0) {
         return res.status(400).json({ error: 'lab_ids array is required' });
     }
-    
+
     // Verify session exists and user has access
     db.get('SELECT user_id, case_id FROM sessions WHERE id = ?', [sessionId], (err, session) => {
         if (err) {
@@ -1585,122 +2281,231 @@ router.post('/sessions/:sessionId/order-labs', authenticateToken, (req, res) => 
         if (session.user_id !== req.user.id && req.user.role !== 'admin') {
             return res.status(403).json({ error: 'Access denied' });
         }
-        
-        // Separate configured IDs from default IDs
-        const configuredIds = lab_ids.filter(id => !String(id).startsWith('default_'));
+
+        // Separate IDs by type
+        const numericIds = lab_ids.filter(id => typeof id === 'number' || (typeof id === 'string' && /^\d+$/.test(id)));
         const defaultIds = lab_ids.filter(id => String(id).startsWith('default_'));
-        
-        // Process all IDs and create orders
-        const processOrders = () => {
-            const sql = `
-                INSERT INTO investigation_orders (session_id, investigation_id, ordered_at, available_at) 
-                VALUES (?, ?, datetime('now'), datetime('now', '+' || ? || ' minutes'))
-            `;
-            
-            const stmt = db.prepare(sql);
-            let inserted = 0;
-            const orderIds = [];
-            
-            // Get configured labs
-            if (configuredIds.length > 0) {
-                const labsSql = `SELECT id, turnaround_minutes, test_name FROM case_investigations WHERE id IN (${configuredIds.map(() => '?').join(',')})`;
-                
-                db.all(labsSql, configuredIds, (err, labs) => {
-                    if (err) {
-                        console.error('Error fetching labs:', err);
-                    } else {
+        const configIds = lab_ids.filter(id => String(id).startsWith('config_') || String(id).startsWith('lab_'));
+
+        // Track IDs that need to be inserted as orders
+        const configuredIds = [...numericIds.map(id => parseInt(id, 10))];
+
+        // Get case config to determine patient gender and find config-based labs
+        db.get('SELECT config FROM cases WHERE id = ?', [session.case_id], (err, caseRow) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+
+            const caseConfig = JSON.parse(caseRow?.config || '{}');
+            const patientGender = caseConfig.demographics?.gender || 'Male';
+            const configJsonLabs = caseConfig.investigations?.labs || [];
+
+            // Get case-level timing settings
+            const caseInstantResults = caseConfig.investigations?.instantResults === true;
+            const caseDefaultTurnaround = caseConfig.investigations?.defaultTurnaround || 0;
+
+            // Helper to get turnaround time (priority: instant > override > case default > test default)
+            const getTurnaround = (testDefaultMinutes) => {
+                // Instant results = 0 minutes
+                if (caseInstantResults) {
+                    return 0;
+                }
+                // Request-level override
+                if (turnaround_override !== null && turnaround_override !== undefined && turnaround_override > 0) {
+                    return turnaround_override;
+                }
+                // Case-level default
+                if (caseDefaultTurnaround > 0) {
+                    return caseDefaultTurnaround;
+                }
+                // Test default or fallback
+                return testDefaultMinutes || 30;
+            };
+
+            // Process all IDs and create orders
+            const processOrders = () => {
+                const sql = `
+                    INSERT INTO investigation_orders (session_id, investigation_id, ordered_at, available_at)
+                    VALUES (?, ?, datetime('now'), datetime('now', '+' || ? || ' minutes'))
+                `;
+
+                const stmt = db.prepare(sql);
+                let inserted = 0;
+                const orderIds = [];
+
+                // Get configured labs
+                if (configuredIds.length > 0) {
+                    const labsSql = `SELECT id, turnaround_minutes, test_name FROM case_investigations WHERE id IN (${configuredIds.map(() => '?').join(',')})`;
+
+                    db.all(labsSql, configuredIds, (err, labs) => {
+                        if (err) {
+                            console.error('Error fetching labs:', err);
+                            return finalizeOrders();
+                        }
                         labs.forEach(lab => {
-                            stmt.run(sessionId, lab.id, lab.turnaround_minutes || 30, function(err) {
+                            const turnaround = getTurnaround(lab.turnaround_minutes);
+                            stmt.run(sessionId, lab.id, turnaround, function(err) {
                                 if (!err) {
                                     orderIds.push({ id: this.lastID, test_name: lab.test_name });
                                     inserted++;
                                 }
                             });
                         });
-                    }
-                    
-                    finalizeOrders();
-                });
-            } else {
-                finalizeOrders();
-            }
-            
-            function finalizeOrders() {
-                stmt.finalize((err) => {
-                    if (err) {
-                        return res.status(500).json({ error: err.message });
-                    }
-                    
-                    // Log event
-                    db.run(
-                        `INSERT INTO event_log (session_id, event_type, description) VALUES (?, ?, ?)`,
-                        [sessionId, 'investigation_ordered', `Ordered ${inserted} lab tests`]
-                    );
-                    
-                    res.json({ 
-                        message: `${inserted} lab tests ordered`,
-                        orders: orderIds
+                        finalizeOrders();
                     });
+                } else {
+                    finalizeOrders();
+                }
+
+                function finalizeOrders() {
+                    stmt.finalize((err) => {
+                        if (err) {
+                            return res.status(500).json({ error: err.message });
+                        }
+
+                        // Log event to event_log
+                        db.run(
+                            `INSERT INTO event_log (session_id, event_type, description) VALUES (?, ?, ?)`,
+                            [sessionId, 'investigation_ordered', `Ordered ${inserted} lab tests`]
+                        );
+
+                        // Log detailed learning events for each ordered lab
+                        const logSql = `
+                            INSERT INTO learning_events (
+                                session_id, user_id, case_id, verb, object_type, object_id, object_name,
+                                component, result, context
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        `;
+
+                        orderIds.forEach(order => {
+                            const turnaround = getTurnaround(30);
+                            const context = {
+                                turnaround_minutes: turnaround,
+                                instant_results: caseInstantResults,
+                                order_id: order.id
+                            };
+
+                            db.run(logSql, [
+                                sessionId,
+                                req.user.id,
+                                session.case_id,
+                                'ORDERED_LAB',
+                                'lab_test',
+                                String(order.id),
+                                order.test_name,
+                                'OrdersDrawer',
+                                `Turnaround: ${turnaround} min`,
+                                JSON.stringify(context)
+                            ]);
+                        });
+
+                        res.json({
+                            message: `${inserted} lab tests ordered`,
+                            orders: orderIds
+                        });
+                    });
+                }
+            };
+
+            const insertLabSql = `
+                INSERT INTO case_investigations (
+                    case_id, investigation_type, test_name, test_group, gender_category,
+                    min_value, max_value, current_value, unit, normal_samples,
+                    is_abnormal, turnaround_minutes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+
+            let pendingOps = 0;
+            let completedOps = 0;
+
+            const checkComplete = () => {
+                if (completedOps >= pendingOps) {
+                    processOrders();
+                }
+            };
+
+            // Process config-based labs (from case editor config JSON)
+            if (configIds.length > 0) {
+                configIds.forEach(configId => {
+                    // Find the lab in config JSON
+                    const idStr = String(configId);
+                    const testNameFromId = idStr.replace('config_', '').replace('lab_', '').replace(/_/g, ' ');
+
+                    // Try to find by ID first, then by test name
+                    let configLab = configJsonLabs.find(l => l.id === configId);
+                    if (!configLab) {
+                        configLab = configJsonLabs.find(l =>
+                            l.test_name && l.test_name.toLowerCase().replace(/[^a-z0-9]/g, ' ').includes(testNameFromId.toLowerCase())
+                        );
+                    }
+
+                    if (configLab) {
+                        pendingOps++;
+                        db.run(insertLabSql, [
+                            session.case_id, 'lab',
+                            configLab.test_name,
+                            configLab.test_group || 'General',
+                            configLab.gender_category || 'Both',
+                            configLab.min_value,
+                            configLab.max_value,
+                            configLab.current_value,
+                            configLab.unit || '',
+                            JSON.stringify(configLab.normal_samples || []),
+                            configLab.is_abnormal ? 1 : 0,
+                            getTurnaround(configLab.turnaround_minutes)
+                        ], function(err) {
+                            completedOps++;
+                            if (!err) {
+                                configuredIds.push(this.lastID);
+                            } else {
+                                console.error('Error creating config lab:', err);
+                            }
+                            checkComplete();
+                        });
+                    }
                 });
             }
-        };
-        
-        // Create case_investigations entries for default labs if needed
-        if (defaultIds.length > 0) {
-            // Extract test names from default IDs
-            const testNames = defaultIds.map(id => String(id).replace('default_', '').replace(/_/g, ' '));
-            
-            // Get case config to determine patient gender
-            db.get('SELECT config FROM cases WHERE id = ?', [session.case_id], (err, caseRow) => {
-                if (err) {
-                    return res.status(500).json({ error: err.message });
-                }
-                
-                const caseConfig = JSON.parse(caseRow?.config || '{}');
-                const patientGender = caseConfig.demographics?.gender || 'Male';
-                
-                // Create case_investigations for each default lab
-                const insertLabSql = `
-                    INSERT INTO case_investigations (
-                        case_id, investigation_type, test_name, test_group, gender_category,
-                        min_value, max_value, current_value, unit, normal_samples,
-                        is_abnormal, turnaround_minutes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `;
-                
-                let created = 0;
+
+            // Process default labs (from lab database with normal values)
+            if (defaultIds.length > 0) {
+                const testNames = defaultIds.map(id => String(id).replace('default_', '').replace(/_/g, ' '));
+
                 testNames.forEach(testName => {
                     const genderSpecific = labDb.getGenderSpecificTest(testName, patientGender);
                     if (genderSpecific) {
+                        pendingOps++;
                         const normalValue = labDb.getRandomNormalValue(genderSpecific);
-                        
+
                         db.run(insertLabSql, [
-                            session.case_id, 'lab', genderSpecific.test_name, genderSpecific.group, genderSpecific.category,
-                            genderSpecific.min_value, genderSpecific.max_value, normalValue, genderSpecific.unit,
-                            JSON.stringify(genderSpecific.normal_samples), 0, 30
+                            session.case_id, 'lab',
+                            genderSpecific.test_name,
+                            genderSpecific.group,
+                            genderSpecific.category,
+                            genderSpecific.min_value,
+                            genderSpecific.max_value,
+                            normalValue,
+                            genderSpecific.unit,
+                            JSON.stringify(genderSpecific.normal_samples),
+                            0,
+                            getTurnaround(30)
                         ], function(err) {
+                            completedOps++;
                             if (!err) {
-                                // Add to configured IDs
                                 configuredIds.push(this.lastID);
-                                created++;
+                            } else {
+                                console.error('Error creating default lab:', err);
                             }
-                            
-                            // When all created, process orders
-                            if (created === testNames.length) {
-                                processOrders();
-                            }
+                            checkComplete();
                         });
-                    } else {
-                        created++;
-                        if (created === testNames.length) {
-                            processOrders();
-                        }
                     }
                 });
-            });
-        } else {
-            processOrders();
-        }
+            }
+
+            // If no async ops needed, process immediately
+            if (pendingOps === 0) {
+                processOrders();
+            }
+        });
     });
 });
 

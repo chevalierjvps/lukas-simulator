@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
         try {
             const token = AuthService.getToken();
             if (token) {
-                await fetch('http://localhost:3000/api/auth/logout', {
+                await fetch('/api/auth/logout', {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`

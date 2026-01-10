@@ -254,7 +254,28 @@ function initDb() {
             if (rows && !rows.find(r => r.name === 'scenario')) {
                 db.run("ALTER TABLE cases ADD COLUMN scenario JSON");
             }
+            // Migration: Add is_available and is_default columns for student access control
+            if (rows && !rows.find(r => r.name === 'is_available')) {
+                db.run("ALTER TABLE cases ADD COLUMN is_available BOOLEAN DEFAULT 0", (err) => {
+                    if (!err) console.log("Added 'is_available' column to cases table");
+                });
+            }
+            if (rows && !rows.find(r => r.name === 'is_default')) {
+                db.run("ALTER TABLE cases ADD COLUMN is_default BOOLEAN DEFAULT 0", (err) => {
+                    if (!err) console.log("Added 'is_default' column to cases table");
+                });
+            }
         });
+
+        // 14. Platform Settings Table - Admin configuration
+        db.run(`CREATE TABLE IF NOT EXISTS platform_settings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            setting_key TEXT UNIQUE NOT NULL,
+            setting_value TEXT,
+            updated_by INTEGER,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(updated_by) REFERENCES users(id)
+        )`);
 
         // 13. Scenarios Repository Table - Reusable scenario templates
         db.run(`CREATE TABLE IF NOT EXISTS scenarios (
@@ -269,6 +290,49 @@ function initDb() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(created_by) REFERENCES users(id)
         )`);
+
+        // Learning Analytics Events Table - Comprehensive interaction tracking
+        db.run(`CREATE TABLE IF NOT EXISTS learning_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER,
+            user_id INTEGER,
+            case_id INTEGER,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+            -- xAPI-style action verbs
+            verb TEXT NOT NULL,
+
+            -- Object being acted upon
+            object_type TEXT NOT NULL,
+            object_id TEXT,
+            object_name TEXT,
+
+            -- Context
+            component TEXT,
+            parent_component TEXT,
+
+            -- Result/Details
+            result TEXT,
+            duration_ms INTEGER,
+
+            -- Additional context as JSON
+            context JSON,
+
+            -- Chat content (when verb is SENT_MESSAGE or RECEIVED_MESSAGE)
+            message_content TEXT,
+            message_role TEXT,
+
+            -- Foreign keys
+            FOREIGN KEY(session_id) REFERENCES sessions(id),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(case_id) REFERENCES cases(id)
+        )`);
+
+        // Create index for efficient querying
+        db.run(`CREATE INDEX IF NOT EXISTS idx_learning_events_session ON learning_events(session_id)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_learning_events_user ON learning_events(user_id)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_learning_events_verb ON learning_events(verb)`);
+        db.run(`CREATE INDEX IF NOT EXISTS idx_learning_events_timestamp ON learning_events(timestamp)`);
 
         console.log('Database tables initialized with comprehensive logging and scenario repository.');
     });

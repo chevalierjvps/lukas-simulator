@@ -23,7 +23,7 @@ const LabResultsModal = ({ result, sessionId, patientInfo, onClose }) => {
   const markAsViewed = async () => {
     try {
       const token = AuthService.getToken();
-      await fetch(`http://localhost:3000/api/orders/${result.order_id}/view`, {
+      await fetch(`/api/orders/${result.order_id}/view`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });

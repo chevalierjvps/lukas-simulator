@@ -234,7 +234,7 @@ const importSettingsFromJSON = (file, setRhythm, setConditions, setParams) => {
    });
 };
 
-export default function PatientMonitor({ caseParams, caseData, sessionId }) {
+export default function PatientMonitor({ caseParams, caseData, sessionId, isAdmin = false }) {
    // --- Refs for Canvas & Buffers ---
    const canvasRef = useRef(null);
    const ecgCanvasRef = useRef(null);
@@ -1152,9 +1152,9 @@ export default function PatientMonitor({ caseParams, caseData, sessionId }) {
                </button>
             </div>
 
-            {/* Tabs */}
+            {/* Tabs - Students only see alarms tab */}
             <div className="flex p-1 bg-neutral-900 border-b border-neutral-800 overflow-x-auto">
-               {['rhythm', 'vitals', 'scenarios', 'alarms', 'labs'].map(tab => (
+               {(isAdmin ? ['rhythm', 'vitals', 'scenarios', 'alarms', 'labs'] : ['alarms']).map(tab => (
                   <button
                      key={tab}
                      onClick={() => handleTabChange(tab)}
@@ -1830,65 +1830,69 @@ export default function PatientMonitor({ caseParams, caseData, sessionId }) {
                         </div>
                      )}
 
-                     {/* Alarm Thresholds */}
-                     <div className="space-y-4">
-                        <h4 className="text-sm font-semibold text-neutral-300">Thresholds</h4>
-                        {Object.entries(alarmSystem.thresholds).map(([vital, config]) => (
-                           <div key={vital} className="bg-neutral-800/50 p-3 rounded-lg border border-neutral-800">
-                              <div className="flex items-center justify-between mb-2">
-                                 <span className="text-sm font-bold text-white uppercase">{vital}</span>
-                                 <button
-                                    onClick={() => alarmSystem.updateThreshold(vital, config.low, config.high, !config.enabled)}
-                                    className={`w-10 h-5 rounded-full relative transition-colors ${config.enabled ? 'bg-green-600' : 'bg-neutral-700'}`}
-                                 >
-                                    <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${config.enabled ? 'left-5' : 'left-0.5'}`} />
-                                 </button>
-                              </div>
-                              {config.enabled && (
-                                 <div className="space-y-2 text-xs">
-                                    {config.low !== null && (
-                                       <div>
-                                          <label className="text-neutral-400">Low: </label>
-                                          <input
-                                             type="number"
-                                             value={config.low}
-                                             onChange={(e) => alarmSystem.updateThreshold(vital, parseFloat(e.target.value), config.high, config.enabled)}
-                                             className="ml-2 w-20 bg-neutral-700 border border-neutral-600 rounded px-2 py-1 text-white"
-                                          />
-                                       </div>
-                                    )}
-                                    {config.high !== null && (
-                                       <div>
-                                          <label className="text-neutral-400">High: </label>
-                                          <input
-                                             type="number"
-                                             value={config.high}
-                                             onChange={(e) => alarmSystem.updateThreshold(vital, config.low, parseFloat(e.target.value), config.enabled)}
-                                             className="ml-2 w-20 bg-neutral-700 border border-neutral-600 rounded px-2 py-1 text-white"
-                                          />
-                                       </div>
-                                    )}
+                     {/* Alarm Thresholds - Admin Only */}
+                     {isAdmin && (
+                        <div className="space-y-4">
+                           <h4 className="text-sm font-semibold text-neutral-300">Thresholds</h4>
+                           {Object.entries(alarmSystem.thresholds).map(([vital, config]) => (
+                              <div key={vital} className="bg-neutral-800/50 p-3 rounded-lg border border-neutral-800">
+                                 <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-bold text-white uppercase">{vital}</span>
+                                    <button
+                                       onClick={() => alarmSystem.updateThreshold(vital, config.low, config.high, !config.enabled)}
+                                       className={`w-10 h-5 rounded-full relative transition-colors ${config.enabled ? 'bg-green-600' : 'bg-neutral-700'}`}
+                                    >
+                                       <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${config.enabled ? 'left-5' : 'left-0.5'}`} />
+                                    </button>
                                  </div>
-                              )}
-                           </div>
-                        ))}
-                     </div>
+                                 {config.enabled && (
+                                    <div className="space-y-2 text-xs">
+                                       {config.low !== null && (
+                                          <div>
+                                             <label className="text-neutral-400">Low: </label>
+                                             <input
+                                                type="number"
+                                                value={config.low}
+                                                onChange={(e) => alarmSystem.updateThreshold(vital, parseFloat(e.target.value), config.high, config.enabled)}
+                                                className="ml-2 w-20 bg-neutral-700 border border-neutral-600 rounded px-2 py-1 text-white"
+                                             />
+                                          </div>
+                                       )}
+                                       {config.high !== null && (
+                                          <div>
+                                             <label className="text-neutral-400">High: </label>
+                                             <input
+                                                type="number"
+                                                value={config.high}
+                                                onChange={(e) => alarmSystem.updateThreshold(vital, config.low, parseFloat(e.target.value), config.enabled)}
+                                                className="ml-2 w-20 bg-neutral-700 border border-neutral-600 rounded px-2 py-1 text-white"
+                                             />
+                                          </div>
+                                       )}
+                                    </div>
+                                 )}
+                              </div>
+                           ))}
+                        </div>
+                     )}
 
-                     {/* Save/Reset */}
-                     <div className="space-y-2 pt-4 border-t border-neutral-800">
-                        <button
-                           onClick={() => alarmSystem.saveConfig()}
-                           className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-                        >
-                           Save Alarm Config
-                        </button>
-                        <button
-                           onClick={alarmSystem.resetToDefaults}
-                           className="w-full py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded text-sm"
-                        >
-                           Reset to Defaults
-                        </button>
-                     </div>
+                     {/* Save/Reset - Admin Only */}
+                     {isAdmin && (
+                        <div className="space-y-2 pt-4 border-t border-neutral-800">
+                           <button
+                              onClick={() => alarmSystem.saveConfig()}
+                              className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                           >
+                              Save Alarm Config
+                           </button>
+                           <button
+                              onClick={alarmSystem.resetToDefaults}
+                              className="w-full py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded text-sm"
+                           >
+                              Reset to Defaults
+                           </button>
+                        </div>
+                     )}
                   </div>
                )}
 
@@ -1913,107 +1917,109 @@ export default function PatientMonitor({ caseParams, caseData, sessionId }) {
 
             </div>
 
-            {/* Footer actions */}
-            <div className="p-4 border-t border-neutral-800 bg-black/50 space-y-3">
-               {/* Settings Persistence Info */}
-               {savedSettings && (
-                  <div className="text-xs text-neutral-500 bg-blue-900/20 border border-blue-700/30 rounded p-2">
-                     <div className="flex items-center gap-2">
-                        <Settings className="w-3 h-3" />
-                        <span>Saved settings loaded</span>
+            {/* Footer actions - Admin Only */}
+            {isAdmin && (
+               <div className="p-4 border-t border-neutral-800 bg-black/50 space-y-3">
+                  {/* Settings Persistence Info */}
+                  {savedSettings && (
+                     <div className="text-xs text-neutral-500 bg-blue-900/20 border border-blue-700/30 rounded p-2">
+                        <div className="flex items-center gap-2">
+                           <Settings className="w-3 h-3" />
+                           <span>Saved settings loaded</span>
+                        </div>
+                        <div className="text-[10px] mt-1 opacity-70">
+                           {new Date(savedSettings.savedAt).toLocaleString()}
+                        </div>
                      </div>
-                     <div className="text-[10px] mt-1 opacity-70">
-                        {new Date(savedSettings.savedAt).toLocaleString()}
-                     </div>
-                  </div>
-               )}
+                  )}
 
-               {/* Save to Browser (localStorage) */}
-               <button
-                  onClick={() => {
-                     if (saveSettings(rhythm, conditions, params)) {
-                        alert('✓ Settings saved to browser! They will persist between sessions.');
-                        window.location.reload();
-                     } else {
-                        alert('✗ Failed to save settings');
-                     }
-                  }}
-                  className="w-full py-3 rounded border border-green-700/50 bg-green-900/20 text-green-400 font-bold text-xs uppercase hover:bg-green-900/30 transition-colors flex items-center justify-center gap-2"
-               >
-                  <Save className="w-4 h-4" />
-                  Save to Browser
-               </button>
-
-               {/* Export/Import Settings as JSON Files */}
-               <div className="grid grid-cols-2 gap-2">
+                  {/* Save to Browser (localStorage) */}
                   <button
                      onClick={() => {
-                        exportSettingsToJSON(rhythm, conditions, params);
-                        alert('✓ Settings exported to JSON file!');
-                     }}
-                     className="py-3 rounded border border-blue-700/50 bg-blue-900/20 text-blue-400 font-bold text-xs uppercase hover:bg-blue-900/30 transition-colors flex items-center justify-center gap-2"
-                  >
-                     <Download className="w-4 h-4" />
-                     Export JSON
-                  </button>
-                  
-                  <button
-                     onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = '.json';
-                        input.onchange = async (e) => {
-                           const file = e.target.files[0];
-                           if (file) {
-                              try {
-                                 await importSettingsFromJSON(file, setRhythm, setConditions, setParams);
-                                 alert('✓ Settings imported successfully!');
-                              } catch (err) {
-                                 alert('✗ Failed to import settings: ' + err.message);
-                              }
-                           }
-                        };
-                        input.click();
-                     }}
-                     className="py-3 rounded border border-purple-700/50 bg-purple-900/20 text-purple-400 font-bold text-xs uppercase hover:bg-purple-900/30 transition-colors flex items-center justify-center gap-2"
-                  >
-                     <Upload className="w-4 h-4" />
-                     Import JSON
-                  </button>
-               </div>
-
-               {/* Reset to Factory Defaults */}
-               <button
-                  onClick={() => {
-                     if (confirm('Reset to factory defaults? This will clear saved settings.')) {
-                        clearSavedSettings();
-                        setRhythm(FACTORY_DEFAULTS.rhythm);
-                        setParams(FACTORY_DEFAULTS.params);
-                        setConditions(FACTORY_DEFAULTS.conditions);
-                        alert('✓ Reset to factory defaults');
-                        window.location.reload();
-                     }
-                  }}
-                  className="w-full py-3 rounded border border-neutral-700 text-neutral-400 font-bold text-xs uppercase hover:bg-neutral-800 transition-colors"
-               >
-                  Reset to Defaults
-               </button>
-
-               {/* Clear Saved Settings (only show if saved) */}
-               {savedSettings && (
-                  <button
-                     onClick={() => {
-                        if (confirm('Clear saved settings? Monitor will use factory defaults on next load.')) {
-                           clearSavedSettings();
-                           alert('✓ Saved settings cleared. Using factory defaults.');
+                        if (saveSettings(rhythm, conditions, params)) {
+                           alert('✓ Settings saved to browser! They will persist between sessions.');
+                           window.location.reload();
+                        } else {
+                           alert('✗ Failed to save settings');
                         }
                      }}
-                     className="w-full py-2 rounded border border-red-700/50 bg-red-900/20 text-red-400 font-bold text-xs uppercase hover:bg-red-900/30 transition-colors"
+                     className="w-full py-3 rounded border border-green-700/50 bg-green-900/20 text-green-400 font-bold text-xs uppercase hover:bg-green-900/30 transition-colors flex items-center justify-center gap-2"
                   >
-                     Clear Saved Settings
+                     <Save className="w-4 h-4" />
+                     Save to Browser
                   </button>
-               )}
-            </div>
+
+                  {/* Export/Import Settings as JSON Files */}
+                  <div className="grid grid-cols-2 gap-2">
+                     <button
+                        onClick={() => {
+                           exportSettingsToJSON(rhythm, conditions, params);
+                           alert('✓ Settings exported to JSON file!');
+                        }}
+                        className="py-3 rounded border border-blue-700/50 bg-blue-900/20 text-blue-400 font-bold text-xs uppercase hover:bg-blue-900/30 transition-colors flex items-center justify-center gap-2"
+                     >
+                        <Download className="w-4 h-4" />
+                        Export JSON
+                     </button>
+
+                     <button
+                        onClick={() => {
+                           const input = document.createElement('input');
+                           input.type = 'file';
+                           input.accept = '.json';
+                           input.onchange = async (e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                 try {
+                                    await importSettingsFromJSON(file, setRhythm, setConditions, setParams);
+                                    alert('✓ Settings imported successfully!');
+                                 } catch (err) {
+                                    alert('✗ Failed to import settings: ' + err.message);
+                                 }
+                              }
+                           };
+                           input.click();
+                        }}
+                        className="py-3 rounded border border-purple-700/50 bg-purple-900/20 text-purple-400 font-bold text-xs uppercase hover:bg-purple-900/30 transition-colors flex items-center justify-center gap-2"
+                     >
+                        <Upload className="w-4 h-4" />
+                        Import JSON
+                     </button>
+                  </div>
+
+                  {/* Reset to Factory Defaults */}
+                  <button
+                     onClick={() => {
+                        if (confirm('Reset to factory defaults? This will clear saved settings.')) {
+                           clearSavedSettings();
+                           setRhythm(FACTORY_DEFAULTS.rhythm);
+                           setParams(FACTORY_DEFAULTS.params);
+                           setConditions(FACTORY_DEFAULTS.conditions);
+                           alert('✓ Reset to factory defaults');
+                           window.location.reload();
+                        }
+                     }}
+                     className="w-full py-3 rounded border border-neutral-700 text-neutral-400 font-bold text-xs uppercase hover:bg-neutral-800 transition-colors"
+                  >
+                     Reset to Defaults
+                  </button>
+
+                  {/* Clear Saved Settings (only show if saved) */}
+                  {savedSettings && (
+                     <button
+                        onClick={() => {
+                           if (confirm('Clear saved settings? Monitor will use factory defaults on next load.')) {
+                              clearSavedSettings();
+                              alert('✓ Saved settings cleared. Using factory defaults.');
+                           }
+                        }}
+                        className="w-full py-2 rounded border border-red-700/50 bg-red-900/20 text-red-400 font-bold text-xs uppercase hover:bg-red-900/30 transition-colors"
+                     >
+                        Clear Saved Settings
+                     </button>
+                  )}
+               </div>
+            )}
 
          </div>
 

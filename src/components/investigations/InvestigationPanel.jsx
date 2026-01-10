@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ClipboardList, Clock, CheckCircle, Search, Filter, List, Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import EventLogger, { VERBS, OBJECT_TYPES, COMPONENTS } from '../../services/eventLogger';
 
 const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
+  // Track when panel was opened for timing
+  const panelOpenTime = useRef(null);
   const [availableLabs, setAvailableLabs] = useState([]);
   const [allGroups, setAllGroups] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -22,7 +25,7 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
     const fetchLabs = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:3000/api/sessions/${sessionId}/available-labs`, {
+        const response = await fetch(`/api/sessions/${sessionId}/available-labs`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -48,7 +51,7 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/sessions/${sessionId}/orders`, {
+      const response = await fetch(`/api/sessions/${sessionId}/orders`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -73,9 +76,11 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
     if (selectedTests.length === 0) return;
 
     setLoading(true);
+    EventLogger.startTiming('orderLabs');
+
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3000/api/sessions/${sessionId}/order-labs`, {
+      const response = await fetch(`/api/sessions/${sessionId}/order-labs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -87,11 +92,20 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
       });
 
       if (response.ok) {
+        // Log each ordered lab
+        selectedTests.forEach(labId => {
+          const lab = availableLabs.find(l => l.id === labId);
+          EventLogger.labOrdered(labId, lab?.test_name || `Lab ${labId}`, COMPONENTS.INVESTIGATION_PANEL);
+        });
+
         setSelectedTests([]);
         await fetchOrders();
+      } else {
+        EventLogger.apiError('/api/sessions/order-labs', response.status, 'Failed to order labs', COMPONENTS.INVESTIGATION_PANEL);
       }
     } catch (error) {
       console.error('Failed to order tests:', error);
+      EventLogger.errorOccurred('OrderLabsError', error.message, COMPONENTS.INVESTIGATION_PANEL);
     } finally {
       setLoading(false);
     }
@@ -99,6 +113,20 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
 
   // Toggle test selection
   const toggleTest = (testId) => {
+    const lab = availableLabs.find(l => l.id === testId);
+    const isSelecting = !selectedTests.includes(testId);
+
+    EventLogger.log(
+      isSelecting ? VERBS.SELECTED : VERBS.DESELECTED,
+      OBJECT_TYPES.LAB_TEST,
+      {
+        objectId: String(testId),
+        objectName: lab?.test_name || `Lab ${testId}`,
+        component: COMPONENTS.INVESTIGATION_PANEL,
+        context: { group: lab?.test_group }
+      }
+    );
+
     setSelectedTests(prev =>
       prev.includes(testId)
         ? prev.filter(id => id !== testId)
@@ -108,6 +136,13 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
 
   // Toggle group expansion
   const toggleGroup = (group) => {
+    const isExpanding = !expandedGroups.has(group);
+    if (isExpanding) {
+      EventLogger.groupExpanded(group, COMPONENTS.INVESTIGATION_PANEL);
+    } else {
+      EventLogger.groupCollapsed(group, COMPONENTS.INVESTIGATION_PANEL);
+    }
+
     setExpandedGroups(prev => {
       const newSet = new Set(prev);
       if (newSet.has(group)) {
@@ -117,6 +152,58 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
       }
       return newSet;
     });
+  };
+
+  // Handle search with logging
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    // Debounce search logging
+    if (value.length >= 2) {
+      const resultsCount = availableLabs.filter(lab =>
+        lab.test_name.toLowerCase().includes(value.toLowerCase()) ||
+        lab.test_group.toLowerCase().includes(value.toLowerCase())
+      ).length;
+      EventLogger.labSearched(value, resultsCount, COMPONENTS.INVESTIGATION_PANEL);
+    }
+  };
+
+  // Handle group filter change
+  const handleGroupFilterChange = (e) => {
+    const value = e.target.value;
+    setSelectedGroup(value);
+    EventLogger.labFiltered('group', value === 'all' ? 'All Groups' : value, COMPONENTS.INVESTIGATION_PANEL);
+  };
+
+  // Handle view mode change
+  const handleViewModeChange = (newMode) => {
+    EventLogger.viewModeChanged(viewMode, newMode, COMPONENTS.INVESTIGATION_PANEL);
+    setViewMode(newMode);
+  };
+
+  // Handle panel open/close
+  const handlePanelToggle = () => {
+    if (!showPanel) {
+      panelOpenTime.current = Date.now();
+      EventLogger.labPanelOpened(COMPONENTS.INVESTIGATION_PANEL);
+    } else {
+      const duration = panelOpenTime.current ? Date.now() - panelOpenTime.current : null;
+      EventLogger.log(VERBS.CLOSED, OBJECT_TYPES.PANEL, {
+        objectId: 'investigation_panel',
+        objectName: 'Investigation Panel',
+        component: COMPONENTS.INVESTIGATION_PANEL,
+        durationMs: duration
+      });
+    }
+    setShowPanel(!showPanel);
+  };
+
+  // Handle viewing result
+  const handleViewResult = (order) => {
+    EventLogger.labResultViewed(order.id, order.test_name, order.current_value, COMPONENTS.INVESTIGATION_PANEL);
+    onViewResult(order);
+    setShowPanel(false);
   };
 
   // Calculate time remaining
@@ -164,7 +251,7 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
     <div className="relative">
       {/* Order Button */}
       <button
-        onClick={() => setShowPanel(!showPanel)}
+        onClick={handlePanelToggle}
         className="relative px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors"
       >
         <ClipboardList className="w-5 h-5" />
@@ -192,7 +279,7 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
           <div className="px-4 pt-4 pb-2 border-b border-neutral-800">
             <div className="flex gap-2">
               <button
-                onClick={() => setViewMode('search')}
+                onClick={() => handleViewModeChange('search')}
                 className={`flex-1 px-3 py-2 rounded text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
                   viewMode === 'search'
                     ? 'bg-purple-600 text-white'
@@ -203,7 +290,7 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
                 Search Mode
               </button>
               <button
-                onClick={() => setViewMode('browse')}
+                onClick={() => handleViewModeChange('browse')}
                 className={`flex-1 px-3 py-2 rounded text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
                   viewMode === 'browse'
                     ? 'bg-purple-600 text-white'
@@ -224,7 +311,7 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
                 placeholder="Search tests (e.g., glucose, CBC, sodium)..."
                 className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded text-sm text-white placeholder-neutral-500 focus:border-purple-500 focus:outline-none"
               />
@@ -235,7 +322,7 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
               <select
                 value={selectedGroup}
-                onChange={(e) => setSelectedGroup(e.target.value)}
+                onChange={handleGroupFilterChange}
                 className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded text-sm text-white focus:border-purple-500 focus:outline-none appearance-none cursor-pointer"
               >
                 <option value="all">All Groups ({availableLabs.length} tests)</option>
@@ -416,10 +503,7 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
                   {readyOrders.map(order => (
                     <button
                       key={order.id}
-                      onClick={() => {
-                        onViewResult(order);
-                        setShowPanel(false);
-                      }}
+                      onClick={() => handleViewResult(order)}
                       className="w-full p-3 rounded bg-green-900/20 border border-green-700/50 hover:bg-green-900/30 text-left transition-colors group"
                     >
                       <div className="text-sm text-white font-bold group-hover:text-green-300">{order.test_name}</div>
@@ -435,6 +519,13 @@ const InvestigationPanel = ({ caseId, sessionId, onViewResult }) => {
           <div className="p-4 border-t border-neutral-800 flex gap-2">
             <button
               onClick={() => {
+                const duration = panelOpenTime.current ? Date.now() - panelOpenTime.current : null;
+                EventLogger.log(VERBS.CLOSED, OBJECT_TYPES.PANEL, {
+                  objectId: 'investigation_panel',
+                  objectName: 'Investigation Panel',
+                  component: COMPONENTS.INVESTIGATION_PANEL,
+                  durationMs: duration
+                });
                 setShowPanel(false);
                 setSearchQuery('');
                 setSelectedGroup('all');

@@ -19,7 +19,7 @@ const LabValueEditor = ({ sessionId, caseId, onUpdate }) => {
     setLoading(true);
     try {
       const token = AuthService.getToken();
-      const response = await fetch(`http://localhost:3000/api/sessions/${sessionId}/available-labs`, {
+      const response = await fetch(`/api/sessions/${sessionId}/available-labs`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -72,7 +72,7 @@ const LabValueEditor = ({ sessionId, caseId, onUpdate }) => {
     setSaving(prev => ({ ...prev, [lab.id]: true }));
     try {
       const token = AuthService.getToken();
-      const response = await fetch(`http://localhost:3000/api/sessions/${sessionId}/labs/${lab.id}`, {
+      const response = await fetch(`/api/sessions/${sessionId}/labs/${lab.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -10,7 +10,7 @@ let labDatabaseCache = null;
 let groupsCache = null;
 
 /**
- * Load and parse Lab_database.txt
+ * Load and parse Lab_database.txt and additional lab files (e.g., heart.txt)
  * @returns {Array} Array of lab test objects
  */
 export function loadLabDatabase() {
@@ -18,16 +18,41 @@ export function loadLabDatabase() {
         return labDatabaseCache;
     }
 
+    let allTests = [];
+
+    // Load main lab database
     try {
         const labDbPath = path.resolve(__dirname, '../../Lab_database.txt');
         const data = fs.readFileSync(labDbPath, 'utf8');
-        labDatabaseCache = JSON.parse(data);
-        console.log(`Loaded ${labDatabaseCache.length} lab tests from database`);
-        return labDatabaseCache;
+        allTests = JSON.parse(data);
+        console.log(`Loaded ${allTests.length} lab tests from Lab_database.txt`);
     } catch (error) {
-        console.error('Error loading lab database:', error);
-        return [];
+        console.error('Error loading Lab_database.txt:', error);
     }
+
+    // Load cardiac investigations from heart.txt
+    try {
+        const heartDbPath = path.resolve(__dirname, '../../heart.txt');
+        if (fs.existsSync(heartDbPath)) {
+            const heartData = fs.readFileSync(heartDbPath, 'utf8');
+            const cardiacTests = JSON.parse(heartData);
+
+            // Add cardiac tests, avoiding duplicates by test_name + category
+            const existingKeys = new Set(allTests.map(t => `${t.test_name}|${t.category}`));
+            const newCardiacTests = cardiacTests.filter(t => !existingKeys.has(`${t.test_name}|${t.category}`));
+
+            allTests = [...allTests, ...newCardiacTests];
+            console.log(`Loaded ${cardiacTests.length} cardiac tests from heart.txt (${newCardiacTests.length} new)`);
+        }
+    } catch (error) {
+        console.error('Error loading heart.txt:', error);
+    }
+
+    labDatabaseCache = allTests;
+    // Clear groups cache so it gets rebuilt with new tests
+    groupsCache = null;
+    console.log(`Total lab tests loaded: ${labDatabaseCache.length}`);
+    return labDatabaseCache;
 }
 
 /**
@@ -43,11 +68,20 @@ export function searchTests(query, limit = 50) {
 
     const tests = loadLabDatabase();
     const searchTerm = query.toLowerCase().trim();
-    
+
+    // Debug: Log search
+    console.log(`[Lab Search] Query: "${query}", Total tests in cache: ${tests.length}`);
+
     // Simple fuzzy search: match partial test names
-    const results = tests.filter(test => 
+    const results = tests.filter(test =>
         test.test_name.toLowerCase().includes(searchTerm)
     );
+
+    // Debug: Log matching cardiac tests
+    const cardiacMatches = results.filter(t => t.group === 'Cardiology Crisis');
+    if (cardiacMatches.length > 0) {
+        console.log(`[Lab Search] Found ${cardiacMatches.length} cardiac matches for "${query}"`);
+    }
 
     // Group by test name to show gender variations together
     const grouped = {};
@@ -57,6 +91,8 @@ export function searchTests(query, limit = 50) {
         }
         grouped[test.test_name].push(test);
     });
+
+    console.log(`[Lab Search] Results: ${Object.keys(grouped).length} unique tests found`);
 
     // Return up to limit unique test names (with all gender variants)
     return Object.values(grouped).slice(0, limit);
@@ -241,6 +277,211 @@ export function getValueFlag(status) {
     return flags[status] || '';
 }
 
+/**
+ * Clear the cache to force reload
+ */
+export function clearCache() {
+    labDatabaseCache = null;
+    groupsCache = null;
+}
+
+/**
+ * Save the lab database to file
+ * @returns {boolean} Success status
+ */
+export function saveLabDatabase() {
+    try {
+        const labDbPath = path.resolve(__dirname, '../../Lab_database.txt');
+        fs.writeFileSync(labDbPath, JSON.stringify(labDatabaseCache, null, 2), 'utf8');
+        return true;
+    } catch (error) {
+        console.error('Error saving Lab_database.txt:', error);
+        return false;
+    }
+}
+
+/**
+ * Add a new lab test
+ * @param {Object} test - Lab test object
+ * @returns {Object} Result with success status
+ */
+export function addTest(test) {
+    if (!test.test_name || !test.group || !test.unit) {
+        return { success: false, error: 'test_name, group, and unit are required' };
+    }
+
+    const tests = loadLabDatabase();
+
+    // Check for duplicate
+    const exists = tests.find(t =>
+        t.test_name === test.test_name && t.category === (test.category || 'Both')
+    );
+
+    if (exists) {
+        return { success: false, error: 'Test with same name and category already exists' };
+    }
+
+    const newTest = {
+        test_name: test.test_name,
+        group: test.group,
+        category: test.category || 'Both',
+        min_value: parseFloat(test.min_value) || 0,
+        max_value: parseFloat(test.max_value) || 0,
+        unit: test.unit,
+        normal_samples: test.normal_samples || []
+    };
+
+    labDatabaseCache.push(newTest);
+    groupsCache = null; // Clear groups cache
+    saveLabDatabase();
+
+    return { success: true, test: newTest };
+}
+
+/**
+ * Update an existing lab test
+ * @param {string} testName - Test name to update
+ * @param {string} category - Category (gender) of the test
+ * @param {Object} updates - Fields to update
+ * @returns {Object} Result with success status
+ */
+export function updateTest(testName, category, updates) {
+    const tests = loadLabDatabase();
+
+    const index = tests.findIndex(t =>
+        t.test_name === testName && t.category === category
+    );
+
+    if (index === -1) {
+        return { success: false, error: 'Test not found' };
+    }
+
+    // Update allowed fields
+    if (updates.min_value !== undefined) tests[index].min_value = parseFloat(updates.min_value);
+    if (updates.max_value !== undefined) tests[index].max_value = parseFloat(updates.max_value);
+    if (updates.unit !== undefined) tests[index].unit = updates.unit;
+    if (updates.group !== undefined) tests[index].group = updates.group;
+    if (updates.normal_samples !== undefined) tests[index].normal_samples = updates.normal_samples;
+
+    labDatabaseCache = tests;
+    saveLabDatabase();
+
+    return { success: true, test: tests[index] };
+}
+
+/**
+ * Delete a lab test
+ * @param {string} testName - Test name to delete
+ * @param {string} category - Category (gender) of the test
+ * @returns {Object} Result with success status
+ */
+export function deleteTest(testName, category) {
+    const tests = loadLabDatabase();
+
+    const index = tests.findIndex(t =>
+        t.test_name === testName && t.category === category
+    );
+
+    if (index === -1) {
+        return { success: false, error: 'Test not found' };
+    }
+
+    tests.splice(index, 1);
+    labDatabaseCache = tests;
+    groupsCache = null;
+    saveLabDatabase();
+
+    return { success: true, message: 'Test deleted' };
+}
+
+/**
+ * Import lab tests from CSV data
+ * @param {Array} csvData - Array of test objects from CSV
+ * @param {boolean} overwrite - Whether to overwrite existing tests
+ * @returns {Object} Import results
+ */
+export function importFromCSV(csvData, overwrite = false) {
+    const tests = loadLabDatabase();
+    const results = {
+        added: 0,
+        updated: 0,
+        skipped: 0,
+        errors: []
+    };
+
+    for (const row of csvData) {
+        try {
+            // Validate required fields
+            if (!row.test_name || !row.group || !row.unit) {
+                results.errors.push(`Missing required fields for: ${row.test_name || 'unknown'}`);
+                results.skipped++;
+                continue;
+            }
+
+            const category = row.category || 'Both';
+            const existingIndex = tests.findIndex(t =>
+                t.test_name === row.test_name && t.category === category
+            );
+
+            const newTest = {
+                test_name: row.test_name.trim(),
+                group: row.group.trim(),
+                category: category,
+                min_value: parseFloat(row.min_value) || 0,
+                max_value: parseFloat(row.max_value) || 0,
+                unit: row.unit.trim(),
+                normal_samples: row.normal_samples ?
+                    (Array.isArray(row.normal_samples) ? row.normal_samples :
+                     row.normal_samples.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n)))
+                    : []
+            };
+
+            if (existingIndex !== -1) {
+                if (overwrite) {
+                    tests[existingIndex] = newTest;
+                    results.updated++;
+                } else {
+                    results.skipped++;
+                }
+            } else {
+                tests.push(newTest);
+                results.added++;
+            }
+        } catch (error) {
+            results.errors.push(`Error processing ${row.test_name}: ${error.message}`);
+            results.skipped++;
+        }
+    }
+
+    labDatabaseCache = tests;
+    groupsCache = null;
+    saveLabDatabase();
+
+    return results;
+}
+
+/**
+ * Get database stats
+ * @returns {Object} Statistics about the database
+ */
+export function getDatabaseStats() {
+    const tests = loadLabDatabase();
+    const groups = getAllGroups();
+
+    // Count by category
+    const byCat = { Both: 0, Male: 0, Female: 0 };
+    tests.forEach(t => {
+        if (byCat[t.category] !== undefined) byCat[t.category]++;
+    });
+
+    return {
+        totalTests: tests.length,
+        totalGroups: groups.length,
+        byCategory: byCat,
+        groups: groups
+    };
+}
+
 // Initialize cache on module load
 loadLabDatabase();
 
@@ -256,5 +497,12 @@ export default {
     getAllTests,
     getGroupedTests,
     evaluateValue,
-    getValueFlag
+    getValueFlag,
+    clearCache,
+    saveLabDatabase,
+    addTest,
+    updateTest,
+    deleteTest,
+    importFromCSV,
+    getDatabaseStats
 };

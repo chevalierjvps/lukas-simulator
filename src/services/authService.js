@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = '/api';
 
 export const AuthService = {
     // Register a new user
@@ -24,13 +24,30 @@ export const AuthService = {
 
     // Login user
     async login(username, password) {
-        const response = await fetch(`${API_BASE}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-        });
+        let response;
+        try {
+            response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+        } catch (err) {
+            throw new Error('Cannot connect to server. Is the backend running?');
+        }
 
-        const data = await response.json();
+        // Check if response has content
+        const text = await response.text();
+        if (!text) {
+            throw new Error('Server returned empty response. Check if backend is running on port 4000.');
+        }
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (err) {
+            throw new Error(`Invalid server response: ${text.substring(0, 100)}`);
+        }
+
         if (!response.ok) {
             throw new Error(data.error || 'Login failed');
         }

@@ -8,11 +8,16 @@ import SessionLogViewer from '../analytics/SessionLogViewer';
 import ScenarioRepository from './ScenarioRepository';
 import LabInvestigationEditor from './LabInvestigationEditor';
 import ClinicalRecordsEditor from './ClinicalRecordsEditor';
+import LabTestManager from './LabTestManager';
 import { SCENARIO_TEMPLATES, scaleScenarioTimeline } from '../../data/scenarioTemplates';
 
 export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
     const { user, isAdmin } = useAuth();
-    const [activeTab, setActiveTab] = useState(fullPage ? 'cases' : 'llm'); // llm, cases, users, history, logs
+    // Students always see 'cases' tab, admins see 'llm' when not in full page mode
+    const [activeTab, setActiveTab] = useState(() => {
+        if (!isAdmin()) return 'cases'; // Students always default to cases
+        return fullPage ? 'cases' : 'llm';
+    }); // llm, cases, users, history, logs, platform
 
     // Provider Configurations
     const PROVIDERS = {
@@ -348,24 +353,30 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
 
                 {/* Sidebar */}
                 <div className="w-48 bg-neutral-950 border-r border-neutral-800 flex flex-col pt-4">
-                    <button
-                        onClick={() => setActiveTab('llm')}
-                        className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'llm' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
-                    >
-                        <Cpu className="w-4 h-4" /> LLM Settings
-                    </button>
+                    {/* LLM Settings - Admin Only */}
+                    {isAdmin() && (
+                        <button
+                            onClick={() => setActiveTab('llm')}
+                            className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'llm' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
+                        >
+                            <Cpu className="w-4 h-4" /> LLM Settings
+                        </button>
+                    )}
                     <button
                         onClick={() => setActiveTab('cases')}
                         className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'cases' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
                     >
-                        <FileText className="w-4 h-4" /> {isAdmin() ? 'Manage Cases' : 'Cases'}
+                        <FileText className="w-4 h-4" /> {isAdmin() ? 'Manage Cases' : 'Select Case'}
                     </button>
-                    <button
-                        onClick={() => setActiveTab('scenarios')}
-                        className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'scenarios' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
-                    >
-                        <Layers className="w-4 h-4" /> Scenarios
-                    </button>
+                    {/* Scenarios - Admin Only */}
+                    {isAdmin() && (
+                        <button
+                            onClick={() => setActiveTab('scenarios')}
+                            className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'scenarios' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
+                        >
+                            <Layers className="w-4 h-4" /> Scenarios
+                        </button>
+                    )}
                     {isAdmin() && (
                         <>
                             <button
@@ -375,10 +386,22 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                                 <Users className="w-4 h-4" /> User Management
                             </button>
                             <button
+                                onClick={() => setActiveTab('platform')}
+                                className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'platform' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
+                            >
+                                <Settings className="w-4 h-4" /> Platform Settings
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('logs')}
                                 className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'logs' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
                             >
                                 <ClipboardList className="w-4 h-4" /> System Logs
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('labdb')}
+                                className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'labdb' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
+                            >
+                                <Database className="w-4 h-4" /> Lab Database
                             </button>
                         </>
                     )}
@@ -571,12 +594,86 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
 
                                     <div className="grid gap-3">
                                         {cases.map(c => (
-                                            <div key={c.id} className="p-4 bg-neutral-800 border border-neutral-700 rounded-lg flex justify-between items-center hover:bg-neutral-800/80">
-                                                <div>
-                                                    <div className="font-bold text-white">{c.name}</div>
+                                            <div key={c.id} className={`p-4 bg-neutral-800 border rounded-lg flex justify-between items-center hover:bg-neutral-800/80 ${c.is_default ? 'border-green-600/50 ring-1 ring-green-600/20' : 'border-neutral-700'}`}>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-bold text-white">{c.name}</span>
+                                                        {c.is_default && (
+                                                            <span className="px-2 py-0.5 bg-green-900/50 text-green-400 text-xs rounded border border-green-700/50">Default</span>
+                                                        )}
+                                                        {isAdmin() && (
+                                                            <span className={`px-2 py-0.5 text-xs rounded border ${c.is_available ? 'bg-blue-900/50 text-blue-400 border-blue-700/50' : 'bg-neutral-700/50 text-neutral-500 border-neutral-600'}`}>
+                                                                {c.is_available ? 'Available' : 'Hidden'}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                     <div className="text-sm text-neutral-400">{c.description}</div>
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-2 items-center">
+                                                    {/* Admin: Availability Toggle */}
+                                                    {isAdmin() && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const token = AuthService.getToken();
+                                                                    const res = await fetch(`/api/cases/${c.id}/availability`, {
+                                                                        method: 'PUT',
+                                                                        headers: {
+                                                                            'Content-Type': 'application/json',
+                                                                            'Authorization': `Bearer ${token}`
+                                                                        },
+                                                                        body: JSON.stringify({ is_available: !c.is_available })
+                                                                    });
+                                                                    if (res.ok) {
+                                                                        // Refresh cases
+                                                                        const casesRes = await fetch('/api/cases', {
+                                                                            headers: { 'Authorization': `Bearer ${token}` }
+                                                                        });
+                                                                        const data = await casesRes.json();
+                                                                        setCases(data.cases || []);
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error('Failed to toggle availability:', err);
+                                                                }
+                                                            }}
+                                                            className={`px-2 py-1 text-xs rounded border ${c.is_available ? 'bg-blue-900/30 border-blue-700/50 text-blue-400 hover:bg-blue-900/50' : 'bg-neutral-700/30 border-neutral-600 text-neutral-400 hover:bg-neutral-700/50'}`}
+                                                            title={c.is_available ? 'Hide from students' : 'Make available to students'}
+                                                        >
+                                                            {c.is_available ? 'Hide' : 'Show'}
+                                                        </button>
+                                                    )}
+                                                    {/* Admin: Set as Default */}
+                                                    {isAdmin() && !c.is_default && (
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const token = AuthService.getToken();
+                                                                    const res = await fetch(`/api/cases/${c.id}/default`, {
+                                                                        method: 'PUT',
+                                                                        headers: {
+                                                                            'Content-Type': 'application/json',
+                                                                            'Authorization': `Bearer ${token}`
+                                                                        },
+                                                                        body: JSON.stringify({ is_default: true })
+                                                                    });
+                                                                    if (res.ok) {
+                                                                        // Refresh cases
+                                                                        const casesRes = await fetch('/api/cases', {
+                                                                            headers: { 'Authorization': `Bearer ${token}` }
+                                                                        });
+                                                                        const data = await casesRes.json();
+                                                                        setCases(data.cases || []);
+                                                                    }
+                                                                } catch (err) {
+                                                                    console.error('Failed to set default:', err);
+                                                                }
+                                                            }}
+                                                            className="px-2 py-1 text-xs rounded border bg-green-900/30 border-green-700/50 text-green-400 hover:bg-green-900/50"
+                                                            title="Set as default case for students"
+                                                        >
+                                                            Set Default
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={() => {
                                                             if (onLoadCase) onLoadCase(c);
@@ -586,33 +683,36 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                                                     >
                                                         Load
                                                     </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            // Export case to JSON
-                                                            const caseJSON = {
-                                                                version: '1.0',
-                                                                exportedAt: new Date().toISOString(),
-                                                                ...c
-                                                            };
-                                                            // Remove database ID for portability
-                                                            delete caseJSON.id;
-                                                            
-                                                            const json = JSON.stringify(caseJSON, null, 2);
-                                                            const blob = new Blob([json], { type: 'application/json' });
-                                                            const url = window.URL.createObjectURL(blob);
-                                                            const a = document.createElement('a');
-                                                            a.href = url;
-                                                            a.download = `case-${c.name.replace(/\s+/g, '-').toLowerCase()}.json`;
-                                                            document.body.appendChild(a);
-                                                            a.click();
-                                                            document.body.removeChild(a);
-                                                            window.URL.revokeObjectURL(url);
-                                                        }}
-                                                        className="p-2 bg-blue-700 hover:bg-blue-600 rounded text-xs"
-                                                        title="Export to JSON"
-                                                    >
-                                                        <FileDown className="w-4 h-4" />
-                                                    </button>
+                                                    {/* Export - Admin only */}
+                                                    {isAdmin() && (
+                                                        <button
+                                                            onClick={() => {
+                                                                // Export case to JSON
+                                                                const caseJSON = {
+                                                                    version: '1.0',
+                                                                    exportedAt: new Date().toISOString(),
+                                                                    ...c
+                                                                };
+                                                                // Remove database ID for portability
+                                                                delete caseJSON.id;
+
+                                                                const json = JSON.stringify(caseJSON, null, 2);
+                                                                const blob = new Blob([json], { type: 'application/json' });
+                                                                const url = window.URL.createObjectURL(blob);
+                                                                const a = document.createElement('a');
+                                                                a.href = url;
+                                                                a.download = `case-${c.name.replace(/\s+/g, '-').toLowerCase()}.json`;
+                                                                document.body.appendChild(a);
+                                                                a.click();
+                                                                document.body.removeChild(a);
+                                                                window.URL.revokeObjectURL(url);
+                                                            }}
+                                                            className="p-2 bg-blue-700 hover:bg-blue-600 rounded text-xs"
+                                                            title="Export to JSON"
+                                                        >
+                                                            <FileDown className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                     {isAdmin() && (
                                                         <>
                                                             <button onClick={() => {
@@ -628,7 +728,9 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                                             </div>
                                         ))}
                                         {cases.length === 0 && (
-                                            <div className="text-neutral-500 text-center py-8">No cases found in database.</div>
+                                            <div className="text-neutral-500 text-center py-8">
+                                                {isAdmin() ? 'No cases found in database.' : 'No cases available. Please contact an administrator.'}
+                                            </div>
                                         )}
                                     </div>
                                 </>
@@ -704,6 +806,207 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                         <SystemLogs />
                     )}
 
+                    {/* --- PLATFORM SETTINGS TAB (Admin Only) --- */}
+                    {activeTab === 'platform' && isAdmin() && (
+                        <PlatformSettings cases={cases} setCases={setCases} />
+                    )}
+
+                    {/* --- LAB DATABASE TAB (Admin Only) --- */}
+                    {activeTab === 'labdb' && isAdmin() && (
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between border-b border-neutral-800 pb-2">
+                                <h3 className="text-lg font-bold">Lab Test Database</h3>
+                                <span className="text-xs text-neutral-500">Manage laboratory test reference values</span>
+                            </div>
+                            <LabTestManager />
+                        </div>
+                    )}
+
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Platform Settings Component (Admin Only)
+function PlatformSettings({ cases, setCases }) {
+    const [defaultCaseId, setDefaultCaseId] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    // Find the current default case
+    useEffect(() => {
+        const defaultCase = cases.find(c => c.is_default);
+        if (defaultCase) {
+            setDefaultCaseId(defaultCase.id);
+        }
+    }, [cases]);
+
+    const handleSetDefault = async (caseId) => {
+        setLoading(true);
+        try {
+            const token = AuthService.getToken();
+            const res = await fetch(`/api/cases/${caseId}/default`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ is_default: true })
+            });
+            if (res.ok) {
+                // Refresh cases
+                const casesRes = await fetch('/api/cases', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await casesRes.json();
+                setCases(data.cases || []);
+                setDefaultCaseId(caseId);
+            }
+        } catch (err) {
+            console.error('Failed to set default case:', err);
+        }
+        setLoading(false);
+    };
+
+    const handleToggleAvailability = async (caseId, currentAvailability) => {
+        try {
+            const token = AuthService.getToken();
+            const res = await fetch(`/api/cases/${caseId}/availability`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ is_available: !currentAvailability })
+            });
+            if (res.ok) {
+                // Refresh cases
+                const casesRes = await fetch('/api/cases', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await casesRes.json();
+                setCases(data.cases || []);
+            }
+        } catch (err) {
+            console.error('Failed to toggle availability:', err);
+        }
+    };
+
+    const availableCases = cases.filter(c => c.is_available);
+    const hiddenCases = cases.filter(c => !c.is_available);
+
+    return (
+        <div className="space-y-8">
+            <div>
+                <h3 className="text-lg font-bold mb-2">Platform Settings</h3>
+                <p className="text-sm text-neutral-400 mb-6">Configure which cases are available to students and set the default case.</p>
+            </div>
+
+            {/* Default Case Selection */}
+            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
+                <h4 className="text-md font-bold text-green-400 mb-4 flex items-center gap-2">
+                    <Activity className="w-5 h-5" />
+                    Default Case for Students
+                </h4>
+                <p className="text-sm text-neutral-400 mb-4">
+                    When students log in, they will see the default case pre-selected. If no default is set, students will see a list of available cases.
+                </p>
+                <select
+                    value={defaultCaseId || ''}
+                    onChange={(e) => {
+                        const id = e.target.value;
+                        if (id) handleSetDefault(parseInt(id));
+                    }}
+                    disabled={loading}
+                    className="w-full max-w-md bg-neutral-800 border border-neutral-600 rounded p-3 text-sm focus:border-green-500 outline-none"
+                >
+                    <option value="">No default case</option>
+                    {cases.filter(c => c.is_available).map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                </select>
+                {defaultCaseId && (
+                    <p className="text-xs text-green-400 mt-2">
+                        ✓ Students will automatically see "{cases.find(c => c.id === defaultCaseId)?.name}" when they log in.
+                    </p>
+                )}
+            </div>
+
+            {/* Case Availability Management */}
+            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
+                <h4 className="text-md font-bold text-blue-400 mb-4 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Case Availability
+                </h4>
+                <p className="text-sm text-neutral-400 mb-4">
+                    Toggle which cases are visible to students. Hidden cases are only visible to administrators.
+                </p>
+
+                {/* Available Cases */}
+                <div className="mb-6">
+                    <h5 className="text-sm font-bold text-blue-300 mb-3">Available to Students ({availableCases.length})</h5>
+                    {availableCases.length > 0 ? (
+                        <div className="space-y-2">
+                            {availableCases.map(c => (
+                                <div key={c.id} className="flex items-center justify-between bg-blue-900/20 border border-blue-700/30 rounded p-3">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-white">{c.name}</span>
+                                        {c.is_default && (
+                                            <span className="px-2 py-0.5 bg-green-900/50 text-green-400 text-xs rounded">Default</span>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => handleToggleAvailability(c.id, c.is_available)}
+                                        className="px-3 py-1 bg-red-900/30 text-red-400 rounded text-xs hover:bg-red-900/50"
+                                        disabled={c.is_default}
+                                        title={c.is_default ? 'Cannot hide default case' : 'Hide from students'}
+                                    >
+                                        {c.is_default ? 'Default' : 'Hide'}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-neutral-500 italic">No cases available to students yet.</p>
+                    )}
+                </div>
+
+                {/* Hidden Cases */}
+                <div>
+                    <h5 className="text-sm font-bold text-neutral-400 mb-3">Hidden from Students ({hiddenCases.length})</h5>
+                    {hiddenCases.length > 0 ? (
+                        <div className="space-y-2">
+                            {hiddenCases.map(c => (
+                                <div key={c.id} className="flex items-center justify-between bg-neutral-700/30 border border-neutral-600 rounded p-3">
+                                    <span className="text-neutral-300">{c.name}</span>
+                                    <button
+                                        onClick={() => handleToggleAvailability(c.id, c.is_available)}
+                                        className="px-3 py-1 bg-blue-900/30 text-blue-400 rounded text-xs hover:bg-blue-900/50"
+                                    >
+                                        Show
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-sm text-neutral-500 italic">No hidden cases.</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-4">
+                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-white">{cases.length}</div>
+                    <div className="text-xs text-neutral-400">Total Cases</div>
+                </div>
+                <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-blue-400">{availableCases.length}</div>
+                    <div className="text-xs text-neutral-400">Available</div>
+                </div>
+                <div className="bg-neutral-700/30 border border-neutral-600 rounded-lg p-4 text-center">
+                    <div className="text-2xl font-bold text-neutral-400">{hiddenCases.length}</div>
+                    <div className="text-xs text-neutral-400">Hidden</div>
                 </div>
             </div>
         </div>
