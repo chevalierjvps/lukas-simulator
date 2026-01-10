@@ -14,122 +14,196 @@ export default function BodyMap({
 }) {
     const [hoveredRegion, setHoveredRegion] = useState(null);
 
-    // Comprehensive hotspot positions (percentages relative to body bounds)
+    // Hotspot positions calibrated to actual SVG silhouettes
+    // Man SVG: 358.5 x 1086 (narrow, tall ~1:3)
+    // Woman SVG: 640 x 1280 (wider, ~1:2)
     const hotspots = {
         anterior: {
             male: [
-                { id: 'head', x: 50, y: 4, label: 'Head' },
-                { id: 'eyes', x: 50, y: 3, label: 'Eyes', small: true },
-                { id: 'neck', x: 50, y: 8, label: 'Neck' },
-                { id: 'shoulderLeft', x: 30, y: 10, label: 'L. Shoulder', small: true },
-                { id: 'shoulderRight', x: 70, y: 10, label: 'R. Shoulder', small: true },
-                { id: 'chestAnterior', x: 50, y: 15, label: 'Chest' },
-                { id: 'heart', x: 55, y: 17, label: 'Heart', small: true },
-                { id: 'upperLimbLeft', x: 22, y: 20, label: 'L. Upper Arm' },
-                { id: 'upperLimbRight', x: 78, y: 20, label: 'R. Upper Arm' },
-                { id: 'abdomen', x: 50, y: 25, label: 'Abdomen' },
-                { id: 'elbowLeft', x: 18, y: 28, label: 'L. Elbow', small: true },
-                { id: 'elbowRight', x: 82, y: 28, label: 'R. Elbow', small: true },
-                { id: 'forearmLeft', x: 14, y: 34, label: 'L. Forearm', small: true },
-                { id: 'forearmRight', x: 86, y: 34, label: 'R. Forearm', small: true },
-                { id: 'handLeft', x: 10, y: 42, label: 'L. Hand', small: true },
-                { id: 'handRight', x: 90, y: 42, label: 'R. Hand', small: true },
-                { id: 'groin', x: 50, y: 35, label: 'Groin', small: true },
-                { id: 'thighLeft', x: 42, y: 45, label: 'L. Thigh' },
-                { id: 'thighRight', x: 58, y: 45, label: 'R. Thigh' },
-                { id: 'kneeLeft', x: 42, y: 55, label: 'L. Knee' },
-                { id: 'kneeRight', x: 58, y: 55, label: 'R. Knee' },
-                { id: 'lowerLimbLeft', x: 40, y: 68, label: 'L. Lower Leg' },
-                { id: 'lowerLimbRight', x: 60, y: 68, label: 'R. Lower Leg' },
+                // Head & Neck (0-10% height)
+                { id: 'head', x: 50, y: 3.5, label: 'Head' },
+                { id: 'eyes', x: 50, y: 2.5, label: 'Eyes', small: true },
+                { id: 'ears', x: 44, y: 3, label: 'L. Ear', small: true },
+                { id: 'mouth', x: 50, y: 5, label: 'Mouth', small: true },
+                { id: 'neck', x: 50, y: 7.5, label: 'Neck' },
+
+                // Shoulders & Upper torso (10-18%)
+                { id: 'shoulderLeft', x: 32, y: 11, label: 'L. Shoulder' },
+                { id: 'shoulderRight', x: 68, y: 11, label: 'R. Shoulder' },
+                { id: 'chestAnterior', x: 50, y: 14, label: 'Chest' },
+                { id: 'heart', x: 54, y: 15, label: 'Heart', small: true },
+
+                // Arms (extending outward, 12-40%)
+                { id: 'upperLimbLeft', x: 24, y: 17, label: 'L. Upper Arm' },
+                { id: 'upperLimbRight', x: 76, y: 17, label: 'R. Upper Arm' },
+                { id: 'elbowLeft', x: 15, y: 24, label: 'L. Elbow', small: true },
+                { id: 'elbowRight', x: 85, y: 24, label: 'R. Elbow', small: true },
+                { id: 'forearmLeft', x: 10, y: 30, label: 'L. Forearm', small: true },
+                { id: 'forearmRight', x: 90, y: 30, label: 'R. Forearm', small: true },
+                { id: 'handLeft', x: 6, y: 38, label: 'L. Hand', small: true },
+                { id: 'handRight', x: 94, y: 38, label: 'R. Hand', small: true },
+
+                // Abdomen & Pelvis (18-35%)
+                { id: 'abdomen', x: 50, y: 22, label: 'Abdomen' },
+                { id: 'groin', x: 50, y: 32, label: 'Groin', small: true },
+
+                // Thighs (35-52%)
+                { id: 'thighLeft', x: 43, y: 42, label: 'L. Thigh' },
+                { id: 'thighRight', x: 57, y: 42, label: 'R. Thigh' },
+
+                // Knees (52-58%)
+                { id: 'kneeLeft', x: 42, y: 53, label: 'L. Knee' },
+                { id: 'kneeRight', x: 58, y: 53, label: 'R. Knee' },
+
+                // Lower legs (58-82%)
+                { id: 'lowerLimbLeft', x: 40, y: 67, label: 'L. Shin' },
+                { id: 'lowerLimbRight', x: 60, y: 67, label: 'R. Shin' },
+
+                // Ankles (82-88%)
                 { id: 'ankleLeft', x: 38, y: 82, label: 'L. Ankle', small: true },
                 { id: 'ankleRight', x: 62, y: 82, label: 'R. Ankle', small: true },
-                { id: 'footLeft', x: 36, y: 90, label: 'L. Foot', small: true },
-                { id: 'footRight', x: 64, y: 90, label: 'R. Foot', small: true },
+
+                // Feet (88-97%)
+                { id: 'footLeft', x: 35, y: 92, label: 'L. Foot', small: true },
+                { id: 'footRight', x: 65, y: 92, label: 'R. Foot', small: true },
             ],
             female: [
+                // Head & Neck - woman has proportionally smaller head
                 { id: 'head', x: 50, y: 4, label: 'Head' },
                 { id: 'eyes', x: 50, y: 3, label: 'Eyes', small: true },
+                { id: 'ears', x: 45, y: 3.5, label: 'L. Ear', small: true },
+                { id: 'mouth', x: 50, y: 5.5, label: 'Mouth', small: true },
                 { id: 'neck', x: 50, y: 8, label: 'Neck' },
-                { id: 'shoulderLeft', x: 32, y: 11, label: 'L. Shoulder', small: true },
-                { id: 'shoulderRight', x: 68, y: 11, label: 'R. Shoulder', small: true },
+
+                // Shoulders & Upper torso - woman has narrower shoulders
+                { id: 'shoulderLeft', x: 36, y: 12, label: 'L. Shoulder' },
+                { id: 'shoulderRight', x: 64, y: 12, label: 'R. Shoulder' },
                 { id: 'chestAnterior', x: 50, y: 16, label: 'Chest' },
-                { id: 'heart', x: 55, y: 18, label: 'Heart', small: true },
-                { id: 'upperLimbLeft', x: 25, y: 22, label: 'L. Upper Arm' },
-                { id: 'upperLimbRight', x: 75, y: 22, label: 'R. Upper Arm' },
-                { id: 'abdomen', x: 50, y: 26, label: 'Abdomen' },
-                { id: 'elbowLeft', x: 20, y: 30, label: 'L. Elbow', small: true },
-                { id: 'elbowRight', x: 80, y: 30, label: 'R. Elbow', small: true },
-                { id: 'forearmLeft', x: 16, y: 36, label: 'L. Forearm', small: true },
-                { id: 'forearmRight', x: 84, y: 36, label: 'R. Forearm', small: true },
-                { id: 'handLeft', x: 12, y: 44, label: 'L. Hand', small: true },
-                { id: 'handRight', x: 88, y: 44, label: 'R. Hand', small: true },
-                { id: 'groin', x: 50, y: 36, label: 'Groin', small: true },
-                { id: 'thighLeft', x: 42, y: 48, label: 'L. Thigh' },
-                { id: 'thighRight', x: 58, y: 48, label: 'R. Thigh' },
-                { id: 'kneeLeft', x: 42, y: 60, label: 'L. Knee' },
-                { id: 'kneeRight', x: 58, y: 60, label: 'R. Knee' },
-                { id: 'lowerLimbLeft', x: 40, y: 72, label: 'L. Lower Leg' },
-                { id: 'lowerLimbRight', x: 60, y: 72, label: 'R. Lower Leg' },
-                { id: 'ankleLeft', x: 38, y: 86, label: 'L. Ankle', small: true },
-                { id: 'ankleRight', x: 62, y: 86, label: 'R. Ankle', small: true },
-                { id: 'footLeft', x: 36, y: 94, label: 'L. Foot', small: true },
-                { id: 'footRight', x: 64, y: 94, label: 'R. Foot', small: true },
+                { id: 'heart', x: 54, y: 17, label: 'Heart', small: true },
+
+                // Arms - closer to body for woman
+                { id: 'upperLimbLeft', x: 28, y: 19, label: 'L. Upper Arm' },
+                { id: 'upperLimbRight', x: 72, y: 19, label: 'R. Upper Arm' },
+                { id: 'elbowLeft', x: 22, y: 26, label: 'L. Elbow', small: true },
+                { id: 'elbowRight', x: 78, y: 26, label: 'R. Elbow', small: true },
+                { id: 'forearmLeft', x: 18, y: 32, label: 'L. Forearm', small: true },
+                { id: 'forearmRight', x: 82, y: 32, label: 'R. Forearm', small: true },
+                { id: 'handLeft', x: 14, y: 40, label: 'L. Hand', small: true },
+                { id: 'handRight', x: 86, y: 40, label: 'R. Hand', small: true },
+
+                // Abdomen & Pelvis
+                { id: 'abdomen', x: 50, y: 24, label: 'Abdomen' },
+                { id: 'groin', x: 50, y: 35, label: 'Groin', small: true },
+
+                // Thighs - woman has wider hips
+                { id: 'thighLeft', x: 41, y: 46, label: 'L. Thigh' },
+                { id: 'thighRight', x: 59, y: 46, label: 'R. Thigh' },
+
+                // Knees
+                { id: 'kneeLeft', x: 42, y: 58, label: 'L. Knee' },
+                { id: 'kneeRight', x: 58, y: 58, label: 'R. Knee' },
+
+                // Lower legs
+                { id: 'lowerLimbLeft', x: 41, y: 72, label: 'L. Shin' },
+                { id: 'lowerLimbRight', x: 59, y: 72, label: 'R. Shin' },
+
+                // Ankles
+                { id: 'ankleLeft', x: 40, y: 86, label: 'L. Ankle', small: true },
+                { id: 'ankleRight', x: 60, y: 86, label: 'R. Ankle', small: true },
+
+                // Feet
+                { id: 'footLeft', x: 38, y: 94, label: 'L. Foot', small: true },
+                { id: 'footRight', x: 62, y: 94, label: 'R. Foot', small: true },
             ]
         },
         posterior: {
             male: [
-                { id: 'head', x: 50, y: 4, label: 'Head' },
-                { id: 'neck', x: 50, y: 8, label: 'Neck' },
-                { id: 'shoulderLeft', x: 30, y: 10, label: 'L. Shoulder', small: true },
-                { id: 'shoulderRight', x: 70, y: 10, label: 'R. Shoulder', small: true },
-                { id: 'backUpper', x: 50, y: 15, label: 'Upper Back' },
-                { id: 'scapulaLeft', x: 38, y: 14, label: 'L. Scapula', small: true },
-                { id: 'scapulaRight', x: 62, y: 14, label: 'R. Scapula', small: true },
-                { id: 'upperLimbLeft', x: 22, y: 20, label: 'L. Upper Arm' },
-                { id: 'upperLimbRight', x: 78, y: 20, label: 'R. Upper Arm' },
-                { id: 'backLower', x: 50, y: 25, label: 'Lower Back' },
-                { id: 'elbowLeft', x: 18, y: 28, label: 'L. Elbow', small: true },
-                { id: 'elbowRight', x: 82, y: 28, label: 'R. Elbow', small: true },
-                { id: 'sacrum', x: 50, y: 32, label: 'Sacrum', small: true },
-                { id: 'buttockLeft', x: 42, y: 36, label: 'L. Buttock', small: true },
-                { id: 'buttockRight', x: 58, y: 36, label: 'R. Buttock', small: true },
-                { id: 'thighLeft', x: 42, y: 45, label: 'L. Thigh' },
-                { id: 'thighRight', x: 58, y: 45, label: 'R. Thigh' },
-                { id: 'poplitealLeft', x: 42, y: 55, label: 'L. Popliteal', small: true },
-                { id: 'poplitealRight', x: 58, y: 55, label: 'R. Popliteal', small: true },
-                { id: 'calfLeft', x: 40, y: 68, label: 'L. Calf' },
-                { id: 'calfRight', x: 60, y: 68, label: 'R. Calf' },
-                { id: 'achillesLeft', x: 38, y: 82, label: 'L. Achilles', small: true },
-                { id: 'achillesRight', x: 62, y: 82, label: 'R. Achilles', small: true },
+                // Head & Neck
+                { id: 'head', x: 50, y: 3.5, label: 'Head' },
+                { id: 'neck', x: 50, y: 7.5, label: 'Neck' },
+
+                // Shoulders & Upper back
+                { id: 'shoulderLeft', x: 32, y: 11, label: 'L. Shoulder' },
+                { id: 'shoulderRight', x: 68, y: 11, label: 'R. Shoulder' },
+                { id: 'scapulaLeft', x: 40, y: 14, label: 'L. Scapula', small: true },
+                { id: 'scapulaRight', x: 60, y: 14, label: 'R. Scapula', small: true },
+                { id: 'backUpper', x: 50, y: 16, label: 'Upper Back' },
+
+                // Arms
+                { id: 'upperLimbLeft', x: 24, y: 17, label: 'L. Upper Arm' },
+                { id: 'upperLimbRight', x: 76, y: 17, label: 'R. Upper Arm' },
+                { id: 'elbowLeft', x: 15, y: 24, label: 'L. Elbow', small: true },
+                { id: 'elbowRight', x: 85, y: 24, label: 'R. Elbow', small: true },
+
+                // Lower back & Sacrum
+                { id: 'backLower', x: 50, y: 24, label: 'Lower Back' },
+                { id: 'sacrum', x: 50, y: 30, label: 'Sacrum', small: true },
+
+                // Buttocks
+                { id: 'buttockLeft', x: 43, y: 34, label: 'L. Buttock' },
+                { id: 'buttockRight', x: 57, y: 34, label: 'R. Buttock' },
+
+                // Posterior thighs
+                { id: 'thighLeft', x: 43, y: 44, label: 'L. Thigh' },
+                { id: 'thighRight', x: 57, y: 44, label: 'R. Thigh' },
+
+                // Popliteal fossa (back of knee)
+                { id: 'poplitealLeft', x: 42, y: 53, label: 'L. Popliteal', small: true },
+                { id: 'poplitealRight', x: 58, y: 53, label: 'R. Popliteal', small: true },
+
+                // Calves
+                { id: 'calfLeft', x: 40, y: 67, label: 'L. Calf' },
+                { id: 'calfRight', x: 60, y: 67, label: 'R. Calf' },
+
+                // Achilles & Heels
+                { id: 'achillesLeft', x: 38, y: 80, label: 'L. Achilles', small: true },
+                { id: 'achillesRight', x: 62, y: 80, label: 'R. Achilles', small: true },
                 { id: 'heelLeft', x: 36, y: 90, label: 'L. Heel', small: true },
                 { id: 'heelRight', x: 64, y: 90, label: 'R. Heel', small: true },
             ],
             female: [
+                // Head & Neck
                 { id: 'head', x: 50, y: 4, label: 'Head' },
                 { id: 'neck', x: 50, y: 8, label: 'Neck' },
-                { id: 'shoulderLeft', x: 32, y: 11, label: 'L. Shoulder', small: true },
-                { id: 'shoulderRight', x: 68, y: 11, label: 'R. Shoulder', small: true },
-                { id: 'backUpper', x: 50, y: 16, label: 'Upper Back' },
-                { id: 'scapulaLeft', x: 40, y: 15, label: 'L. Scapula', small: true },
-                { id: 'scapulaRight', x: 60, y: 15, label: 'R. Scapula', small: true },
-                { id: 'upperLimbLeft', x: 25, y: 22, label: 'L. Upper Arm' },
-                { id: 'upperLimbRight', x: 75, y: 22, label: 'R. Upper Arm' },
+
+                // Shoulders & Upper back
+                { id: 'shoulderLeft', x: 36, y: 12, label: 'L. Shoulder' },
+                { id: 'shoulderRight', x: 64, y: 12, label: 'R. Shoulder' },
+                { id: 'scapulaLeft', x: 42, y: 16, label: 'L. Scapula', small: true },
+                { id: 'scapulaRight', x: 58, y: 16, label: 'R. Scapula', small: true },
+                { id: 'backUpper', x: 50, y: 18, label: 'Upper Back' },
+
+                // Arms
+                { id: 'upperLimbLeft', x: 28, y: 19, label: 'L. Upper Arm' },
+                { id: 'upperLimbRight', x: 72, y: 19, label: 'R. Upper Arm' },
+                { id: 'elbowLeft', x: 22, y: 26, label: 'L. Elbow', small: true },
+                { id: 'elbowRight', x: 78, y: 26, label: 'R. Elbow', small: true },
+
+                // Lower back & Sacrum
                 { id: 'backLower', x: 50, y: 26, label: 'Lower Back' },
-                { id: 'elbowLeft', x: 20, y: 30, label: 'L. Elbow', small: true },
-                { id: 'elbowRight', x: 80, y: 30, label: 'R. Elbow', small: true },
-                { id: 'sacrum', x: 50, y: 33, label: 'Sacrum', small: true },
-                { id: 'buttockLeft', x: 42, y: 38, label: 'L. Buttock', small: true },
-                { id: 'buttockRight', x: 58, y: 38, label: 'R. Buttock', small: true },
+                { id: 'sacrum', x: 50, y: 32, label: 'Sacrum', small: true },
+
+                // Buttocks - wider for woman
+                { id: 'buttockLeft', x: 41, y: 37, label: 'L. Buttock' },
+                { id: 'buttockRight', x: 59, y: 37, label: 'R. Buttock' },
+
+                // Posterior thighs
                 { id: 'thighLeft', x: 42, y: 48, label: 'L. Thigh' },
                 { id: 'thighRight', x: 58, y: 48, label: 'R. Thigh' },
-                { id: 'poplitealLeft', x: 42, y: 60, label: 'L. Popliteal', small: true },
-                { id: 'poplitealRight', x: 58, y: 60, label: 'R. Popliteal', small: true },
-                { id: 'calfLeft', x: 40, y: 72, label: 'L. Calf' },
-                { id: 'calfRight', x: 60, y: 72, label: 'R. Calf' },
-                { id: 'achillesLeft', x: 38, y: 86, label: 'L. Achilles', small: true },
-                { id: 'achillesRight', x: 62, y: 86, label: 'R. Achilles', small: true },
-                { id: 'heelLeft', x: 36, y: 94, label: 'L. Heel', small: true },
-                { id: 'heelRight', x: 64, y: 94, label: 'R. Heel', small: true },
+
+                // Popliteal fossa
+                { id: 'poplitealLeft', x: 42, y: 58, label: 'L. Popliteal', small: true },
+                { id: 'poplitealRight', x: 58, y: 58, label: 'R. Popliteal', small: true },
+
+                // Calves
+                { id: 'calfLeft', x: 41, y: 72, label: 'L. Calf' },
+                { id: 'calfRight', x: 59, y: 72, label: 'R. Calf' },
+
+                // Achilles & Heels
+                { id: 'achillesLeft', x: 40, y: 84, label: 'L. Achilles', small: true },
+                { id: 'achillesRight', x: 60, y: 84, label: 'R. Achilles', small: true },
+                { id: 'heelLeft', x: 38, y: 93, label: 'L. Heel', small: true },
+                { id: 'heelRight', x: 62, y: 93, label: 'R. Heel', small: true },
             ]
         }
     };
