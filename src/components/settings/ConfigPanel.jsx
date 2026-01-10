@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, Plus, Trash2, Cpu, FileText, Database, Image, Loader2, Upload, Users, BarChart3, ClipboardList, Download, X, FileDown, FileUp } from 'lucide-react';
+import { Settings, Save, Plus, Trash2, Cpu, FileText, Database, Image, Loader2, Upload, Users, BarChart3, ClipboardList, Download, X, FileDown, FileUp, Layers } from 'lucide-react';
 import { LLMService } from '../../services/llmService';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthService } from '../../services/authService';
 import EventLog from '../monitor/EventLog';
+import ScenarioRepository from './ScenarioRepository';
 import { SCENARIO_TEMPLATES, scaleScenarioTimeline } from '../../data/scenarioTemplates';
 
 export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
@@ -241,6 +242,12 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                         className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'cases' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
                     >
                         <FileText className="w-4 h-4" /> {isAdmin() ? 'Manage Cases' : 'Cases'}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('scenarios')}
+                        className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'scenarios' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
+                    >
+                        <Layers className="w-4 h-4" /> Scenarios
                     </button>
                     <button
                         onClick={() => setActiveTab('history')}
@@ -520,6 +527,38 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                             ) : null}
 
                         </div>
+                    )}
+
+                    {/* --- SCENARIOS TAB --- */}
+                    {activeTab === 'scenarios' && (
+                        <ScenarioRepository 
+                            onSelectScenario={(scenario) => {
+                                if (editingCase) {
+                                    // Apply scenario to editing case
+                                    const scaledScenario = {
+                                        enabled: true,
+                                        autoStart: false,
+                                        timeline: scenario.timeline
+                                    };
+                                    
+                                    setEditingCase(prev => ({
+                                        ...prev,
+                                        scenario: scaledScenario,
+                                        scenario_duration: scenario.duration_minutes,
+                                        scenario_from_repository: {
+                                            id: scenario.id,
+                                            name: scenario.name
+                                        }
+                                    }));
+                                    
+                                    // Switch back to cases tab
+                                    setActiveTab('cases');
+                                    alert(`Scenario "${scenario.name}" applied to case! Return to Step 3 to configure.`);
+                                } else {
+                                    alert('Please start editing a case first, then browse scenarios from Step 3.');
+                                }
+                            }} 
+                        />
                     )}
 
                     {/* --- SESSION HISTORY TAB --- */}
@@ -1815,25 +1854,60 @@ function CaseWizard({ caseData, setCaseData, onSave, onCancel }) {
                 {step === 3 && (
                     <div className="space-y-6">
                         <h4 className="text-lg font-bold text-purple-400">3. Progression Scenario (Optional)</h4>
-                        <p className="text-xs text-neutral-500">Add automatic deterioration or improvement over time. Select a template and set how fast it progresses.</p>
+                        <p className="text-xs text-neutral-500">Add automatic deterioration or improvement over time. Choose from quick templates or browse the full repository.</p>
                         
                         {/* Scenario Selector */}
                         <div className="space-y-4">
+                            {/* Repository Browser */}
+                            <div className="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <div>
+                                        <h5 className="text-sm font-bold text-blue-300">Scenario Repository</h5>
+                                        <p className="text-xs text-neutral-400">Browse reusable scenarios from database</p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            // Switch to scenarios tab
+                                            setActiveTab('scenarios');
+                                        }}
+                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-sm font-bold flex items-center gap-2"
+                                    >
+                                        <Database className="w-4 h-4" />
+                                        Browse Repository
+                                    </button>
+                                </div>
+                                {caseData.scenario_from_repository && (
+                                    <div className="mt-3 bg-green-900/20 border border-green-700/50 rounded p-3">
+                                        <p className="text-xs text-green-300">
+                                            ✓ Using scenario from repository: <strong>{caseData.scenario_from_repository.name}</strong>
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* OR divider */}
+                            <div className="flex items-center gap-4 text-neutral-500 text-xs">
+                                <div className="flex-1 border-t border-neutral-700"></div>
+                                <span>OR USE QUICK TEMPLATE</span>
+                                <div className="flex-1 border-t border-neutral-700"></div>
+                            </div>
+
                             <div>
-                                <label className="label-xs">Select Scenario</label>
+                                <label className="label-xs">Quick Templates</label>
                                 <select
                                     value={caseData.scenario_template || 'none'}
                                     onChange={(e) => {
                                         const templateName = e.target.value;
                                         if (templateName === 'none') {
                                             // Remove scenario
-                                            setCaseData(prev => ({ ...prev, scenario_template: null, scenario: null }));
+                                            setCaseData(prev => ({ ...prev, scenario_template: null, scenario: null, scenario_from_repository: null }));
                                         } else {
                                             // Set template name (will be built on duration change)
                                             setCaseData(prev => ({ 
                                                 ...prev, 
                                                 scenario_template: templateName,
-                                                scenario_duration: SCENARIO_TEMPLATES[templateName]?.duration || 30
+                                                scenario_duration: SCENARIO_TEMPLATES[templateName]?.duration || 30,
+                                                scenario_from_repository: null
                                             }));
                                         }
                                     }}
@@ -1846,6 +1920,9 @@ function CaseWizard({ caseData, setCaseData, onSave, onCancel }) {
                                         </option>
                                     ))}
                                 </select>
+                                <p className="text-xs text-neutral-500 mt-1">
+                                    Built-in templates (not from database)
+                                </p>
                             </div>
 
                             {/* Duration Selector */}
