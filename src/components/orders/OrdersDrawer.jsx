@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    FlaskConical, Scan, Pill, X, ChevronUp, ChevronDown,
-    Search, Filter, Clock, CheckCircle, Loader2, List,
-    AlertCircle, Package, Settings, Eye, EyeOff, Timer, FileText
+    FlaskConical, Pill, X, ChevronUp, ChevronDown,
+    Search, Clock, CheckCircle, Loader2, List,
+    Settings, Eye, EyeOff, Timer, FileText
 } from 'lucide-react';
 import { useToast } from '../../contexts/ToastContext';
 import EventLogger, { COMPONENTS } from '../../services/eventLogger';
@@ -78,19 +78,6 @@ export default function OrdersDrawer({ caseId, sessionId, onViewResult, caseData
     const [expandedGroups, setExpandedGroups] = useState(new Set());
     const [loadingLabs, setLoadingLabs] = useState(false);
     const [orderError, setOrderError] = useState(null);
-
-    // Radiology state (placeholder for future)
-    const [availableRadiology, setAvailableRadiology] = useState([
-        { id: 'cxr', name: 'Chest X-Ray', category: 'Plain Film', turnaround: 15 },
-        { id: 'ct_head', name: 'CT Head', category: 'CT', turnaround: 30 },
-        { id: 'ct_chest', name: 'CT Chest', category: 'CT', turnaround: 30 },
-        { id: 'ct_abdomen', name: 'CT Abdomen/Pelvis', category: 'CT', turnaround: 45 },
-        { id: 'mri_brain', name: 'MRI Brain', category: 'MRI', turnaround: 60 },
-        { id: 'echo', name: 'Echocardiogram', category: 'Ultrasound', turnaround: 45 },
-        { id: 'us_abdomen', name: 'Ultrasound Abdomen', category: 'Ultrasound', turnaround: 30 },
-        { id: 'ekg', name: '12-Lead ECG', category: 'Cardiac', turnaround: 5 },
-    ]);
-    const [selectedRadiology, setSelectedRadiology] = useState([]);
 
     // Drugs state (placeholder for future)
     const [availableDrugs, setAvailableDrugs] = useState([
@@ -278,7 +265,6 @@ export default function OrdersDrawer({ caseId, sessionId, onViewResult, caseData
 
     const tabs = [
         { id: 'labs', label: 'Laboratory', icon: FlaskConical, count: readyOrders.length },
-        { id: 'radiology', label: 'Radiology', icon: Scan, count: 0 },
         { id: 'drugs', label: 'Medications', icon: Pill, count: 0 },
         { id: 'records', label: 'Records', icon: FileText, count: 0 },
         { id: 'settings', label: 'Settings', icon: Settings, count: 0 }
@@ -384,7 +370,6 @@ export default function OrdersDrawer({ caseId, sessionId, onViewResult, caseData
                             onClick={() => handleDrawerOpen(tab.id)}
                             className={`relative px-4 py-3 rounded-full flex items-center gap-2 font-bold text-sm shadow-lg transition-all hover:scale-105 ${
                                 tab.id === 'labs' ? 'bg-purple-600 hover:bg-purple-500 text-white' :
-                                tab.id === 'radiology' ? 'bg-blue-600 hover:bg-blue-500 text-white' :
                                 tab.id === 'drugs' ? 'bg-green-600 hover:bg-green-500 text-white' :
                                 tab.id === 'records' ? 'bg-amber-600 hover:bg-amber-500 text-white' :
                                 'bg-neutral-700 hover:bg-neutral-600 text-white'
@@ -458,7 +443,6 @@ export default function OrdersDrawer({ caseId, sessionId, onViewResult, caseData
                                     className={`flex-1 px-4 py-2.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors ${
                                         activeTab === tab.id
                                             ? tab.id === 'labs' ? 'bg-purple-600 text-white' :
-                                              tab.id === 'radiology' ? 'bg-blue-600 text-white' :
                                               tab.id === 'drugs' ? 'bg-green-600 text-white' :
                                               tab.id === 'records' ? 'bg-amber-600 text-white' :
                                               'bg-neutral-700 text-white'
@@ -745,25 +729,6 @@ export default function OrdersDrawer({ caseId, sessionId, onViewResult, caseData
                                             )}
                                         </div>
                                     )}
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Radiology Tab */}
-                        {activeTab === 'radiology' && (
-                            <div className="h-full flex items-center justify-center">
-                                <div className="text-center">
-                                    <Scan className="w-16 h-16 mx-auto mb-4 text-neutral-600" />
-                                    <h3 className="text-lg font-bold text-neutral-400 mb-2">Radiology Orders</h3>
-                                    <p className="text-sm text-neutral-500">Coming soon - Configure imaging studies for this case</p>
-                                    <div className="mt-6 grid grid-cols-2 gap-2 max-w-md mx-auto">
-                                        {availableRadiology.map(study => (
-                                            <div key={study.id} className="p-3 bg-neutral-800 border border-neutral-700 rounded text-left opacity-50">
-                                                <div className="text-sm text-white">{study.name}</div>
-                                                <div className="text-xs text-neutral-400">{study.category} - {study.turnaround}min</div>
-                                            </div>
-                                        ))}
-                                    </div>
                                 </div>
                             </div>
                         )}

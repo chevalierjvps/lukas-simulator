@@ -55,7 +55,10 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
 
   // Check vitals against thresholds
   const checkVitals = useCallback(() => {
-    if (!vitals) return;
+    if (!vitals) {
+      console.log('[Alarms] No vitals to check');
+      return;
+    }
     // Note: Alarms work even without a session, but won't be logged to database
 
     const now = Date.now();
@@ -96,9 +99,11 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
 
       if (alarmTriggered) {
         const alarmKey = `${vital}_${thresholdType}`;
-        
+        console.log(`[Alarms] Threshold breach: ${vital}=${numValue} (${thresholdType} threshold: ${thresholdValue})`);
+
         // Skip if alarm is snoozed
         if (snoozedAlarms.current.has(alarmKey)) {
+          console.log(`[Alarms] ${alarmKey} is snoozed, skipping`);
           return;
         }
 
@@ -106,6 +111,7 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
 
         // Debounce: only trigger if 5 seconds have passed
         if (now - lastAlarmTime > 5000) {
+          console.log(`[Alarms] FIRING alarm: ${alarmKey}`);
           newActiveAlarms.add(alarmKey);
           alarmDebounce.current.set(alarmKey, now);
 

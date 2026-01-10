@@ -2,22 +2,39 @@
  * Service to handle LLM communication and Backend persistence.
  */
 
-// Default Configuration
+// Default Configuration - LM Studio is the default
 const DEFAULT_CONFIG = {
-    provider: 'openai', // 'openai' or 'local' (compatible with openai format)
-    baseUrl: 'http://localhost:11434/v1', // Default Ollama
-    apiKey: 'sk-placeholder',
-    model: 'llama3'
+    provider: 'lmstudio',
+    baseUrl: 'http://localhost:1234/v1',
+    apiKey: '',
+    model: 'local-model'
 };
 
-const BACKEND_URL = 'http://localhost:3000/api';
+const BACKEND_URL = '/api';
+
+// Load saved config from localStorage on module init
+const loadSavedConfig = () => {
+    try {
+        const saved = localStorage.getItem('rohy_llm_defaults');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed.provider) {
+                return { ...DEFAULT_CONFIG, ...parsed };
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to load saved LLM config:', e);
+    }
+    return { ...DEFAULT_CONFIG };
+};
 
 export const LLMService = {
 
-    config: { ...DEFAULT_CONFIG },
+    config: loadSavedConfig(),
 
     setConfig(newConfig) {
         this.config = { ...this.config, ...newConfig };
+        console.log('[LLMService] Config updated:', this.config);
     },
 
     /**
@@ -85,6 +102,12 @@ export const LLMService = {
      * Send Message to LLM and Log to Backend
      */
     async sendMessage(sessionId, messages, systemPrompt) {
+        console.log('[LLMService] Sending message with config:', {
+            provider: this.config.provider,
+            baseUrl: this.config.baseUrl,
+            model: this.config.model
+        });
+
         // 1. Log User Message
         const lastMsg = messages[messages.length - 1];
         if (lastMsg.role === 'user') {

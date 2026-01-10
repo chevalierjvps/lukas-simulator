@@ -4,7 +4,7 @@ import { AuthService } from '../../services/authService';
 
 const RECORD_TABS = [
     { id: 'history', label: 'History', icon: FileText },
-    { id: 'physical', label: 'Physical Exam', icon: Stethoscope },
+    { id: 'physical', label: 'Past Physical Exam', icon: Stethoscope },
     { id: 'medications', label: 'Medications', icon: Pill },
     { id: 'radiology', label: 'Radiology', icon: Image },
     { id: 'procedures', label: 'Procedures', icon: Syringe },

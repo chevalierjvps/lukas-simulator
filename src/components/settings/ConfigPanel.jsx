@@ -58,7 +58,7 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
         // Fallback to current service config or defaults
         const current = LLMService.config;
         let provider = current.provider === 'local' ? 'lmstudio' : current.provider;
-        if (!PROVIDERS[provider]) provider = 'openai';
+        if (!PROVIDERS[provider]) provider = 'lmstudio';
 
         return {
             provider,

@@ -1549,23 +1549,32 @@ export default function PatientMonitor({ caseParams, caseData, sessionId }) {
 
                {activeTab === 'vitals' && (
                   <div className="space-y-6">
-                     {/* Override indicator and reset button */}
-                     {caseBaseline && (
-                        <div className={`flex items-center justify-between p-2 rounded-lg ${hasOverrides ? 'bg-orange-900/30 border border-orange-700/50' : 'bg-green-900/20 border border-green-700/30'}`}>
-                           <div className="flex items-center gap-2">
-                              {hasOverrides ? (
-                                 <>
-                                    <Pencil className="w-4 h-4 text-orange-400" />
-                                    <span className="text-xs text-orange-300">Override Mode ({overriddenVitals.size} modified)</span>
-                                 </>
-                              ) : (
-                                 <>
-                                    <Activity className="w-4 h-4 text-green-400" />
-                                    <span className="text-xs text-green-300">Using Case Vitals</span>
-                                 </>
-                              )}
-                           </div>
+                     {/* Override indicator and reset buttons */}
+                     <div className={`flex items-center justify-between p-2 rounded-lg ${hasOverrides ? 'bg-orange-900/30 border border-orange-700/50' : 'bg-green-900/20 border border-green-700/30'}`}>
+                        <div className="flex items-center gap-2">
+                           {hasOverrides ? (
+                              <>
+                                 <Pencil className="w-4 h-4 text-orange-400" />
+                                 <span className="text-xs text-orange-300">Override Mode ({overriddenVitals.size} modified)</span>
+                              </>
+                           ) : (
+                              <>
+                                 <Activity className="w-4 h-4 text-green-400" />
+                                 <span className="text-xs text-green-300">{caseBaseline ? 'Using Case Vitals' : 'Default Vitals'}</span>
+                              </>
+                           )}
+                        </div>
+                        <div className="flex gap-2">
                            {hasOverrides && (
+                              <button
+                                 onClick={() => setOverriddenVitals(new Set())}
+                                 className="text-xs px-2 py-1 bg-neutral-600 hover:bg-neutral-500 text-white rounded"
+                                 title="Clear override tracking without resetting values"
+                              >
+                                 Clear Flags
+                              </button>
+                           )}
+                           {(hasOverrides || caseBaseline) && (
                               <button
                                  onClick={resetToCaseDefaults}
                                  className="text-xs px-2 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded font-bold"
@@ -1574,7 +1583,7 @@ export default function PatientMonitor({ caseParams, caseData, sessionId }) {
                               </button>
                            )}
                         </div>
-                     )}
+                     </div>
 
                      {/* HR */}
                      <div className="space-y-2">
