@@ -7,18 +7,24 @@ This case demonstrates the full alarm system with rapid patient deterioration, t
 
 ### 1. Import the Case
 1. Login as **Admin**
-2. Go to **Settings → Manage Cases**
-3. Click **"Import Case"** button
-4. Select `DEMO_ALARM_CASE.json`
-5. Case will be imported as "DEMO: Rapid Deterioration with Alarms"
+2. Click **Settings** button (⚙️ icon in top-right corner)
+3. Go to **"Manage Cases"** tab
+4. Click **"Import Case"** button (📥 icon)
+5. Select `DEMO_ALARM_CASE.json`
+6. Case will be imported as "DEMO: Rapid Deterioration with Alarms"
 
-### 2. Start the Simulation
-1. Close Settings panel
-2. Select the Demo case from the case dropdown
-3. **IMPORTANT:** Click **"Start New Session"** button
-   - ⚠️ **Alarms ONLY work during active sessions!**
-   - You must start a session before alarms will trigger
-4. The patient will load with multiple alarm conditions active
+### 2. Load the Case
+1. **Settings → Cases tab** shows all available cases
+2. Find "DEMO: Rapid Deterioration with Alarms" in the list
+3. Click on the case card to select it
+4. The case will load automatically into the main monitor view
+5. Close Settings panel (X button) to return to monitor
+
+### 3. Start the Simulation
+1. **IMPORTANT:** Alarms work immediately - NO session needed!
+2. Once case loads, alarms trigger automatically within 2 seconds
+3. The patient will display with multiple alarm conditions active
+4. (Optional) Click **"Start New Session"** to log alarms to database
 
 ### 3. Expected Alarm Triggers (Immediate)
 
@@ -47,10 +53,33 @@ When you start the session, you should see **6-7 alarms** immediately:
 
 ### 5. Managing Alarms
 
-- **Acknowledge Individual:** Click "Acknowledge" next to each alarm
-- **Acknowledge All:** Click "Acknowledge All Alarms" button
-- **Mute Sound:** Click mute button (audio stops but visual remains)
-- **View History:** Settings → Alarms → History tab
+**Individual Alarm Actions:**
+- **Acknowledge:** Silences alarm permanently (until condition recurs)
+- **Snooze:** Hides alarm for X minutes, then re-activates if condition persists
+
+**Bulk Actions:**
+- **Acknowledge All:** Clears all active alarms at once
+- **Snooze All:** Snoozes all active alarms for the configured duration
+
+**Snooze Configuration:**
+- Settings → Alarms → Snooze Settings
+- Choose duration: 1, 2, 3, 5, 10, or 15 minutes
+- Default: 5 minutes
+
+**Snoozed Alarms Display:**
+- Shows countdown timer for each snoozed alarm
+- Alarm re-activates automatically when snooze expires
+- Visual indicator: 💤 emoji
+- Example: "HR_HIGH - Returns in 4 mins"
+
+**Audio Control:**
+- **Mute:** Click mute button (audio stops but visual alarms remain)
+- **Unmute:** Click unmute button to restore audio
+
+**History:**
+- Settings → Alarms → History tab
+- Shows all alarms with timestamps
+- Tracks acknowledged and snoozed alarms
 
 ### 6. Scenario Progression
 
@@ -66,20 +95,29 @@ The case includes a 5-minute scenario with 4 stages:
 ### 7. Troubleshooting
 
 **No alarms triggering?**
-1. ✓ Verify you **started a session** (not just loaded the case)
-2. ✓ Check browser console for errors
-3. ✓ Click anywhere on screen (audio needs user interaction)
-4. ✓ Check Settings → Alarms → Configuration to verify thresholds are enabled
+1. ✓ Verify case loaded successfully (check top-left banner)
+2. ✓ Wait 2-3 seconds after case loads (alarms check every 2s)
+3. ✓ Check browser console for errors
+4. ✓ Verify Settings → Alarms → Thresholds are enabled (toggle should be green)
+5. ✓ Check if alarm was snoozed (see "Snoozed Alarms" section)
 
 **No audio?**
-1. ✓ Click anywhere on screen first (browser audio policy)
-2. ✓ Check alarm is not muted
+1. ✓ **Click anywhere on screen first** (browser audio policy requires user interaction)
+2. ✓ Check alarm is not muted (speaker icon should NOT be red)
 3. ✓ Check browser sound permissions
 4. ✓ Verify system volume is up
+5. ✓ Try refreshing page and clicking again
 
-**Alarms stop immediately?**
-- This is normal! Alarms have a 5-second debounce period
-- If vital returns to normal range, alarm clears automatically
+**Alarms disappear after 5 seconds?**
+- Not normal! Check if they're being snoozed automatically
+- Check "Snoozed Alarms" section in Settings → Alarms
+- If vitals return to normal, alarm clears automatically (this is correct behavior)
+
+**Alarm returns after snoozing?**
+- **This is expected behavior!** Snooze is temporary
+- If condition persists when snooze expires, alarm re-activates
+- To permanently silence: Acknowledge alarm OR fix the vital sign
+- Snooze duration configurable: 1-15 minutes
 
 ## Default Alarm Thresholds
 

@@ -16,8 +16,10 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
   const [activeAlarms, setActiveAlarms] = useState(new Set());
   const [alarmHistory, setAlarmHistory] = useState([]);
   const [isMuted, setIsMuted] = useState(false);
+  const [snoozeDuration, setSnoozeDuration] = useState(5); // minutes
   
   const alarmDebounce = useRef(new Map()); // vital -> last alarm time
+  const snoozedAlarms = useRef(new Map()); // alarmKey -> snooze end time
   const oscillatorRef = useRef(null);
 
   // Load user's alarm config
@@ -59,6 +61,14 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
     const now = Date.now();
     const newActiveAlarms = new Set();
 
+    // Check for expired snoozes and remove them
+    for (const [alarmKey, snoozeEndTime] of snoozedAlarms.current.entries()) {
+      if (now >= snoozeEndTime) {
+        snoozedAlarms.current.delete(alarmKey);
+        // console.log(`Snooze expired for ${alarmKey}, alarm will re-activate if condition persists`);
+      }
+    }
+
     Object.entries(vitals).forEach(([vital, value]) => {
       const threshold = thresholds[vital];
       if (!threshold || !threshold.enabled) return;
@@ -86,6 +96,12 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
 
       if (alarmTriggered) {
         const alarmKey = `${vital}_${thresholdType}`;
+        
+        // Skip if alarm is snoozed
+        if (snoozedAlarms.current.has(alarmKey)) {
+          return;
+        }
+
         const lastAlarmTime = alarmDebounce.current.get(alarmKey) || 0;
 
         // Debounce: only trigger if 5 seconds have passed
@@ -104,7 +120,8 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
             thresholdValue,
             actualValue: numValue,
             timestamp: new Date().toISOString(),
-            acknowledged: false
+            acknowledged: false,
+            snoozed: false
           }]);
         } else {
           // Keep existing alarm active
@@ -234,6 +251,67 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
     );
   }, []);
 
+  // Snooze alarm
+  const snoozeAlarm = useCallback((alarmKey, durationMinutes = null) => {
+    const duration = durationMinutes || snoozeDuration;
+    const snoozeEndTime = Date.now() + (duration * 60 * 1000);
+    
+    // Add to snoozed alarms map
+    snoozedAlarms.current.set(alarmKey, snoozeEndTime);
+    
+    // Remove from active alarms
+    setActiveAlarms(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(alarmKey);
+      return newSet;
+    });
+
+    // Update history
+    setAlarmHistory(prev =>
+      prev.map(alarm => {
+        const key = `${alarm.vital}_${alarm.thresholdType}`;
+        if (key === alarmKey && !alarm.snoozed) {
+          return {
+            ...alarm,
+            snoozed: true,
+            snoozedAt: new Date().toISOString(),
+            snoozeUntil: new Date(snoozeEndTime).toISOString(),
+            snoozeDuration: duration
+          };
+        }
+        return alarm;
+      })
+    );
+  }, [snoozeDuration]);
+
+  // Snooze all alarms
+  const snoozeAll = useCallback((durationMinutes = null) => {
+    const duration = durationMinutes || snoozeDuration;
+    const snoozeEndTime = Date.now() + (duration * 60 * 1000);
+    
+    activeAlarms.forEach(alarmKey => {
+      snoozedAlarms.current.set(alarmKey, snoozeEndTime);
+    });
+    
+    setActiveAlarms(new Set());
+    
+    setAlarmHistory(prev =>
+      prev.map(alarm => {
+        const key = `${alarm.vital}_${alarm.thresholdType}`;
+        if (activeAlarms.has(key) && !alarm.snoozed) {
+          return {
+            ...alarm,
+            snoozed: true,
+            snoozedAt: new Date().toISOString(),
+            snoozeUntil: new Date(snoozeEndTime).toISOString(),
+            snoozeDuration: duration
+          };
+        }
+        return alarm;
+      })
+    );
+  }, [activeAlarms, snoozeDuration]);
+
   // Update thresholds
   const updateThreshold = useCallback((vital, low, high, enabled) => {
     setThresholds(prev => ({
@@ -274,8 +352,17 @@ export const useAlarms = (vitals, sessionId, audioContext) => {
     alarmHistory,
     isMuted,
     setIsMuted,
+    snoozeDuration,
+    setSnoozeDuration,
+    snoozedAlarms: Array.from(snoozedAlarms.current.entries()).map(([key, time]) => ({
+      key,
+      until: new Date(time).toISOString(),
+      remaining: Math.max(0, Math.ceil((time - Date.now()) / 1000 / 60)) // minutes
+    })),
     acknowledgeAlarm,
     acknowledgeAll,
+    snoozeAlarm,
+    snoozeAll,
     updateThreshold,
     saveConfig,
     resetToDefaults: () => setThresholds(DEFAULT_THRESHOLDS)

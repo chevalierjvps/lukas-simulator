@@ -1454,24 +1454,80 @@ export default function PatientMonitor({ caseParams, caseData, sessionId }) {
                      {/* Active Alarms */}
                      {alarmSystem.activeAlarms.length > 0 && (
                         <div className="space-y-2 mb-6">
-                           <h4 className="text-sm font-semibold text-red-400">Active Alarms</h4>
+                           <h4 className="text-sm font-semibold text-red-400">Active Alarms ({alarmSystem.activeAlarms.length})</h4>
                            {alarmSystem.activeAlarms.map(alarmKey => (
-                              <div key={alarmKey} className="bg-red-900/20 border border-red-700/50 rounded p-3 flex items-center justify-between animate-pulse">
-                                 <div className="text-sm text-white">{alarmKey.replace('_', ' ').toUpperCase()}</div>
-                                 <button
-                                    onClick={() => alarmSystem.acknowledgeAlarm(alarmKey)}
-                                    className="text-xs px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded"
-                                 >
-                                    Acknowledge
-                                 </button>
+                              <div key={alarmKey} className="bg-red-900/20 border border-red-700/50 rounded p-3 animate-pulse">
+                                 <div className="text-sm text-white font-semibold mb-2">{alarmKey.replace('_', ' ').toUpperCase()}</div>
+                                 <div className="flex gap-2">
+                                    <button
+                                       onClick={() => alarmSystem.acknowledgeAlarm(alarmKey)}
+                                       className="flex-1 text-xs px-3 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded"
+                                    >
+                                       Acknowledge
+                                    </button>
+                                    <button
+                                       onClick={() => alarmSystem.snoozeAlarm(alarmKey)}
+                                       className="flex-1 text-xs px-3 py-1.5 bg-yellow-700 hover:bg-yellow-600 text-white rounded"
+                                    >
+                                       Snooze {alarmSystem.snoozeDuration}min
+                                    </button>
+                                 </div>
                               </div>
                            ))}
-                           <button
-                              onClick={alarmSystem.acknowledgeAll}
-                              className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
+                           <div className="flex gap-2">
+                              <button
+                                 onClick={alarmSystem.acknowledgeAll}
+                                 className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm font-bold"
+                              >
+                                 Acknowledge All
+                              </button>
+                              <button
+                                 onClick={alarmSystem.snoozeAll}
+                                 className="flex-1 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm font-bold"
+                              >
+                                 Snooze All
+                              </button>
+                           </div>
+                        </div>
+                     )}
+
+                     {/* Snooze Configuration */}
+                     <div className="space-y-3 mb-6 bg-neutral-800/30 p-4 rounded-lg border border-neutral-700">
+                        <h4 className="text-sm font-semibold text-yellow-400">Snooze Settings</h4>
+                        <div className="flex items-center gap-3">
+                           <label className="text-xs text-neutral-400">Duration:</label>
+                           <select
+                              value={alarmSystem.snoozeDuration}
+                              onChange={(e) => alarmSystem.setSnoozeDuration(parseInt(e.target.value))}
+                              className="flex-1 bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm"
                            >
-                              Acknowledge All
-                           </button>
+                              <option value="1">1 minute</option>
+                              <option value="2">2 minutes</option>
+                              <option value="3">3 minutes</option>
+                              <option value="5">5 minutes</option>
+                              <option value="10">10 minutes</option>
+                              <option value="15">15 minutes</option>
+                           </select>
+                        </div>
+                     </div>
+
+                     {/* Snoozed Alarms */}
+                     {alarmSystem.snoozedAlarms && alarmSystem.snoozedAlarms.length > 0 && (
+                        <div className="space-y-2 mb-6">
+                           <h4 className="text-sm font-semibold text-yellow-400">Snoozed Alarms ({alarmSystem.snoozedAlarms.length})</h4>
+                           {alarmSystem.snoozedAlarms.map(({ key, until, remaining }) => (
+                              <div key={key} className="bg-yellow-900/20 border border-yellow-700/50 rounded p-3">
+                                 <div className="flex items-center justify-between">
+                                    <div>
+                                       <div className="text-sm text-white font-semibold">{key.replace('_', ' ').toUpperCase()}</div>
+                                       <div className="text-xs text-yellow-300 mt-1">
+                                          Returns in {remaining} min{remaining !== 1 ? 's' : ''}
+                                       </div>
+                                    </div>
+                                    <div className="text-xs text-yellow-400">💤</div>
+                                 </div>
+                              </div>
+                           ))}
                         </div>
                      )}
 
