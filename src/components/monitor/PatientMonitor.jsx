@@ -4,6 +4,7 @@ import defaultSettings from '../../settings.json';
 import { useEventLog } from '../../hooks/useEventLog';
 import { useAlarms } from '../../hooks/useAlarms';
 import { useToast } from '../../contexts/ToastContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { getAudioContext, resumeAudioContext } from '../../utils/alarmAudio';
 import LabValueEditor from '../investigations/LabValueEditor';
 import EventLogger, { COMPONENTS } from '../../services/eventLogger';
@@ -235,8 +236,10 @@ const importSettingsFromJSON = (file, setRhythm, setConditions, setParams) => {
    });
 };
 
-export default function PatientMonitor({ caseParams, caseData, sessionId, isAdmin = false }) {
+export default function PatientMonitor({ caseParams, caseData, sessionId, isAdmin: isAdminProp = false }) {
    const toast = useToast();
+   const { isAdmin: isAdminAuth } = useAuth();
+   const isAdmin = isAdminProp || isAdminAuth();
    // --- Refs for Canvas & Buffers ---
    const canvasRef = useRef(null);
    const ecgCanvasRef = useRef(null);
@@ -1378,23 +1381,26 @@ export default function PatientMonitor({ caseParams, caseData, sessionId, isAdmi
                         </div>
                      )}
 
-                     {/* Rhythm Select */}
-                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-neutral-500 uppercase">Primary Rhythm</label>
-                        <div className="grid grid-cols-1 gap-2">
-                           {['NSR', 'AFib', 'VTach', 'VFib', 'Asystole'].map(r => (
-                              <button
-                                 key={r}
-                                 onClick={() => handleRhythmChange(r)}
-                                 className={`px-4 py-3 rounded-md text-left text-sm font-bold border transition-all ${rhythm === r ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/50' : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-600'}`}
-                              >
-                                 {r === 'NSR' ? 'Normal Sinus Rhythm' : r}
-                              </button>
-                           ))}
+                     {/* Rhythm Select - Admin Only */}
+                     {isAdmin && (
+                        <div className="space-y-2">
+                           <label className="text-xs font-bold text-neutral-500 uppercase">Primary Rhythm</label>
+                           <div className="grid grid-cols-1 gap-2">
+                              {['NSR', 'AFib', 'VTach', 'VFib', 'Asystole'].map(r => (
+                                 <button
+                                    key={r}
+                                    onClick={() => handleRhythmChange(r)}
+                                    className={`px-4 py-3 rounded-md text-left text-sm font-bold border transition-all ${rhythm === r ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/50' : 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-600'}`}
+                                 >
+                                    {r === 'NSR' ? 'Normal Sinus Rhythm' : r}
+                                 </button>
+                              ))}
+                           </div>
                         </div>
-                     </div>
+                     )}
 
-                     {/* ECG Pattern Presets */}
+                     {/* ECG Pattern Presets - Admin Only */}
+                     {isAdmin && (
                      <div className="space-y-2">
                         <label className="text-xs font-bold text-neutral-500 uppercase">ECG Pattern Presets</label>
                         <select
@@ -1487,8 +1493,10 @@ export default function PatientMonitor({ caseParams, caseData, sessionId, isAdmi
                            </optgroup>
                         </select>
                      </div>
+                     )}
 
-                     {/* Ectopics & Noise */}
+                     {/* Ectopics & Noise - Admin Only */}
+                     {isAdmin && (
                      <div className="space-y-2">
                         <label className="text-xs font-bold text-neutral-500 uppercase">Modifiers</label>
                         <div className="space-y-3 bg-neutral-800/50 p-3 rounded-lg border border-neutral-800">
@@ -1547,6 +1555,7 @@ export default function PatientMonitor({ caseParams, caseData, sessionId, isAdmi
 
                         </div>
                      </div>
+                     )}
 
                   </div>
                )}
