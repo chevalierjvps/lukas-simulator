@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     User, Mail, Phone, Building2, MapPin, GraduationCap,
-    Lock, Save, Loader2, Eye, EyeOff, AlertCircle, CheckCircle
+    Lock, Save, Loader2, Eye, EyeOff, AlertCircle, CheckCircle,
+    Bot, Server, Key, Thermometer, Hash
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
@@ -14,9 +15,20 @@ export default function UserProfilePanel({ onClose }) {
     const { user } = useAuth();
     const toast = useToast();
 
-    const [activeTab, setActiveTab] = useState('profile'); // profile, password
+    const [activeTab, setActiveTab] = useState('profile'); // profile, password, ai
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+
+    // AI Settings
+    const [aiSettings, setAiSettings] = useState({
+        provider: '',
+        model: '',
+        baseUrl: '',
+        apiKey: '',
+        maxOutputTokens: '',
+        temperature: ''
+    });
+    const [showApiKey, setShowApiKey] = useState(false);
 
     // Profile data
     const [profile, setProfile] = useState({
@@ -43,10 +55,11 @@ export default function UserProfilePanel({ onClose }) {
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
 
-    // Load profile and field config
+    // Load profile, field config, and AI settings
     useEffect(() => {
         loadProfile();
         loadFieldConfig();
+        loadAiSettings();
     }, []);
 
     const loadProfile = async () => {
@@ -92,6 +105,71 @@ export default function UserProfilePanel({ onClose }) {
             }
         } catch (error) {
             console.error('Failed to load field config:', error);
+        }
+    };
+
+    const loadAiSettings = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/users/preferences', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                // Parse default_llm_settings if it's a string (from DB)
+                let llmSettings = data.default_llm_settings;
+                if (typeof llmSettings === 'string') {
+                    try {
+                        llmSettings = JSON.parse(llmSettings);
+                    } catch (e) {
+                        llmSettings = null;
+                    }
+                }
+                if (llmSettings) {
+                    setAiSettings(prev => ({
+                        ...prev,
+                        ...llmSettings
+                    }));
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load AI settings:', error);
+        }
+    };
+
+    const handleSaveAiSettings = async () => {
+        setSaving(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/users/preferences', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    default_llm_settings: {
+                        provider: aiSettings.provider || undefined,
+                        model: aiSettings.model || undefined,
+                        baseUrl: aiSettings.baseUrl || undefined,
+                        apiKey: aiSettings.apiKey || undefined,
+                        maxOutputTokens: aiSettings.maxOutputTokens || undefined,
+                        temperature: aiSettings.temperature || undefined
+                    }
+                })
+            });
+
+            if (response.ok) {
+                toast.success('AI settings saved successfully');
+            } else {
+                const data = await response.json();
+                toast.error(data.error || 'Failed to save AI settings');
+            }
+        } catch (error) {
+            toast.error('Failed to save AI settings: ' + error.message);
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -267,6 +345,17 @@ export default function UserProfilePanel({ onClose }) {
                         <Lock className="w-4 h-4 inline mr-2" />
                         Password
                     </button>
+                    <button
+                        onClick={() => setActiveTab('ai')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            activeTab === 'ai'
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-neutral-800 text-neutral-400 hover:text-white'
+                        }`}
+                    >
+                        <Bot className="w-4 h-4 inline mr-2" />
+                        AI Settings
+                    </button>
                 </div>
             </div>
 
@@ -426,6 +515,140 @@ export default function UserProfilePanel({ onClose }) {
                                     <><Loader2 className="w-4 h-4 animate-spin" /> Changing...</>
                                 ) : (
                                     <><Lock className="w-4 h-4" /> Change Password</>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'ai' && (
+                    <div className="space-y-6 max-w-2xl">
+                        <div className="p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg">
+                            <p className="text-sm text-blue-200 flex items-start gap-2">
+                                <Bot className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                Configure your personal AI settings. These will be used instead of platform defaults when you start new sessions.
+                                Leave fields empty to use platform defaults.
+                            </p>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-neutral-300">AI Provider Configuration</h3>
+
+                            {/* Provider */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-neutral-400">Provider</label>
+                                <select
+                                    value={aiSettings.provider}
+                                    onChange={(e) => setAiSettings(prev => ({ ...prev, provider: e.target.value }))}
+                                    className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+                                >
+                                    <option value="">Use platform default</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="anthropic">Anthropic (Claude)</option>
+                                    <option value="lmstudio">LM Studio (Local)</option>
+                                    <option value="ollama">Ollama (Local)</option>
+                                    <option value="openrouter">OpenRouter</option>
+                                    <option value="groq">Groq</option>
+                                    <option value="together">Together AI</option>
+                                </select>
+                            </div>
+
+                            {/* Model */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-neutral-400">Model</label>
+                                <div className="relative">
+                                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                                    <input
+                                        type="text"
+                                        value={aiSettings.model}
+                                        onChange={(e) => setAiSettings(prev => ({ ...prev, model: e.target.value }))}
+                                        placeholder="e.g., gpt-4, claude-3-opus, llama3"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:border-blue-500 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Base URL */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-neutral-400">API Base URL</label>
+                                <div className="relative">
+                                    <Server className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                                    <input
+                                        type="text"
+                                        value={aiSettings.baseUrl}
+                                        onChange={(e) => setAiSettings(prev => ({ ...prev, baseUrl: e.target.value }))}
+                                        placeholder="e.g., https://api.openai.com/v1"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:border-blue-500 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* API Key */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-neutral-400">API Key</label>
+                                <div className="relative">
+                                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                                    <input
+                                        type={showApiKey ? 'text' : 'password'}
+                                        value={aiSettings.apiKey}
+                                        onChange={(e) => setAiSettings(prev => ({ ...prev, apiKey: e.target.value }))}
+                                        placeholder="Your API key (stored securely)"
+                                        className="w-full pl-10 pr-10 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:border-blue-500 focus:outline-none"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowApiKey(!showApiKey)}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300"
+                                    >
+                                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Advanced Settings */}
+                            <h3 className="text-sm font-bold text-neutral-300 pt-4">Advanced Settings</h3>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                {/* Max Output Tokens */}
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-neutral-400">Max Output Tokens</label>
+                                    <input
+                                        type="number"
+                                        value={aiSettings.maxOutputTokens}
+                                        onChange={(e) => setAiSettings(prev => ({ ...prev, maxOutputTokens: e.target.value }))}
+                                        placeholder="e.g., 1024"
+                                        className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:border-blue-500 focus:outline-none"
+                                    />
+                                </div>
+
+                                {/* Temperature */}
+                                <div className="space-y-1">
+                                    <label className="text-xs font-medium text-neutral-400">Temperature</label>
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        min="0"
+                                        max="2"
+                                        value={aiSettings.temperature}
+                                        onChange={(e) => setAiSettings(prev => ({ ...prev, temperature: e.target.value }))}
+                                        placeholder="e.g., 0.7"
+                                        className="w-full px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-lg text-white placeholder-neutral-500 focus:border-blue-500 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Save Button */}
+                        <div className="pt-4 border-t border-neutral-800">
+                            <button
+                                onClick={handleSaveAiSettings}
+                                disabled={saving}
+                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-600 text-white rounded-lg font-medium flex items-center gap-2"
+                            >
+                                {saving ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Saving...</>
+                                ) : (
+                                    <><Save className="w-4 h-4" /> Save AI Settings</>
                                 )}
                             </button>
                         </div>

@@ -758,16 +758,40 @@ router.delete('/cases/:id', authenticateToken, requireAdmin, (req, res) => {
 // --- SESSIONS ---
 
 // POST /api/sessions - Authenticated users only
-router.post('/sessions', authenticateToken, (req, res) => {
+router.post('/sessions', authenticateToken, async (req, res) => {
     const { case_id, student_name, llm_settings, monitor_settings } = req.body;
     const user_id = req.user.id;
+
+    // If no llm_settings provided, check user preferences for default settings
+    let effectiveLlmSettings = llm_settings || {};
+    if (!llm_settings || Object.keys(llm_settings).length === 0) {
+        try {
+            const userPrefs = await new Promise((resolve, reject) => {
+                db.get('SELECT default_llm_settings FROM user_preferences WHERE user_id = ?', [user_id], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+            if (userPrefs?.default_llm_settings) {
+                try {
+                    effectiveLlmSettings = JSON.parse(userPrefs.default_llm_settings);
+                    console.log(`[Session] Using user ${user_id}'s default LLM settings`);
+                } catch {
+                    console.warn('[Session] Failed to parse user default LLM settings');
+                }
+            }
+        } catch (err) {
+            console.warn('[Session] Failed to fetch user preferences:', err.message);
+        }
+    }
+
     const sql = `INSERT INTO sessions (case_id, user_id, student_name, llm_settings, monitor_settings) VALUES (?, ?, ?, ?, ?)`;
 
     db.run(sql, [
-        case_id, 
-        user_id, 
+        case_id,
+        user_id,
         student_name || req.user.username,
-        JSON.stringify(llm_settings || {}),
+        JSON.stringify(effectiveLlmSettings),
         JSON.stringify(monitor_settings || {})
     ], function (err) {
         if (err) return res.status(500).json({ error: err.message });
@@ -787,10 +811,10 @@ router.post('/sessions', authenticateToken, (req, res) => {
 
         db.run(settingsSnapshotSql, [
             sessionId, case_id, user_id,
-            llm_settings?.provider, llm_settings?.model, llm_settings?.baseUrl,
+            effectiveLlmSettings?.provider, effectiveLlmSettings?.model, effectiveLlmSettings?.baseUrl,
             monitor_settings?.hr, monitor_settings?.rhythm, monitor_settings?.spo2,
             monitor_settings?.bp_sys, monitor_settings?.bp_dia, monitor_settings?.rr, monitor_settings?.temp,
-            JSON.stringify({ llm: llm_settings, monitor: monitor_settings })
+            JSON.stringify({ llm: effectiveLlmSettings, monitor: monitor_settings })
         ]);
 
         // Log case load event
@@ -3044,32 +3068,63 @@ router.post('/proxy/llm', authenticateToken, async (req, res) => {
             });
         }
 
-        // 7. Get LLM settings from platform settings
-        const getLLMSetting = (key, defaultVal) => new Promise((resolve, reject) => {
+        // 7. Get LLM settings from platform settings (these are the defaults)
+        const getPlatformLLMSetting = (key, defaultVal) => new Promise((resolve, reject) => {
             db.get('SELECT setting_value FROM platform_settings WHERE setting_key = ?', [key], (err, row) => {
                 if (err) reject(err);
                 else resolve(row?.setting_value || defaultVal);
             });
         });
 
-        const provider = await getLLMSetting('llm_provider', 'lmstudio');
-        const model = await getLLMSetting('llm_model', '');
-        const baseUrl = await getLLMSetting('llm_base_url', 'http://localhost:1234/v1');
-        const apiKey = await getLLMSetting('llm_api_key', '');
-        const maxOutputTokensRaw = await getLLMSetting('llm_max_output_tokens', '');
-        const temperatureRaw = await getLLMSetting('llm_temperature', '');
-        const maxOutputTokens = maxOutputTokensRaw ? parseInt(maxOutputTokensRaw) : null;
-        const temperature = temperatureRaw ? parseFloat(temperatureRaw) : null;
-        const systemPromptTemplate = await getLLMSetting('llm_system_prompt_template', '');
+        // Get all platform settings first (these are always the base)
+        const platformProvider = await getPlatformLLMSetting('llm_provider', 'lmstudio');
+        const platformModel = await getPlatformLLMSetting('llm_model', '');
+        const platformBaseUrl = await getPlatformLLMSetting('llm_base_url', 'http://localhost:1234/v1');
+        const platformApiKey = await getPlatformLLMSetting('llm_api_key', '');
+        const platformMaxTokens = await getPlatformLLMSetting('llm_max_output_tokens', '');
+        const platformTemperature = await getPlatformLLMSetting('llm_temperature', '');
+        const systemPromptTemplate = await getPlatformLLMSetting('llm_system_prompt_template', '');
 
-        // 8. Build headers
-        const llmHeaders = { 'Content-Type': 'application/json' };
-        if (apiKey) {
-            llmHeaders['Authorization'] = `Bearer ${apiKey}`;
+        // Check if session has user-specific LLM settings (optional overrides)
+        let sessionLlmSettings = null;
+        if (session_id) {
+            sessionLlmSettings = await new Promise((resolve, reject) => {
+                db.get('SELECT llm_settings FROM sessions WHERE id = ?', [session_id], (err, row) => {
+                    if (err) reject(err);
+                    else {
+                        try {
+                            const parsed = row?.llm_settings ? JSON.parse(row.llm_settings) : null;
+                            // Only use if it has actual settings (not empty object)
+                            if (parsed && Object.keys(parsed).length > 0) {
+                                resolve(parsed);
+                            } else {
+                                resolve(null);
+                            }
+                        } catch {
+                            resolve(null);
+                        }
+                    }
+                });
+            });
         }
 
-        // 9. Build request body - combine platform system prompt with case-specific prompt
-        const conversation = [];
+        // Merge: session settings override platform settings only if they have actual values
+        const provider = (sessionLlmSettings?.provider && sessionLlmSettings.provider.trim()) || platformProvider;
+        const model = (sessionLlmSettings?.model && sessionLlmSettings.model.trim()) || platformModel;
+        const baseUrl = (sessionLlmSettings?.baseUrl && sessionLlmSettings.baseUrl.trim()) || platformBaseUrl;
+        const apiKey = (sessionLlmSettings?.apiKey && sessionLlmSettings.apiKey.trim()) || platformApiKey;
+        const maxOutputTokensRaw = sessionLlmSettings?.maxOutputTokens || platformMaxTokens;
+        const temperatureRaw = sessionLlmSettings?.temperature || platformTemperature;
+        const maxOutputTokens = maxOutputTokensRaw ? parseInt(maxOutputTokensRaw) : null;
+        const temperature = temperatureRaw ? parseFloat(temperatureRaw) : null;
+
+        // Debug logging
+        console.log(`[LLM Proxy] Settings: provider=${provider}, model=${model || '(default)'}, baseUrl=${baseUrl}`);
+        if (sessionLlmSettings && Object.keys(sessionLlmSettings).length > 0) {
+            console.log(`[LLM Proxy] Using session overrides for session ${session_id}:`, Object.keys(sessionLlmSettings).filter(k => sessionLlmSettings[k]));
+        }
+
+        // 8. Build system prompt
         let fullSystemPrompt = '';
         if (systemPromptTemplate) {
             fullSystemPrompt = systemPromptTemplate;
@@ -3077,38 +3132,72 @@ router.post('/proxy/llm', authenticateToken, async (req, res) => {
         if (system_prompt) {
             fullSystemPrompt += (fullSystemPrompt ? '\n\n---\n\n' : '') + system_prompt;
         }
-        if (fullSystemPrompt) {
-            conversation.push({ role: 'system', content: fullSystemPrompt });
-        }
-        if (messages && Array.isArray(messages)) {
-            conversation.push(...messages);
-        }
 
-        // 10. Build request payload - model is optional for local providers
-        const requestPayload = {
-            messages: conversation,
-            stream: false
-        };
-        // Only include temperature if set
-        if (temperature !== null) {
-            requestPayload.temperature = temperature;
-        }
-        // Only include max tokens if set - use max_completion_tokens for OpenAI (newer models), max_tokens for others
-        if (maxOutputTokens) {
-            if (provider === 'openai') {
-                requestPayload.max_completion_tokens = maxOutputTokens;
-            } else {
-                requestPayload.max_tokens = maxOutputTokens;
+        // 9. Build request based on provider type
+        let llmHeaders = { 'Content-Type': 'application/json' };
+        let requestPayload = {};
+        let endpoint = '';
+
+        if (provider === 'anthropic') {
+            // Anthropic Claude API format
+            llmHeaders['x-api-key'] = apiKey;
+            llmHeaders['anthropic-version'] = '2023-06-01';
+
+            // Filter out system messages for Anthropic (uses separate system field)
+            const anthropicMessages = (messages || []).filter(m => m.role !== 'system').map(m => ({
+                role: m.role === 'assistant' ? 'assistant' : 'user',
+                content: m.content
+            }));
+
+            requestPayload = {
+                model: model || 'claude-3-5-sonnet-20241022',
+                max_tokens: maxOutputTokens || 1024,
+                messages: anthropicMessages
+            };
+            if (fullSystemPrompt) {
+                requestPayload.system = fullSystemPrompt;
             }
-        }
-        // Only include model if specified (LM Studio uses default if omitted)
-        if (model && model.trim() !== '') {
-            requestPayload.model = model;
+            if (temperature !== null) {
+                requestPayload.temperature = temperature;
+            }
+            endpoint = `${baseUrl}/messages`;
+        } else {
+            // OpenAI-compatible API format (OpenAI, LM Studio, Ollama, OpenRouter, Groq, Together, etc.)
+            if (apiKey) {
+                llmHeaders['Authorization'] = `Bearer ${apiKey}`;
+            }
+
+            const conversation = [];
+            if (fullSystemPrompt) {
+                conversation.push({ role: 'system', content: fullSystemPrompt });
+            }
+            if (messages && Array.isArray(messages)) {
+                conversation.push(...messages);
+            }
+
+            requestPayload = {
+                messages: conversation,
+                stream: false
+            };
+            if (temperature !== null) {
+                requestPayload.temperature = temperature;
+            }
+            if (maxOutputTokens) {
+                if (provider === 'openai') {
+                    requestPayload.max_completion_tokens = maxOutputTokens;
+                } else {
+                    requestPayload.max_tokens = maxOutputTokens;
+                }
+            }
+            if (model && model.trim() !== '') {
+                requestPayload.model = model;
+            }
+            endpoint = `${baseUrl}/chat/completions`;
         }
 
-        // 11. Make LLM request
-        console.log(`[LLM Proxy] User ${userId} sending request to ${provider}${model ? '/' + model : ' (default model)'}`);
-        const response = await fetch(`${baseUrl}/chat/completions`, {
+        // 10. Make LLM request
+        console.log(`[LLM Proxy] User ${userId} sending request to ${provider}${model ? '/' + model : ' (default model)'} at ${endpoint}`);
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: llmHeaders,
             body: JSON.stringify(requestPayload)
@@ -3124,12 +3213,33 @@ router.post('/proxy/llm', authenticateToken, async (req, res) => {
             return res.status(response.status).json({ error: errText });
         }
 
-        const data = await response.json();
+        const rawData = await response.json();
 
-        // 11. Extract usage from response
-        const promptTokens = data.usage?.prompt_tokens || 0;
-        const completionTokens = data.usage?.completion_tokens || 0;
-        const totalTokens = data.usage?.total_tokens || promptTokens + completionTokens;
+        // 11. Normalize response format (Anthropic vs OpenAI)
+        let data;
+        let promptTokens, completionTokens, totalTokens;
+
+        if (provider === 'anthropic') {
+            // Anthropic response format -> OpenAI format
+            const content = rawData.content?.[0]?.text || '';
+            promptTokens = rawData.usage?.input_tokens || 0;
+            completionTokens = rawData.usage?.output_tokens || 0;
+            totalTokens = promptTokens + completionTokens;
+
+            data = {
+                choices: [{
+                    message: { role: 'assistant', content },
+                    finish_reason: rawData.stop_reason || 'stop'
+                }],
+                usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: totalTokens }
+            };
+        } else {
+            // OpenAI-compatible format
+            data = rawData;
+            promptTokens = data.usage?.prompt_tokens || 0;
+            completionTokens = data.usage?.completion_tokens || 0;
+            totalTokens = data.usage?.total_tokens || promptTokens + completionTokens;
+        }
 
         // 12. Calculate estimated cost
         const pricing = await new Promise((resolve, reject) => {
@@ -4844,20 +4954,36 @@ router.post('/platform-settings/llm/test', authenticateToken, requireAdmin, asyn
         const baseUrl = await getPlatformSetting('llm_base_url') || DEFAULT_LLM_SETTINGS.baseUrl;
         const apiKey = await getPlatformSetting('llm_api_key') || '';
 
-        const headers = { 'Content-Type': 'application/json' };
-        if (apiKey) {
-            headers['Authorization'] = `Bearer ${apiKey}`;
+        let headers = { 'Content-Type': 'application/json' };
+        let requestPayload = {};
+        let endpoint = '';
+
+        if (provider === 'anthropic') {
+            // Anthropic API format
+            headers['x-api-key'] = apiKey;
+            headers['anthropic-version'] = '2023-06-01';
+            requestPayload = {
+                model: model || 'claude-3-5-sonnet-20241022',
+                max_tokens: 100,
+                messages: [{ role: 'user', content: 'Say "test successful" in exactly two words.' }]
+            };
+            endpoint = `${baseUrl}/messages`;
+        } else {
+            // OpenAI-compatible format
+            if (apiKey) {
+                headers['Authorization'] = `Bearer ${apiKey}`;
+            }
+            requestPayload = {
+                messages: [{ role: 'user', content: 'Say "test successful" in exactly two words.' }]
+            };
+            if (model && model.trim() !== '') {
+                requestPayload.model = model;
+            }
+            endpoint = `${baseUrl}/chat/completions`;
         }
 
-        // Build request payload - model is optional for local providers (LM Studio)
-        const requestPayload = {
-            messages: [{ role: 'user', content: 'Say "test successful" in exactly two words.' }]
-        };
-        if (model && model.trim() !== '') {
-            requestPayload.model = model;
-        }
-
-        const testResponse = await fetch(`${baseUrl}/chat/completions`, {
+        console.log(`[LLM Test] Testing ${provider} at ${endpoint}`);
+        const testResponse = await fetch(endpoint, {
             method: 'POST',
             headers,
             body: JSON.stringify(requestPayload)
@@ -4872,12 +4998,22 @@ router.post('/platform-settings/llm/test', authenticateToken, requireAdmin, asyn
         }
 
         const data = await testResponse.json();
+
+        // Extract content based on provider
+        let responseContent;
+        if (provider === 'anthropic') {
+            responseContent = data.content?.[0]?.text || 'No response content';
+        } else {
+            responseContent = data.choices?.[0]?.message?.content || 'No response content';
+        }
+
         res.json({
             success: true,
             message: 'Connection successful',
-            response: data.choices?.[0]?.message?.content || 'No response content'
+            response: responseContent
         });
     } catch (err) {
+        console.error('[LLM Test] Error:', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

@@ -1208,9 +1208,15 @@ function LLMConfiguration() {
     const [showApiKey, setShowApiKey] = useState(false);
 
     const PROVIDERS = {
-        openai: { name: 'OpenAI', defaultBase: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini', needsKey: true, modelRequired: true },
-        lmstudio: { name: 'LM Studio (Local)', defaultBase: 'http://localhost:1234/v1', defaultModel: '', needsKey: false, modelRequired: false },
-        ollama: { name: 'Ollama (Local)', defaultBase: 'http://localhost:11434/v1', defaultModel: 'llama3', needsKey: false, modelRequired: true }
+        lmstudio: { name: 'LM Studio (Local)', defaultBase: 'http://localhost:1234/v1', defaultModel: '', needsKey: false, modelRequired: false, description: 'Local LLM server - no API key needed' },
+        ollama: { name: 'Ollama (Local)', defaultBase: 'http://localhost:11434/v1', defaultModel: 'llama3.2', needsKey: false, modelRequired: true, description: 'Local Ollama server' },
+        openai: { name: 'OpenAI', defaultBase: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini', needsKey: true, modelRequired: true, description: 'GPT-4, GPT-4o, GPT-4o-mini' },
+        anthropic: { name: 'Anthropic (Claude)', defaultBase: 'https://api.anthropic.com/v1', defaultModel: 'claude-3-5-sonnet-20241022', needsKey: true, modelRequired: true, description: 'Claude 3.5 Sonnet, Claude 3 Opus' },
+        openrouter: { name: 'OpenRouter', defaultBase: 'https://openrouter.ai/api/v1', defaultModel: 'anthropic/claude-3.5-sonnet', needsKey: true, modelRequired: true, description: 'Access multiple AI providers' },
+        groq: { name: 'Groq', defaultBase: 'https://api.groq.com/openai/v1', defaultModel: 'llama-3.3-70b-versatile', needsKey: true, modelRequired: true, description: 'Ultra-fast inference' },
+        together: { name: 'Together AI', defaultBase: 'https://api.together.xyz/v1', defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', needsKey: true, modelRequired: true, description: 'Open source models' },
+        azure: { name: 'Azure OpenAI', defaultBase: 'https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR-DEPLOYMENT', defaultModel: '', needsKey: true, modelRequired: false, description: 'Azure-hosted OpenAI' },
+        custom: { name: 'Custom OpenAI-Compatible', defaultBase: 'http://localhost:8000/v1', defaultModel: '', needsKey: false, modelRequired: false, description: 'Any OpenAI-compatible API' }
     };
 
     useEffect(() => {
@@ -1373,10 +1379,23 @@ function LLMConfiguration() {
                             onChange={(e) => handleProviderChange(e.target.value)}
                             className="w-full bg-neutral-800 border border-neutral-600 rounded-lg p-3 text-white focus:border-cyan-500 outline-none"
                         >
-                            {Object.entries(PROVIDERS).map(([key, provider]) => (
-                                <option key={key} value={key}>{provider.name}</option>
-                            ))}
+                            <optgroup label="Local (No API Key)">
+                                <option value="lmstudio">LM Studio (Local)</option>
+                                <option value="ollama">Ollama (Local)</option>
+                            </optgroup>
+                            <optgroup label="Cloud Providers (API Key Required)">
+                                <option value="openai">OpenAI (GPT-4o, GPT-4o-mini)</option>
+                                <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+                                <option value="openrouter">OpenRouter (Multi-provider)</option>
+                                <option value="groq">Groq (Ultra-fast)</option>
+                                <option value="together">Together AI (Open Source)</option>
+                                <option value="azure">Azure OpenAI</option>
+                            </optgroup>
+                            <optgroup label="Other">
+                                <option value="custom">Custom OpenAI-Compatible API</option>
+                            </optgroup>
                         </select>
+                        <p className="text-xs text-neutral-500 mt-1">{currentProvider.description}</p>
                     </div>
 
                     {/* Base URL */}
@@ -3171,8 +3190,8 @@ PERSONALITY: You are anxious but cooperative. You're worried this might be a hea
     };
 
     const WIZARD_STEPS = [
-        { num: 1, title: 'Persona', icon: '🎭' },
-        { num: 2, title: 'Details', icon: '📋' },
+        { num: 1, title: 'Demographics', icon: '👤' },
+        { num: 2, title: 'Story', icon: '📖' },
         { num: 3, title: 'Scenario', icon: '📈' },
         { num: 4, title: 'Vitals', icon: '💓' },
         { num: 5, title: 'Labs', icon: '🧪' },
@@ -3263,72 +3282,17 @@ PERSONALITY: You are anxious but cooperative. You're worried this might be a hea
 
             <div className="flex-1 overflow-y-auto pr-2">
 
-                {/* STEP 1: PERSONA */}
+                {/* STEP 1: DEMOGRAPHICS (EHR-style) */}
                 {step === 1 && (
                     <div className="space-y-6">
-                        <div className="flex justify-between items-end">
-                            <h4 className="text-lg font-bold text-purple-400">1. Persona & Behavior</h4>
-                            <button onClick={applyPersonaDefaults} className="text-xs bg-neutral-800 hover:bg-neutral-700 px-3 py-1 rounded text-purple-300">
-                                Load Standard Defaults
-                            </button>
-                        </div>
+                        <h4 className="text-lg font-bold text-purple-400">1. Patient Demographics</h4>
+                        <p className="text-xs text-neutral-500 -mt-4">EHR-style patient information. Most fields are optional.</p>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="label-xs">Persona Type</label>
-                                <select
-                                    value={caseData.config?.persona_type || 'Standard Simulated Patient'}
-                                    onChange={e => updateConfig('persona_type', e.target.value)}
-                                    className="input-dark"
-                                >
-                                    <option>Standard Simulated Patient</option>
-                                    <option>Difficult/Angry Patient</option>
-                                    <option>Pediatric Proxy (Parent)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="label-xs">Initial Greeting</label>
-                                <input
-                                    type="text"
-                                    value={caseData.config?.greeting || ''}
-                                    onChange={e => updateConfig('greeting', e.target.value)}
-                                    className="input-dark"
-                                    placeholder="e.g. Doctor, I don't feel well..."
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="label-xs">Behavioral Constraints</label>
-                            <textarea
-                                value={caseData.config?.constraints || ''}
-                                onChange={e => updateConfig('constraints', e.target.value)}
-                                className="input-dark h-20"
-                                placeholder="e.g. Only speak English. Do not reveal diagnosis."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="label-xs">System Prompt (Master Instruction)</label>
-                            <textarea
-                                value={caseData.system_prompt || ''}
-                                onChange={e => setCaseData({ ...caseData, system_prompt: e.target.value })}
-                                className="input-dark h-40 font-mono text-xs"
-                                placeholder="You are John Doe..."
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* STEP 2: DETAILS */}
-                {step === 2 && (
-                    <div className="space-y-6">
-                        <h4 className="text-lg font-bold text-purple-400">2. Case Details & Vitals</h4>
-
+                        {/* Top Section: Avatar + Basic Info */}
                         <div className="grid grid-cols-3 gap-6">
-                            {/* Avatar Preview */}
+                            {/* Avatar */}
                             <div className="col-span-1">
-                                <label className="label-xs">Patient Avatar</label>
+                                <label className="label-xs">Patient Photo</label>
                                 <div className="aspect-square bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden flex flex-col items-center justify-center relative group">
                                     {uploading ? (
                                         <div className="flex flex-col items-center gap-2">
@@ -3339,132 +3303,545 @@ PERSONALITY: You are anxious but cooperative. You're worried this might be a hea
                                         <img src={caseData.image_url} alt="Avatar" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="text-center p-4">
-                                            <Image className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
-                                            <p className="text-[10px] text-neutral-500">No Image</p>
+                                            <User className="w-10 h-10 text-neutral-600 mx-auto mb-2" />
+                                            <p className="text-[10px] text-neutral-500">No Photo</p>
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                                         <label className="text-[10px] font-bold bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded cursor-pointer flex items-center gap-2">
-                                            <Upload className="w-3 h-3" /> Upload Photo
+                                            <Upload className="w-3 h-3" /> Upload
                                             <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
                                         </label>
-                                        <button
-                                            onClick={() => toast.info("Ask the AI to 'Generate Avatar' based on the summary.")}
-                                            className="text-[10px] font-bold bg-neutral-700 hover:bg-neutral-600 px-3 py-1.5 rounded flex items-center gap-2"
-                                        >
-                                            <Plus className="w-3 h-3" /> AI Generate
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="col-span-2 space-y-4">
-                                <div>
-                                    <label className="label-xs">Case Title (Internal)</label>
-                                    <input
-                                        type="text"
-                                        value={caseData.name}
-                                        onChange={e => setCaseData({ ...caseData, name: e.target.value })}
-                                        className="input-dark"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="label-xs">Patient Name (Display)</label>
-                                    <input
-                                        type="text"
-                                        value={caseData.config?.patient_name || ''}
-                                        onChange={e => updateConfig('patient_name', e.target.value)}
-                                        className="input-dark"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Patient Avatar */}
-                            <div className="mt-3">
-                                <label className="label-xs">Patient Avatar (Optional)</label>
-                                <div className="flex items-center gap-3 mt-1">
-                                    <div className="w-12 h-12 rounded-full bg-neutral-700 border border-neutral-600 flex items-center justify-center overflow-hidden">
-                                        {caseData.config?.patient_avatar ? (
-                                            <img src={caseData.config.patient_avatar} alt="Patient" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <User className="w-6 h-6 text-neutral-500" />
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            id="patient-avatar-upload"
-                                            onChange={(e) => {
-                                                const file = e.target.files[0];
-                                                if (file) {
-                                                    if (file.size > 500000) {
-                                                        toast.warning('Image too large. Max 500KB.');
-                                                        return;
-                                                    }
-                                                    const reader = new FileReader();
-                                                    reader.onloadend = () => updateConfig('patient_avatar', reader.result);
-                                                    reader.readAsDataURL(file);
-                                                }
-                                            }}
-                                        />
-                                        <label htmlFor="patient-avatar-upload" className="text-xs px-3 py-1.5 bg-neutral-700 hover:bg-neutral-600 rounded cursor-pointer">
-                                            Upload
-                                        </label>
-                                        {caseData.config?.patient_avatar && (
-                                            <button
-                                                type="button"
-                                                onClick={() => updateConfig('patient_avatar', '')}
-                                                className="ml-2 text-xs text-red-400 hover:text-red-300"
-                                            >
+                                        {caseData.image_url && (
+                                            <button onClick={() => setCaseData({ ...caseData, image_url: '' })} className="text-[10px] text-red-400 hover:text-red-300">
                                                 Remove
                                             </button>
                                         )}
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Basic Info */}
+                            <div className="col-span-2 space-y-3">
+                                <div>
+                                    <label className="label-xs">Patient Name <span className="text-red-400">*</span></label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.patient_name || ''}
+                                        onChange={e => updateConfig('patient_name', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="e.g., John Smith"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="label-xs">Case Title (Internal)</label>
+                                        <input
+                                            type="text"
+                                            value={caseData.name}
+                                            onChange={e => setCaseData({ ...caseData, name: e.target.value })}
+                                            className="input-dark"
+                                            placeholder="e.g., Chest Pain - STEMI"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">MRN</label>
+                                        <input
+                                            type="text"
+                                            value={caseData.config?.demographics?.mrn || ''}
+                                            onChange={e => updateDemographics('mrn', e.target.value)}
+                                            className="input-dark"
+                                            placeholder="e.g., 12345678"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="label-xs">Date of Birth</label>
+                                        <input
+                                            type="date"
+                                            value={caseData.config?.demographics?.dob || ''}
+                                            onChange={e => updateDemographics('dob', e.target.value)}
+                                            className="input-dark"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">Age</label>
+                                        <input
+                                            type="number"
+                                            value={caseData.config?.demographics?.age || ''}
+                                            onChange={e => updateDemographics('age', e.target.value)}
+                                            className="input-dark"
+                                            placeholder="Years"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">Gender</label>
+                                        <select
+                                            value={caseData.config?.demographics?.gender || ''}
+                                            onChange={e => updateDemographics('gender', e.target.value)}
+                                            className="input-dark"
+                                        >
+                                            <option value="">Select</option>
+                                            <option>Male</option>
+                                            <option>Female</option>
+                                            <option>Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
-                            <div>
-                                <label className="label-xs">Age</label>
-                                <input type="number" className="input-dark"
-                                    value={caseData.config?.demographics?.age || ''}
-                                    onChange={e => updateDemographics('age', e.target.value)}
-                                />
-                            </div>
-                            <div>
-                                <label className="label-xs">Gender</label>
-                                <select className="input-dark"
-                                    value={caseData.config?.demographics?.gender || ''}
-                                    onChange={e => updateDemographics('gender', e.target.value)}
-                                >
-                                    <option value="">Select</option>
-                                    <option>Male</option>
-                                    <option>Female</option>
-                                    <option>Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="label-xs">Weight (kg)</label>
-                                <input type="text" className="input-dark"
-                                    value={caseData.config?.demographics?.weight || ''}
-                                    onChange={e => updateDemographics('weight', e.target.value)}
-                                    placeholder="e.g. 70 kg"
-                                />
+                        {/* Physical Measurements */}
+                        <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                            <h5 className="text-sm font-bold text-neutral-300 mb-3">Physical Measurements</h5>
+                            <div className="grid grid-cols-4 gap-3">
+                                <div>
+                                    <label className="label-xs">Height (cm)</label>
+                                    <input
+                                        type="number"
+                                        value={caseData.config?.demographics?.height || ''}
+                                        onChange={e => updateDemographics('height', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="170"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Weight (kg)</label>
+                                    <input
+                                        type="number"
+                                        value={caseData.config?.demographics?.weight || ''}
+                                        onChange={e => updateDemographics('weight', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="70"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">BMI</label>
+                                    <input
+                                        type="text"
+                                        value={
+                                            caseData.config?.demographics?.height && caseData.config?.demographics?.weight
+                                                ? (caseData.config.demographics.weight / Math.pow(caseData.config.demographics.height / 100, 2)).toFixed(1)
+                                                : ''
+                                        }
+                                        className="input-dark bg-neutral-900"
+                                        readOnly
+                                        placeholder="Auto"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Blood Type</label>
+                                    <select
+                                        value={caseData.config?.demographics?.bloodType || ''}
+                                        onChange={e => updateDemographics('bloodType', e.target.value)}
+                                        className="input-dark"
+                                    >
+                                        <option value="">Unknown</option>
+                                        <option>A+</option>
+                                        <option>A-</option>
+                                        <option>B+</option>
+                                        <option>B-</option>
+                                        <option>AB+</option>
+                                        <option>AB-</option>
+                                        <option>O+</option>
+                                        <option>O-</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
+                        {/* Additional Demographics */}
+                        <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                            <h5 className="text-sm font-bold text-neutral-300 mb-3">Additional Information</h5>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="label-xs">Primary Language</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.language || ''}
+                                        onChange={e => updateDemographics('language', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="e.g., English"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Ethnicity</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.ethnicity || ''}
+                                        onChange={e => updateDemographics('ethnicity', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="e.g., Caucasian"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Occupation</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.occupation || ''}
+                                        onChange={e => updateDemographics('occupation', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="e.g., Teacher"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Marital Status</label>
+                                    <select
+                                        value={caseData.config?.demographics?.maritalStatus || ''}
+                                        onChange={e => updateDemographics('maritalStatus', e.target.value)}
+                                        className="input-dark"
+                                    >
+                                        <option value="">Select</option>
+                                        <option>Single</option>
+                                        <option>Married</option>
+                                        <option>Divorced</option>
+                                        <option>Widowed</option>
+                                        <option>Separated</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Emergency Contact */}
+                        <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                            <h5 className="text-sm font-bold text-neutral-300 mb-3">Emergency Contact</h5>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className="label-xs">Contact Name</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.emergencyContact?.name || ''}
+                                        onChange={e => updateDemographics('emergencyContact', { ...caseData.config?.demographics?.emergencyContact, name: e.target.value })}
+                                        className="input-dark"
+                                        placeholder="e.g., Jane Smith"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Relationship</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.emergencyContact?.relationship || ''}
+                                        onChange={e => updateDemographics('emergencyContact', { ...caseData.config?.demographics?.emergencyContact, relationship: e.target.value })}
+                                        className="input-dark"
+                                        placeholder="e.g., Spouse"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Phone</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.emergencyContact?.phone || ''}
+                                        onChange={e => updateDemographics('emergencyContact', { ...caseData.config?.demographics?.emergencyContact, phone: e.target.value })}
+                                        className="input-dark"
+                                        placeholder="e.g., 555-1234"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Known Allergies */}
                         <div>
-                            <label className="label-xs">Case Summary (Description)</label>
+                            <label className="label-xs">Known Allergies</label>
+                            <input
+                                type="text"
+                                value={caseData.config?.demographics?.allergies || ''}
+                                onChange={e => updateDemographics('allergies', e.target.value)}
+                                className="input-dark"
+                                placeholder="e.g., Penicillin (rash), Sulfa, NKDA"
+                            />
+                            <p className="text-[10px] text-neutral-500 mt-1">Separate multiple allergies with commas</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* STEP 2: STORY */}
+                {step === 2 && (
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <h4 className="text-lg font-bold text-purple-400">2. Patient Story & Behavior</h4>
+                                <p className="text-xs text-neutral-500">Define how the simulated patient behaves and communicates.</p>
+                            </div>
+                            <button onClick={applyPersonaDefaults} className="text-xs bg-neutral-800 hover:bg-neutral-700 px-3 py-1 rounded text-purple-300">
+                                Load Defaults
+                            </button>
+                        </div>
+
+                        {/* Personality Section */}
+                        <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-lg p-4 border border-purple-700/30">
+                            <h5 className="text-sm font-bold text-purple-300 mb-3">Personality & Communication</h5>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="label-xs">Persona Type</label>
+                                    <select
+                                        value={caseData.config?.persona_type || 'Standard Simulated Patient'}
+                                        onChange={e => updateConfig('persona_type', e.target.value)}
+                                        className="input-dark"
+                                    >
+                                        <option>Standard Simulated Patient</option>
+                                        <option>Difficult/Angry Patient</option>
+                                        <option>Anxious Patient</option>
+                                        <option>Depressed Patient</option>
+                                        <option>Elderly/Confused Patient</option>
+                                        <option>Pediatric Proxy (Parent)</option>
+                                        <option>Non-compliant Patient</option>
+                                        <option>Drug-seeking Patient</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Communication Style</label>
+                                    <select
+                                        value={caseData.config?.personality?.communicationStyle || 'normal'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, communicationStyle: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="normal">Normal</option>
+                                        <option value="verbose">Verbose (detailed answers)</option>
+                                        <option value="brief">Brief (short answers)</option>
+                                        <option value="tangential">Tangential (goes off-topic)</option>
+                                        <option value="guarded">Guarded (hesitant to share)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Emotional State</label>
+                                    <select
+                                        value={caseData.config?.personality?.emotionalState || 'neutral'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, emotionalState: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="neutral">Neutral</option>
+                                        <option value="calm">Calm</option>
+                                        <option value="anxious">Anxious</option>
+                                        <option value="fearful">Fearful</option>
+                                        <option value="angry">Angry/Frustrated</option>
+                                        <option value="sad">Sad/Tearful</option>
+                                        <option value="stoic">Stoic</option>
+                                        <option value="distressed">Distressed</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Pain Tolerance</label>
+                                    <select
+                                        value={caseData.config?.personality?.painTolerance || 'normal'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, painTolerance: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="high">High (minimizes pain)</option>
+                                        <option value="normal">Normal</option>
+                                        <option value="low">Low (expresses pain readily)</option>
+                                        <option value="dramatic">Dramatic (exaggerates)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Cooperativeness</label>
+                                    <select
+                                        value={caseData.config?.personality?.cooperativeness || 'cooperative'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, cooperativeness: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="very_cooperative">Very Cooperative</option>
+                                        <option value="cooperative">Cooperative</option>
+                                        <option value="neutral">Neutral</option>
+                                        <option value="reluctant">Reluctant</option>
+                                        <option value="uncooperative">Uncooperative</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Health Literacy</label>
+                                    <select
+                                        value={caseData.config?.personality?.healthLiteracy || 'average'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, healthLiteracy: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="high">High (medical background)</option>
+                                        <option value="average">Average</option>
+                                        <option value="low">Low (needs explanations)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Initial Greeting & Constraints */}
+                        <div className="grid grid-cols-1 gap-4">
+                            <div>
+                                <label className="label-xs">Initial Greeting</label>
+                                <input
+                                    type="text"
+                                    value={caseData.config?.greeting || ''}
+                                    onChange={e => updateConfig('greeting', e.target.value)}
+                                    className="input-dark"
+                                    placeholder="e.g., Doctor, I've had this terrible chest pain since this morning..."
+                                />
+                                <p className="text-[10px] text-neutral-500 mt-1">What the patient says when the conversation starts</p>
+                            </div>
+                            <div>
+                                <label className="label-xs">Behavioral Constraints & Guides</label>
+                                <textarea
+                                    value={caseData.config?.constraints || ''}
+                                    onChange={e => updateConfig('constraints', e.target.value)}
+                                    className="input-dark h-20"
+                                    placeholder="e.g., Only speaks English. Will not reveal drug use unless asked directly. Gets defensive when asked about alcohol."
+                                />
+                                <p className="text-[10px] text-neutral-500 mt-1">Rules the AI must follow during the conversation</p>
+                            </div>
+                        </div>
+
+                        {/* Story Mode Toggle */}
+                        <div className="border-t border-neutral-700 pt-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <h5 className="text-sm font-bold text-neutral-300">Patient Story</h5>
+                                <div className="flex bg-neutral-800 rounded-lg p-1">
+                                    <button
+                                        onClick={() => updateConfig('storyMode', 'freeform')}
+                                        className={`px-3 py-1 text-xs font-bold rounded transition-colors ${
+                                            (caseData.config?.storyMode || 'freeform') === 'freeform'
+                                                ? 'bg-purple-600 text-white'
+                                                : 'text-neutral-400 hover:text-white'
+                                        }`}
+                                    >
+                                        Freeform
+                                    </button>
+                                    <button
+                                        onClick={() => updateConfig('storyMode', 'structured')}
+                                        className={`px-3 py-1 text-xs font-bold rounded transition-colors ${
+                                            caseData.config?.storyMode === 'structured'
+                                                ? 'bg-purple-600 text-white'
+                                                : 'text-neutral-400 hover:text-white'
+                                        }`}
+                                    >
+                                        Structured
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Freeform Mode */}
+                            {(caseData.config?.storyMode || 'freeform') === 'freeform' && (
+                                <div>
+                                    <label className="label-xs">Complete Patient Story / System Prompt</label>
+                                    <textarea
+                                        value={caseData.system_prompt || ''}
+                                        onChange={e => setCaseData({ ...caseData, system_prompt: e.target.value })}
+                                        className="input-dark h-64 font-mono text-xs"
+                                        placeholder="Write the complete patient story here. Include all relevant medical history, current symptoms, medications, social history, and any other details the AI needs to accurately portray this patient..."
+                                    />
+                                    <p className="text-[10px] text-neutral-500 mt-1">Full narrative description of the patient case. This is the master instruction for the AI.</p>
+                                </div>
+                            )}
+
+                            {/* Structured Mode */}
+                            {caseData.config?.storyMode === 'structured' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="label-xs">Chief Complaint</label>
+                                        <input
+                                            type="text"
+                                            value={caseData.config?.structuredHistory?.chiefComplaint || ''}
+                                            onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, chiefComplaint: e.target.value })}
+                                            className="input-dark"
+                                            placeholder="e.g., Chest pain for 2 hours"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">History of Present Illness (HPI)</label>
+                                        <textarea
+                                            value={caseData.config?.structuredHistory?.hpi || ''}
+                                            onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, hpi: e.target.value })}
+                                            className="input-dark h-24"
+                                            placeholder="Describe the onset, location, duration, character, aggravating/alleviating factors, radiation, timing, and severity (OLDCARTS)..."
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label-xs">Past Medical History</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.pmh || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, pmh: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Hypertension, Type 2 DM, Hyperlipidemia"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label-xs">Past Surgical History</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.psh || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, psh: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Appendectomy (2010), Cholecystectomy (2015)"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label-xs">Current Medications</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.medications || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, medications: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Metformin 500mg BID, Lisinopril 10mg daily"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label-xs">Allergies</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.allergies || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, allergies: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Penicillin (rash), Sulfa (hives), NKDA"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label-xs">Social History</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.socialHistory || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, socialHistory: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Smoker 1 PPD x 20 years, occasional alcohol, retired teacher, lives with spouse"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label-xs">Family History</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.familyHistory || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, familyHistory: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Father - MI at 55, Mother - DM, Sister - breast cancer"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">Review of Systems (Positive Findings)</label>
+                                        <textarea
+                                            value={caseData.config?.structuredHistory?.ros || ''}
+                                            onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, ros: e.target.value })}
+                                            className="input-dark h-20"
+                                            placeholder="e.g., Constitutional: fatigue, weight loss. Cardiac: chest pain, palpitations. Respiratory: SOB on exertion"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">Additional Notes for AI</label>
+                                        <textarea
+                                            value={caseData.config?.structuredHistory?.additionalNotes || ''}
+                                            onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, additionalNotes: e.target.value })}
+                                            className="input-dark h-16"
+                                            placeholder="Any additional context or instructions for the AI..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Case Description */}
+                        <div className="border-t border-neutral-700 pt-4">
+                            <label className="label-xs">Case Summary (for case selection screen)</label>
                             <textarea
                                 value={caseData.description || ''}
                                 onChange={e => setCaseData({ ...caseData, description: e.target.value })}
-                                className="input-dark h-24"
-                                placeholder="Brief summary of the case..."
+                                className="input-dark h-16"
+                                placeholder="Brief summary shown when selecting cases..."
                             />
-                            <p className="text-[10px] text-neutral-500 mt-1 italic">This summary will be used by the AI to generate the visual avatar.</p>
                         </div>
                     </div>
                 )}
