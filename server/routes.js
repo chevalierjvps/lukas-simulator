@@ -758,16 +758,40 @@ router.delete('/cases/:id', authenticateToken, requireAdmin, (req, res) => {
 // --- SESSIONS ---
 
 // POST /api/sessions - Authenticated users only
-router.post('/sessions', authenticateToken, (req, res) => {
+router.post('/sessions', authenticateToken, async (req, res) => {
     const { case_id, student_name, llm_settings, monitor_settings } = req.body;
     const user_id = req.user.id;
+
+    // If no llm_settings provided, check user preferences for default settings
+    let effectiveLlmSettings = llm_settings || {};
+    if (!llm_settings || Object.keys(llm_settings).length === 0) {
+        try {
+            const userPrefs = await new Promise((resolve, reject) => {
+                db.get('SELECT default_llm_settings FROM user_preferences WHERE user_id = ?', [user_id], (err, row) => {
+                    if (err) reject(err);
+                    else resolve(row);
+                });
+            });
+            if (userPrefs?.default_llm_settings) {
+                try {
+                    effectiveLlmSettings = JSON.parse(userPrefs.default_llm_settings);
+                    console.log(`[Session] Using user ${user_id}'s default LLM settings`);
+                } catch {
+                    console.warn('[Session] Failed to parse user default LLM settings');
+                }
+            }
+        } catch (err) {
+            console.warn('[Session] Failed to fetch user preferences:', err.message);
+        }
+    }
+
     const sql = `INSERT INTO sessions (case_id, user_id, student_name, llm_settings, monitor_settings) VALUES (?, ?, ?, ?, ?)`;
 
     db.run(sql, [
-        case_id, 
-        user_id, 
+        case_id,
+        user_id,
         student_name || req.user.username,
-        JSON.stringify(llm_settings || {}),
+        JSON.stringify(effectiveLlmSettings),
         JSON.stringify(monitor_settings || {})
     ], function (err) {
         if (err) return res.status(500).json({ error: err.message });
@@ -787,10 +811,10 @@ router.post('/sessions', authenticateToken, (req, res) => {
 
         db.run(settingsSnapshotSql, [
             sessionId, case_id, user_id,
-            llm_settings?.provider, llm_settings?.model, llm_settings?.baseUrl,
+            effectiveLlmSettings?.provider, effectiveLlmSettings?.model, effectiveLlmSettings?.baseUrl,
             monitor_settings?.hr, monitor_settings?.rhythm, monitor_settings?.spo2,
             monitor_settings?.bp_sys, monitor_settings?.bp_dia, monitor_settings?.rr, monitor_settings?.temp,
-            JSON.stringify({ llm: llm_settings, monitor: monitor_settings })
+            JSON.stringify({ llm: effectiveLlmSettings, monitor: monitor_settings })
         ]);
 
         // Log case load event
@@ -3044,47 +3068,136 @@ router.post('/proxy/llm', authenticateToken, async (req, res) => {
             });
         }
 
-        // 7. Get LLM settings from platform settings
-        const getLLMSetting = (key, defaultVal) => new Promise((resolve, reject) => {
+        // 7. Get LLM settings from platform settings (these are the defaults)
+        const getPlatformLLMSetting = (key, defaultVal) => new Promise((resolve, reject) => {
             db.get('SELECT setting_value FROM platform_settings WHERE setting_key = ?', [key], (err, row) => {
                 if (err) reject(err);
                 else resolve(row?.setting_value || defaultVal);
             });
         });
 
-        const provider = await getLLMSetting('llm_provider', 'lmstudio');
-        const model = await getLLMSetting('llm_model', '');
-        const baseUrl = await getLLMSetting('llm_base_url', 'http://localhost:1234/v1');
-        const apiKey = await getLLMSetting('llm_api_key', '');
+        // Get all platform settings first (these are always the base)
+        const platformProvider = await getPlatformLLMSetting('llm_provider', 'lmstudio');
+        const platformModel = await getPlatformLLMSetting('llm_model', '');
+        const platformBaseUrl = await getPlatformLLMSetting('llm_base_url', 'http://localhost:1234/v1');
+        const platformApiKey = await getPlatformLLMSetting('llm_api_key', '');
+        const platformMaxTokens = await getPlatformLLMSetting('llm_max_output_tokens', '');
+        const platformTemperature = await getPlatformLLMSetting('llm_temperature', '');
+        const systemPromptTemplate = await getPlatformLLMSetting('llm_system_prompt_template', '');
 
-        // 8. Build headers
-        const llmHeaders = { 'Content-Type': 'application/json' };
-        if (apiKey) {
-            llmHeaders['Authorization'] = `Bearer ${apiKey}`;
+        // Check if session has user-specific LLM settings (optional overrides)
+        let sessionLlmSettings = null;
+        if (session_id) {
+            sessionLlmSettings = await new Promise((resolve, reject) => {
+                db.get('SELECT llm_settings FROM sessions WHERE id = ?', [session_id], (err, row) => {
+                    if (err) reject(err);
+                    else {
+                        try {
+                            const parsed = row?.llm_settings ? JSON.parse(row.llm_settings) : null;
+                            // Only use if it has actual settings (not empty object)
+                            if (parsed && Object.keys(parsed).length > 0) {
+                                resolve(parsed);
+                            } else {
+                                resolve(null);
+                            }
+                        } catch {
+                            resolve(null);
+                        }
+                    }
+                });
+            });
         }
 
-        // 9. Build request body
-        const conversation = [];
+        // Merge: session settings override platform settings only if they have actual values
+        const provider = (sessionLlmSettings?.provider && sessionLlmSettings.provider.trim()) || platformProvider;
+        const model = (sessionLlmSettings?.model && sessionLlmSettings.model.trim()) || platformModel;
+        const baseUrl = (sessionLlmSettings?.baseUrl && sessionLlmSettings.baseUrl.trim()) || platformBaseUrl;
+        const apiKey = (sessionLlmSettings?.apiKey && sessionLlmSettings.apiKey.trim()) || platformApiKey;
+        const maxOutputTokensRaw = sessionLlmSettings?.maxOutputTokens || platformMaxTokens;
+        const temperatureRaw = sessionLlmSettings?.temperature || platformTemperature;
+        const maxOutputTokens = maxOutputTokensRaw ? parseInt(maxOutputTokensRaw) : null;
+        const temperature = temperatureRaw ? parseFloat(temperatureRaw) : null;
+
+        // Debug logging
+        console.log(`[LLM Proxy] Settings: provider=${provider}, model=${model || '(default)'}, baseUrl=${baseUrl}`);
+        if (sessionLlmSettings && Object.keys(sessionLlmSettings).length > 0) {
+            console.log(`[LLM Proxy] Using session overrides for session ${session_id}:`, Object.keys(sessionLlmSettings).filter(k => sessionLlmSettings[k]));
+        }
+
+        // 8. Build system prompt
+        let fullSystemPrompt = '';
+        if (systemPromptTemplate) {
+            fullSystemPrompt = systemPromptTemplate;
+        }
         if (system_prompt) {
-            conversation.push({ role: 'system', content: system_prompt });
-        }
-        if (messages && Array.isArray(messages)) {
-            conversation.push(...messages);
+            fullSystemPrompt += (fullSystemPrompt ? '\n\n---\n\n' : '') + system_prompt;
         }
 
-        // 10. Build request payload - model is optional for local providers
-        const requestPayload = {
-            messages: conversation,
-            stream: false
-        };
-        // Only include model if specified (LM Studio uses default if omitted)
-        if (model && model.trim() !== '') {
-            requestPayload.model = model;
+        // 9. Build request based on provider type
+        let llmHeaders = { 'Content-Type': 'application/json' };
+        let requestPayload = {};
+        let endpoint = '';
+
+        if (provider === 'anthropic') {
+            // Anthropic Claude API format
+            llmHeaders['x-api-key'] = apiKey;
+            llmHeaders['anthropic-version'] = '2023-06-01';
+
+            // Filter out system messages for Anthropic (uses separate system field)
+            const anthropicMessages = (messages || []).filter(m => m.role !== 'system').map(m => ({
+                role: m.role === 'assistant' ? 'assistant' : 'user',
+                content: m.content
+            }));
+
+            requestPayload = {
+                model: model || 'claude-3-5-sonnet-20241022',
+                max_tokens: maxOutputTokens || 1024,
+                messages: anthropicMessages
+            };
+            if (fullSystemPrompt) {
+                requestPayload.system = fullSystemPrompt;
+            }
+            if (temperature !== null) {
+                requestPayload.temperature = temperature;
+            }
+            endpoint = `${baseUrl}/messages`;
+        } else {
+            // OpenAI-compatible API format (OpenAI, LM Studio, Ollama, OpenRouter, Groq, Together, etc.)
+            if (apiKey) {
+                llmHeaders['Authorization'] = `Bearer ${apiKey}`;
+            }
+
+            const conversation = [];
+            if (fullSystemPrompt) {
+                conversation.push({ role: 'system', content: fullSystemPrompt });
+            }
+            if (messages && Array.isArray(messages)) {
+                conversation.push(...messages);
+            }
+
+            requestPayload = {
+                messages: conversation,
+                stream: false
+            };
+            if (temperature !== null) {
+                requestPayload.temperature = temperature;
+            }
+            if (maxOutputTokens) {
+                if (provider === 'openai') {
+                    requestPayload.max_completion_tokens = maxOutputTokens;
+                } else {
+                    requestPayload.max_tokens = maxOutputTokens;
+                }
+            }
+            if (model && model.trim() !== '') {
+                requestPayload.model = model;
+            }
+            endpoint = `${baseUrl}/chat/completions`;
         }
 
-        // 11. Make LLM request
-        console.log(`[LLM Proxy] User ${userId} sending request to ${provider}${model ? '/' + model : ' (default model)'}`);
-        const response = await fetch(`${baseUrl}/chat/completions`, {
+        // 10. Make LLM request
+        console.log(`[LLM Proxy] User ${userId} sending request to ${provider}${model ? '/' + model : ' (default model)'} at ${endpoint}`);
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: llmHeaders,
             body: JSON.stringify(requestPayload)
@@ -3100,12 +3213,33 @@ router.post('/proxy/llm', authenticateToken, async (req, res) => {
             return res.status(response.status).json({ error: errText });
         }
 
-        const data = await response.json();
+        const rawData = await response.json();
 
-        // 11. Extract usage from response
-        const promptTokens = data.usage?.prompt_tokens || 0;
-        const completionTokens = data.usage?.completion_tokens || 0;
-        const totalTokens = data.usage?.total_tokens || promptTokens + completionTokens;
+        // 11. Normalize response format (Anthropic vs OpenAI)
+        let data;
+        let promptTokens, completionTokens, totalTokens;
+
+        if (provider === 'anthropic') {
+            // Anthropic response format -> OpenAI format
+            const content = rawData.content?.[0]?.text || '';
+            promptTokens = rawData.usage?.input_tokens || 0;
+            completionTokens = rawData.usage?.output_tokens || 0;
+            totalTokens = promptTokens + completionTokens;
+
+            data = {
+                choices: [{
+                    message: { role: 'assistant', content },
+                    finish_reason: rawData.stop_reason || 'stop'
+                }],
+                usage: { prompt_tokens: promptTokens, completion_tokens: completionTokens, total_tokens: totalTokens }
+            };
+        } else {
+            // OpenAI-compatible format
+            data = rawData;
+            promptTokens = data.usage?.prompt_tokens || 0;
+            completionTokens = data.usage?.completion_tokens || 0;
+            totalTokens = data.usage?.total_tokens || promptTokens + completionTokens;
+        }
 
         // 12. Calculate estimated cost
         const pricing = await new Promise((resolve, reject) => {
@@ -4147,8 +4281,8 @@ router.get('/master/medications', (req, res) => {
         params.push(category);
     }
     if (search) {
-        sql += ` AND (generic_name LIKE ? OR brand_names LIKE ? OR medication_code LIKE ?)`;
-        params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+        sql += ` AND (generic_name LIKE ? OR brand_names LIKE ? OR medication_code LIKE ? OR indications LIKE ?)`;
+        params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
 
     sql += ` ORDER BY generic_name LIMIT ? OFFSET ?`;
@@ -4173,6 +4307,73 @@ router.post('/master/medications', authenticateToken, requireAdmin, (req, res) =
             res.json({ id: this.lastID, message: 'Medication created' });
         }
     );
+});
+
+// POST /api/master/medications/bulk - Bulk import medications (Admin)
+router.post('/master/medications/bulk', authenticateToken, requireAdmin, (req, res) => {
+    const { medications } = req.body; // Array of { name, uses, side_effects, description }
+
+    if (!Array.isArray(medications) || medications.length === 0) {
+        return res.status(400).json({ error: 'medications array is required' });
+    }
+
+    const stmt = db.prepare(
+        `INSERT OR IGNORE INTO medications (generic_name, indications, side_effects, category) VALUES (?, ?, ?, ?)`
+    );
+
+    let inserted = 0;
+    let skipped = 0;
+
+    db.serialize(() => {
+        db.run('BEGIN TRANSACTION');
+
+        for (const med of medications) {
+            const name = med.name || med.medicine_name || med.generic_name;
+            if (!name) {
+                skipped++;
+                continue;
+            }
+
+            stmt.run(
+                name.trim(),
+                JSON.stringify(med.uses || []),
+                JSON.stringify(med.side_effects || []),
+                'General',
+                function(err) {
+                    if (!err && this.changes > 0) inserted++;
+                    else skipped++;
+                }
+            );
+        }
+
+        db.run('COMMIT', () => {
+            stmt.finalize();
+            res.json({
+                message: 'Bulk import completed',
+                inserted,
+                skipped,
+                total: medications.length
+            });
+        });
+    });
+});
+
+// DELETE /api/master/medications/:id - Delete single medication (Admin)
+router.delete('/master/medications/:id', authenticateToken, requireAdmin, (req, res) => {
+    const { id } = req.params;
+    db.run('DELETE FROM medications WHERE id = ?', [id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        if (this.changes === 0) return res.status(404).json({ error: 'Medication not found' });
+        res.json({ message: 'Medication deleted' });
+    });
+});
+
+// DELETE /api/master/medications/all - Clear all medications (Admin)
+router.delete('/master/medications/all', authenticateToken, requireAdmin, (req, res) => {
+    db.run('DELETE FROM medications', function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'All medications deleted', deleted: this.changes });
+    });
 });
 
 // --- INVESTIGATION TEMPLATES ---
@@ -4653,7 +4854,33 @@ const DEFAULT_LLM_SETTINGS = {
     model: 'local-model',
     baseUrl: 'http://localhost:1234/v1',
     apiKey: '',
-    enabled: true
+    enabled: true,
+    maxOutputTokens: '',  // Empty = use provider default
+    temperature: '',      // Empty = use provider default
+    systemPromptTemplate: `You are a simulated patient in a medical training scenario.
+
+BEHAVIORAL GUIDELINES:
+- Stay fully in character as the patient described below at all times
+- Respond naturally and conversationally, exactly like a real patient would
+- Keep responses concise (2-4 sentences typically) - do not ramble or over-explain
+- Express appropriate emotions based on your condition (anxiety, pain, worry, frustration, confusion)
+- Use everyday language - do NOT use medical terminology or jargon
+- Do NOT volunteer diagnoses or suggest what might be wrong with you
+- Do NOT give unsolicited medical information - only answer what is asked
+- Only reveal information when the doctor specifically asks about it
+- It's okay to say "I don't know", "I'm not sure", or "I don't remember exactly"
+- If asked about test results or numbers you weren't told, say you don't remember the exact values
+- Show realistic patient behaviors: interrupt, ask questions back, express concerns
+- If in pain or distress, let it affect how you communicate (shorter answers, difficulty focusing)
+
+CONVERSATION STYLE:
+- Speak in first person as the patient
+- Use natural speech patterns with occasional filler words ("um", "well", "you know")
+- React emotionally to concerning questions or news
+- Ask clarifying questions if you don't understand medical terms
+- Express gratitude, frustration, or worry as appropriate to the situation
+
+The doctor will ask you questions. Answer based on your patient profile provided below.`
 };
 
 // Default rate limit settings (0 = unlimited/disabled)
@@ -4669,7 +4896,7 @@ const DEFAULT_RATE_LIMITS = {
 router.get('/platform-settings/llm', authenticateToken, async (req, res) => {
     try {
         const settings = {};
-        const keys = ['llm_provider', 'llm_model', 'llm_base_url', 'llm_api_key', 'llm_enabled'];
+        const keys = ['llm_provider', 'llm_model', 'llm_base_url', 'llm_api_key', 'llm_enabled', 'llm_max_output_tokens', 'llm_temperature', 'llm_system_prompt_template'];
 
         for (const key of keys) {
             settings[key] = await getPlatformSetting(key);
@@ -4682,7 +4909,10 @@ router.get('/platform-settings/llm', authenticateToken, async (req, res) => {
             baseUrl: settings.llm_base_url || DEFAULT_LLM_SETTINGS.baseUrl,
             apiKey: settings.llm_api_key ? '••••••••' : '', // Mask API key for non-admins
             apiKeySet: !!settings.llm_api_key,
-            enabled: settings.llm_enabled !== 'false'
+            enabled: settings.llm_enabled !== 'false',
+            maxOutputTokens: settings.llm_max_output_tokens || '',
+            temperature: settings.llm_temperature || '',
+            systemPromptTemplate: settings.llm_system_prompt_template || DEFAULT_LLM_SETTINGS.systemPromptTemplate
         };
 
         // Admins get full settings
@@ -4699,13 +4929,16 @@ router.get('/platform-settings/llm', authenticateToken, async (req, res) => {
 // PUT /api/platform-settings/llm - Update LLM configuration (Admin only)
 router.put('/platform-settings/llm', authenticateToken, requireAdmin, async (req, res) => {
     try {
-        const { provider, model, baseUrl, apiKey, enabled } = req.body;
+        const { provider, model, baseUrl, apiKey, enabled, maxOutputTokens, temperature, systemPromptTemplate } = req.body;
 
         if (provider) await setPlatformSetting('llm_provider', provider, req.user.id);
-        if (model) await setPlatformSetting('llm_model', model, req.user.id);
+        if (model !== undefined) await setPlatformSetting('llm_model', model, req.user.id);
         if (baseUrl) await setPlatformSetting('llm_base_url', baseUrl, req.user.id);
         if (apiKey !== undefined) await setPlatformSetting('llm_api_key', apiKey, req.user.id);
         if (enabled !== undefined) await setPlatformSetting('llm_enabled', String(enabled), req.user.id);
+        if (maxOutputTokens !== undefined) await setPlatformSetting('llm_max_output_tokens', String(maxOutputTokens), req.user.id);
+        if (temperature !== undefined) await setPlatformSetting('llm_temperature', String(temperature), req.user.id);
+        if (systemPromptTemplate !== undefined) await setPlatformSetting('llm_system_prompt_template', systemPromptTemplate, req.user.id);
 
         res.json({ message: 'LLM settings updated successfully' });
     } catch (err) {
@@ -4721,21 +4954,36 @@ router.post('/platform-settings/llm/test', authenticateToken, requireAdmin, asyn
         const baseUrl = await getPlatformSetting('llm_base_url') || DEFAULT_LLM_SETTINGS.baseUrl;
         const apiKey = await getPlatformSetting('llm_api_key') || '';
 
-        const headers = { 'Content-Type': 'application/json' };
-        if (apiKey) {
-            headers['Authorization'] = `Bearer ${apiKey}`;
+        let headers = { 'Content-Type': 'application/json' };
+        let requestPayload = {};
+        let endpoint = '';
+
+        if (provider === 'anthropic') {
+            // Anthropic API format
+            headers['x-api-key'] = apiKey;
+            headers['anthropic-version'] = '2023-06-01';
+            requestPayload = {
+                model: model || 'claude-3-5-sonnet-20241022',
+                max_tokens: 100,
+                messages: [{ role: 'user', content: 'Say "test successful" in exactly two words.' }]
+            };
+            endpoint = `${baseUrl}/messages`;
+        } else {
+            // OpenAI-compatible format
+            if (apiKey) {
+                headers['Authorization'] = `Bearer ${apiKey}`;
+            }
+            requestPayload = {
+                messages: [{ role: 'user', content: 'Say "test successful" in exactly two words.' }]
+            };
+            if (model && model.trim() !== '') {
+                requestPayload.model = model;
+            }
+            endpoint = `${baseUrl}/chat/completions`;
         }
 
-        // Build request payload - model is optional for local providers (LM Studio)
-        const requestPayload = {
-            messages: [{ role: 'user', content: 'Say "test successful" in exactly two words.' }],
-            max_tokens: 10
-        };
-        if (model && model.trim() !== '') {
-            requestPayload.model = model;
-        }
-
-        const testResponse = await fetch(`${baseUrl}/chat/completions`, {
+        console.log(`[LLM Test] Testing ${provider} at ${endpoint}`);
+        const testResponse = await fetch(endpoint, {
             method: 'POST',
             headers,
             body: JSON.stringify(requestPayload)
@@ -4750,12 +4998,22 @@ router.post('/platform-settings/llm/test', authenticateToken, requireAdmin, asyn
         }
 
         const data = await testResponse.json();
+
+        // Extract content based on provider
+        let responseContent;
+        if (provider === 'anthropic') {
+            responseContent = data.content?.[0]?.text || 'No response content';
+        } else {
+            responseContent = data.choices?.[0]?.message?.content || 'No response content';
+        }
+
         res.json({
             success: true,
             message: 'Connection successful',
-            response: data.choices?.[0]?.message?.content || 'No response content'
+            response: responseContent
         });
     } catch (err) {
+        console.error('[LLM Test] Error:', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -4833,6 +5091,41 @@ router.put('/platform-settings/monitor', authenticateToken, requireAdmin, async 
         }
 
         res.json({ message: 'Monitor settings updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Default doctor/chat settings
+const DEFAULT_CHAT_SETTINGS = {
+    doctorName: 'Dr. Carmen',
+    doctorAvatar: ''
+};
+
+// GET /api/platform-settings/chat - Get chat/doctor settings
+router.get('/platform-settings/chat', authenticateToken, async (req, res) => {
+    try {
+        const doctorName = await getPlatformSetting('chat_doctor_name') || DEFAULT_CHAT_SETTINGS.doctorName;
+        const doctorAvatar = await getPlatformSetting('chat_doctor_avatar') || DEFAULT_CHAT_SETTINGS.doctorAvatar;
+
+        res.json({
+            doctorName,
+            doctorAvatar
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /api/platform-settings/chat - Update chat/doctor settings (Admin only)
+router.put('/platform-settings/chat', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+        const { doctorName, doctorAvatar } = req.body;
+
+        if (doctorName !== undefined) await setPlatformSetting('chat_doctor_name', doctorName, req.user.id);
+        if (doctorAvatar !== undefined) await setPlatformSetting('chat_doctor_avatar', doctorAvatar, req.user.id);
+
+        res.json({ message: 'Chat settings updated successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

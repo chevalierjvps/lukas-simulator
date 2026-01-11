@@ -10,6 +10,7 @@ import LabInvestigationEditor from './LabInvestigationEditor';
 import ClinicalRecordsEditor from './ClinicalRecordsEditor';
 import PhysicalExamEditor from './PhysicalExamEditor';
 import LabTestManager from './LabTestManager';
+import MedicationManager from './MedicationManager';
 import { SCENARIO_TEMPLATES, scaleScenarioTimeline } from '../../data/scenarioTemplates';
 
 export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
@@ -286,6 +287,12 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                                 <Database className="w-4 h-4" /> Lab Database
                             </button>
                             <button
+                                onClick={() => setActiveTab('medications')}
+                                className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'medications' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
+                            >
+                                <Database className="w-4 h-4" /> Medications
+                            </button>
+                            <button
                                 onClick={() => setActiveTab('bodymap')}
                                 className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'bodymap' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
                             >
@@ -370,6 +377,24 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Case Stats */}
+                                    {isAdmin() && (
+                                        <div className="grid grid-cols-3 gap-3 mb-4">
+                                            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-3 text-center">
+                                                <div className="text-xl font-bold text-white">{cases.length}</div>
+                                                <div className="text-xs text-neutral-400">Total Cases</div>
+                                            </div>
+                                            <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3 text-center">
+                                                <div className="text-xl font-bold text-blue-400">{cases.filter(c => c.is_available).length}</div>
+                                                <div className="text-xs text-neutral-400">Available</div>
+                                            </div>
+                                            <div className="bg-neutral-700/30 border border-neutral-600 rounded-lg p-3 text-center">
+                                                <div className="text-xl font-bold text-neutral-400">{cases.filter(c => !c.is_available).length}</div>
+                                                <div className="text-xs text-neutral-400">Hidden</div>
+                                            </div>
+                                        </div>
+                                    )}
 
                                     <div className="grid gap-3">
                                         {cases.map(c => (
@@ -546,34 +571,76 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
 
                     {/* --- SCENARIOS TAB --- */}
                     {activeTab === 'scenarios' && (
-                        <ScenarioRepository 
-                            onSelectScenario={(scenario) => {
-                                if (editingCase) {
-                                    // Apply scenario to editing case
-                                    const scaledScenario = {
-                                        enabled: true,
-                                        autoStart: false,
-                                        timeline: scenario.timeline
-                                    };
-                                    
-                                    setEditingCase(prev => ({
-                                        ...prev,
-                                        scenario: scaledScenario,
-                                        scenario_duration: scenario.duration_minutes,
-                                        scenario_from_repository: {
-                                            id: scenario.id,
-                                            name: scenario.name
-                                        }
-                                    }));
-                                    
-                                    // Switch back to cases tab
-                                    setActiveTab('cases');
-                                    toast.success(`Scenario "${scenario.name}" applied to case!`);
-                                } else {
-                                    toast.warning('Please start editing a case first, then browse scenarios from Step 3.');
-                                }
-                            }} 
-                        />
+                        <div className="space-y-4">
+                            {!editingCase && (
+                                <div className="bg-amber-900/20 border border-amber-700/50 rounded-lg p-4 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm text-amber-300 font-medium">No case selected</p>
+                                        <p className="text-xs text-neutral-400">Create or edit a case to apply scenarios</p>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setEditingCase({ name: '', description: '', config: { pages: [] } });
+                                            setActiveTab('cases');
+                                        }}
+                                        className="px-4 py-2 bg-amber-600 hover:bg-amber-500 rounded text-sm font-bold"
+                                    >
+                                        + New Case
+                                    </button>
+                                </div>
+                            )}
+                            {editingCase && (
+                                <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-4">
+                                    <p className="text-sm text-green-300">
+                                        Editing: <strong>{editingCase.name || 'New Case'}</strong> — Select a scenario below to apply it
+                                    </p>
+                                </div>
+                            )}
+                            <ScenarioRepository
+                                onSelectScenario={(scenario) => {
+                                    if (editingCase) {
+                                        const scaledScenario = {
+                                            enabled: true,
+                                            autoStart: false,
+                                            timeline: scenario.timeline
+                                        };
+
+                                        setEditingCase(prev => ({
+                                            ...prev,
+                                            scenario: scaledScenario,
+                                            scenario_duration: scenario.duration_minutes,
+                                            scenario_from_repository: {
+                                                id: scenario.id,
+                                                name: scenario.name
+                                            }
+                                        }));
+
+                                        setActiveTab('cases');
+                                        toast.success(`Scenario "${scenario.name}" applied to case!`);
+                                    } else {
+                                        // Create new case with this scenario
+                                        const scaledScenario = {
+                                            enabled: true,
+                                            autoStart: false,
+                                            timeline: scenario.timeline
+                                        };
+                                        setEditingCase({
+                                            name: '',
+                                            description: '',
+                                            config: { pages: [] },
+                                            scenario: scaledScenario,
+                                            scenario_duration: scenario.duration_minutes,
+                                            scenario_from_repository: {
+                                                id: scenario.id,
+                                                name: scenario.name
+                                            }
+                                        });
+                                        setActiveTab('cases');
+                                        toast.success(`Scenario "${scenario.name}" applied. Complete your new case details.`);
+                                    }
+                                }}
+                            />
+                        </div>
                     )}
 
                     {/* --- USER MANAGEMENT TAB (Admin Only) --- */}
@@ -599,6 +666,13 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                                 <span className="text-xs text-neutral-500">Manage laboratory test reference values</span>
                             </div>
                             <LabTestManager />
+                        </div>
+                    )}
+
+                    {/* --- MEDICATIONS TAB (Admin Only) --- */}
+                    {activeTab === 'medications' && isAdmin() && (
+                        <div className="space-y-6">
+                            <MedicationManager />
                         </div>
                     )}
 
@@ -748,8 +822,16 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
 
 // Platform Settings Component (Admin Only)
 function PlatformSettings({ cases, setCases }) {
+    const [activeSection, setActiveSection] = useState('general');
     const [defaultCaseId, setDefaultCaseId] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    const sections = [
+        { id: 'general', label: 'General', icon: Settings },
+        { id: 'ai', label: 'AI / LLM', icon: Cpu },
+        { id: 'users', label: 'Users', icon: Users },
+        { id: 'monitor', label: 'Monitor', icon: Monitor }
+    ];
 
     // Find the current default case
     useEffect(() => {
@@ -772,7 +854,6 @@ function PlatformSettings({ cases, setCases }) {
                 body: JSON.stringify({ is_default: true })
             });
             if (res.ok) {
-                // Refresh cases
                 const casesRes = await fetch('/api/cases', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -800,7 +881,6 @@ function PlatformSettings({ cases, setCases }) {
                 body: JSON.stringify({ is_default: false })
             });
             if (res.ok) {
-                // Refresh cases
                 const casesRes = await fetch('/api/cases', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -814,160 +894,90 @@ function PlatformSettings({ cases, setCases }) {
         setLoading(false);
     };
 
-    const handleToggleAvailability = async (caseId, currentAvailability) => {
-        try {
-            const token = AuthService.getToken();
-            const res = await fetch(`/api/cases/${caseId}/availability`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ is_available: !currentAvailability })
-            });
-            if (res.ok) {
-                // Refresh cases
-                const casesRes = await fetch('/api/cases', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await casesRes.json();
-                setCases(data.cases || []);
-            }
-        } catch (err) {
-            console.error('Failed to toggle availability:', err);
-        }
-    };
-
     const availableCases = cases.filter(c => c.is_available);
-    const hiddenCases = cases.filter(c => !c.is_available);
 
     return (
-        <div className="space-y-8">
-            <div>
-                <h3 className="text-lg font-bold mb-2">Platform Settings</h3>
-                <p className="text-sm text-neutral-400 mb-6">Configure which cases are available to students and set the default case.</p>
+        <div className="space-y-6">
+            {/* Section Tabs */}
+            <div className="flex gap-2 border-b border-neutral-700 pb-3">
+                {sections.map(section => {
+                    const Icon = section.icon;
+                    return (
+                        <button
+                            key={section.id}
+                            onClick={() => setActiveSection(section.id)}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+                                activeSection === section.id
+                                    ? 'bg-neutral-800 text-cyan-400 border border-neutral-700 border-b-neutral-800 -mb-[13px]'
+                                    : 'text-neutral-400 hover:text-white hover:bg-neutral-800/50'
+                            }`}
+                        >
+                            <Icon className="w-4 h-4" />
+                            {section.label}
+                        </button>
+                    );
+                })}
             </div>
 
-            {/* Default Case Selection */}
-            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
-                <h4 className="text-md font-bold text-green-400 mb-4 flex items-center gap-2">
-                    <Activity className="w-5 h-5" />
-                    Default Case for Students
-                </h4>
-                <p className="text-sm text-neutral-400 mb-4">
-                    When students log in, they will see the default case pre-selected. If no default is set, students will see a list of available cases.
-                </p>
-                <select
-                    value={defaultCaseId || ''}
-                    onChange={(e) => {
-                        const id = e.target.value;
-                        if (id) {
-                            handleSetDefault(parseInt(id));
-                        } else {
-                            handleClearDefault();
-                        }
-                    }}
-                    disabled={loading}
-                    className="w-full max-w-md bg-neutral-800 border border-neutral-600 rounded p-3 text-sm focus:border-green-500 outline-none"
-                >
-                    <option value="">No default case</option>
-                    {cases.filter(c => c.is_available).map(c => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                </select>
-                {defaultCaseId && (
-                    <p className="text-xs text-green-400 mt-2">
-                        ✓ Students will automatically see "{cases.find(c => c.id === defaultCaseId)?.name}" when they log in.
-                    </p>
-                )}
-            </div>
-
-            {/* Case Availability Management */}
-            <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
-                <h4 className="text-md font-bold text-blue-400 mb-4 flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Case Availability
-                </h4>
-                <p className="text-sm text-neutral-400 mb-4">
-                    Toggle which cases are visible to students. Hidden cases are only visible to administrators.
-                </p>
-
-                {/* Available Cases */}
-                <div className="mb-6">
-                    <h5 className="text-sm font-bold text-blue-300 mb-3">Available to Students ({availableCases.length})</h5>
-                    {availableCases.length > 0 ? (
-                        <div className="space-y-2">
+            {/* General Section */}
+            {activeSection === 'general' && (
+                <div className="space-y-6">
+                    {/* Default Case Selection */}
+                    <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
+                        <h4 className="text-md font-bold text-green-400 mb-4 flex items-center gap-2">
+                            <Activity className="w-5 h-5" />
+                            Default Case for Students
+                        </h4>
+                        <p className="text-sm text-neutral-400 mb-4">
+                            When students log in, they will see this case pre-selected.
+                        </p>
+                        <select
+                            value={defaultCaseId || ''}
+                            onChange={(e) => {
+                                const id = e.target.value;
+                                if (id) handleSetDefault(parseInt(id));
+                                else handleClearDefault();
+                            }}
+                            disabled={loading}
+                            className="w-full max-w-md bg-neutral-800 border border-neutral-600 rounded p-3 text-sm focus:border-green-500 outline-none"
+                        >
+                            <option value="">No default case</option>
                             {availableCases.map(c => (
-                                <div key={c.id} className="flex items-center justify-between bg-blue-900/20 border border-blue-700/30 rounded p-3">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-white">{c.name}</span>
-                                        {c.is_default && (
-                                            <span className="px-2 py-0.5 bg-green-900/50 text-green-400 text-xs rounded">Default</span>
-                                        )}
-                                    </div>
-                                    <button
-                                        onClick={() => handleToggleAvailability(c.id, c.is_available)}
-                                        className="px-3 py-1 bg-red-900/30 text-red-400 rounded text-xs hover:bg-red-900/50"
-                                        disabled={c.is_default}
-                                        title={c.is_default ? 'Cannot hide default case' : 'Hide from students'}
-                                    >
-                                        {c.is_default ? 'Default' : 'Hide'}
-                                    </button>
-                                </div>
+                                <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-neutral-500 italic">No cases available to students yet.</p>
-                    )}
-                </div>
+                        </select>
+                        {defaultCaseId && (
+                            <p className="text-xs text-green-400 mt-2">
+                                Students will automatically see "{cases.find(c => c.id === defaultCaseId)?.name}" when they log in.
+                            </p>
+                        )}
+                    </div>
 
-                {/* Hidden Cases */}
-                <div>
-                    <h5 className="text-sm font-bold text-neutral-400 mb-3">Hidden from Students ({hiddenCases.length})</h5>
-                    {hiddenCases.length > 0 ? (
-                        <div className="space-y-2">
-                            {hiddenCases.map(c => (
-                                <div key={c.id} className="flex items-center justify-between bg-neutral-700/30 border border-neutral-600 rounded p-3">
-                                    <span className="text-neutral-300">{c.name}</span>
-                                    <button
-                                        onClick={() => handleToggleAvailability(c.id, c.is_available)}
-                                        className="px-3 py-1 bg-blue-900/30 text-blue-400 rounded text-xs hover:bg-blue-900/50"
-                                    >
-                                        Show
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-sm text-neutral-500 italic">No hidden cases.</p>
-                    )}
+                    {/* Chat Interface Configuration */}
+                    <ChatConfiguration />
                 </div>
-            </div>
+            )}
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-3 gap-4">
-                <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-white">{cases.length}</div>
-                    <div className="text-xs text-neutral-400">Total Cases</div>
+            {/* AI/LLM Section */}
+            {activeSection === 'ai' && (
+                <div className="space-y-6">
+                    <LLMConfiguration />
                 </div>
-                <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-400">{availableCases.length}</div>
-                    <div className="text-xs text-neutral-400">Available</div>
+            )}
+
+            {/* Users Section */}
+            {activeSection === 'users' && (
+                <div className="space-y-6">
+                    <UserFieldConfiguration />
                 </div>
-                <div className="bg-neutral-700/30 border border-neutral-600 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-neutral-400">{hiddenCases.length}</div>
-                    <div className="text-xs text-neutral-400">Hidden</div>
+            )}
+
+            {/* Monitor Section */}
+            {activeSection === 'monitor' && (
+                <div className="space-y-6">
+                    <MonitorConfiguration />
                 </div>
-            </div>
-
-            {/* User Profile Field Configuration */}
-            <UserFieldConfiguration />
-
-            {/* LLM Configuration */}
-            <LLMConfiguration />
-
-            {/* Monitor Display Configuration */}
-            <MonitorConfiguration />
+            )}
         </div>
     );
 }
@@ -1180,7 +1190,10 @@ function LLMConfiguration() {
         model: 'local-model',
         baseUrl: 'http://localhost:1234/v1',
         apiKey: '',
-        enabled: true
+        enabled: true,
+        maxOutputTokens: '',
+        temperature: '',
+        systemPromptTemplate: ''
     });
     const [rateLimits, setRateLimits] = useState({
         tokensPerUserDaily: 0,
@@ -1195,9 +1208,15 @@ function LLMConfiguration() {
     const [showApiKey, setShowApiKey] = useState(false);
 
     const PROVIDERS = {
-        openai: { name: 'OpenAI', defaultBase: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini', needsKey: true, modelRequired: true },
-        lmstudio: { name: 'LM Studio (Local)', defaultBase: 'http://localhost:1234/v1', defaultModel: '', needsKey: false, modelRequired: false },
-        ollama: { name: 'Ollama (Local)', defaultBase: 'http://localhost:11434/v1', defaultModel: 'llama3', needsKey: false, modelRequired: true }
+        lmstudio: { name: 'LM Studio (Local)', defaultBase: 'http://localhost:1234/v1', defaultModel: '', needsKey: false, modelRequired: false, description: 'Local LLM server - no API key needed' },
+        ollama: { name: 'Ollama (Local)', defaultBase: 'http://localhost:11434/v1', defaultModel: 'llama3.2', needsKey: false, modelRequired: true, description: 'Local Ollama server' },
+        openai: { name: 'OpenAI', defaultBase: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini', needsKey: true, modelRequired: true, description: 'GPT-4, GPT-4o, GPT-4o-mini' },
+        anthropic: { name: 'Anthropic (Claude)', defaultBase: 'https://api.anthropic.com/v1', defaultModel: 'claude-3-5-sonnet-20241022', needsKey: true, modelRequired: true, description: 'Claude 3.5 Sonnet, Claude 3 Opus' },
+        openrouter: { name: 'OpenRouter', defaultBase: 'https://openrouter.ai/api/v1', defaultModel: 'anthropic/claude-3.5-sonnet', needsKey: true, modelRequired: true, description: 'Access multiple AI providers' },
+        groq: { name: 'Groq', defaultBase: 'https://api.groq.com/openai/v1', defaultModel: 'llama-3.3-70b-versatile', needsKey: true, modelRequired: true, description: 'Ultra-fast inference' },
+        together: { name: 'Together AI', defaultBase: 'https://api.together.xyz/v1', defaultModel: 'meta-llama/Llama-3.3-70B-Instruct-Turbo', needsKey: true, modelRequired: true, description: 'Open source models' },
+        azure: { name: 'Azure OpenAI', defaultBase: 'https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR-DEPLOYMENT', defaultModel: '', needsKey: true, modelRequired: false, description: 'Azure-hosted OpenAI' },
+        custom: { name: 'Custom OpenAI-Compatible', defaultBase: 'http://localhost:8000/v1', defaultModel: '', needsKey: false, modelRequired: false, description: 'Any OpenAI-compatible API' }
     };
 
     useEffect(() => {
@@ -1360,10 +1379,23 @@ function LLMConfiguration() {
                             onChange={(e) => handleProviderChange(e.target.value)}
                             className="w-full bg-neutral-800 border border-neutral-600 rounded-lg p-3 text-white focus:border-cyan-500 outline-none"
                         >
-                            {Object.entries(PROVIDERS).map(([key, provider]) => (
-                                <option key={key} value={key}>{provider.name}</option>
-                            ))}
+                            <optgroup label="Local (No API Key)">
+                                <option value="lmstudio">LM Studio (Local)</option>
+                                <option value="ollama">Ollama (Local)</option>
+                            </optgroup>
+                            <optgroup label="Cloud Providers (API Key Required)">
+                                <option value="openai">OpenAI (GPT-4o, GPT-4o-mini)</option>
+                                <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
+                                <option value="openrouter">OpenRouter (Multi-provider)</option>
+                                <option value="groq">Groq (Ultra-fast)</option>
+                                <option value="together">Together AI (Open Source)</option>
+                                <option value="azure">Azure OpenAI</option>
+                            </optgroup>
+                            <optgroup label="Other">
+                                <option value="custom">Custom OpenAI-Compatible API</option>
+                            </optgroup>
                         </select>
+                        <p className="text-xs text-neutral-500 mt-1">{currentProvider.description}</p>
                     </div>
 
                     {/* Base URL */}
@@ -1417,6 +1449,45 @@ function LLMConfiguration() {
                             </div>
                         </div>
                     )}
+
+                    {/* Model Parameters */}
+                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-neutral-700 mt-4">
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-300 mb-2">Max Output Tokens</label>
+                            <input
+                                type="text"
+                                value={llmConfig.maxOutputTokens}
+                                onChange={(e) => setLlmConfig(prev => ({ ...prev, maxOutputTokens: e.target.value }))}
+                                placeholder="Provider default"
+                                className="w-full bg-neutral-800 border border-neutral-600 rounded-lg p-3 text-white focus:border-cyan-500 outline-none"
+                            />
+                            <p className="text-xs text-neutral-500 mt-1">Empty = provider default</p>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-neutral-300 mb-2">Temperature</label>
+                            <input
+                                type="text"
+                                value={llmConfig.temperature}
+                                onChange={(e) => setLlmConfig(prev => ({ ...prev, temperature: e.target.value }))}
+                                placeholder="Provider default"
+                                className="w-full bg-neutral-800 border border-neutral-600 rounded-lg p-3 text-white focus:border-cyan-500 outline-none"
+                            />
+                            <p className="text-xs text-neutral-500 mt-1">Empty = provider default (0-2)</p>
+                        </div>
+                    </div>
+
+                    {/* System Prompt Template */}
+                    <div className="pt-2">
+                        <label className="block text-sm font-medium text-neutral-300 mb-2">System Prompt Template</label>
+                        <textarea
+                            value={llmConfig.systemPromptTemplate}
+                            onChange={(e) => setLlmConfig(prev => ({ ...prev, systemPromptTemplate: e.target.value }))}
+                            rows={8}
+                            className="w-full bg-neutral-800 border border-neutral-600 rounded-lg p-3 text-white focus:border-cyan-500 outline-none font-mono text-xs"
+                            placeholder="Instructions sent with every conversation (e.g., 'You are a simulated patient...')"
+                        />
+                        <p className="text-xs text-neutral-500 mt-1">This prompt is prepended to every conversation. Case-specific details are added automatically.</p>
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex gap-3 pt-4">
@@ -1571,6 +1642,163 @@ function LLMConfiguration() {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+// Chat/Doctor Configuration Component (Admin Only)
+function ChatConfiguration() {
+    const toast = useToast();
+    const [chatSettings, setChatSettings] = useState({
+        doctorName: 'Dr. Carmen',
+        doctorAvatar: ''
+    });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [previewAvatar, setPreviewAvatar] = useState('');
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    const loadSettings = async () => {
+        try {
+            const token = AuthService.getToken();
+            const res = await fetch('/api/platform-settings/chat', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setChatSettings(data);
+                setPreviewAvatar(data.doctorAvatar || '');
+            }
+        } catch (err) {
+            console.error('Failed to load chat settings:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const token = AuthService.getToken();
+            const res = await fetch('/api/platform-settings/chat', {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify(chatSettings)
+            });
+            if (res.ok) {
+                toast.success('Chat settings saved successfully!');
+            } else {
+                throw new Error('Failed to save');
+            }
+        } catch (err) {
+            toast.error('Failed to save chat settings');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleAvatarUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            if (file.size > 500000) {
+                toast.warning('Image too large. Please use an image under 500KB.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result;
+                setChatSettings(prev => ({ ...prev, doctorAvatar: base64 }));
+                setPreviewAvatar(base64);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    if (loading) {
+        return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+    }
+
+    return (
+        <div className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-6">
+            <h4 className="text-md font-bold text-cyan-400 mb-4 flex items-center gap-2">
+                <User className="w-5 h-5" />
+                Chat Interface Settings
+            </h4>
+            <p className="text-sm text-neutral-400 mb-6">
+                Configure how the doctor appears in patient conversations.
+            </p>
+
+            <div className="space-y-4">
+                {/* Doctor Name */}
+                <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">Doctor Name</label>
+                    <input
+                        type="text"
+                        value={chatSettings.doctorName}
+                        onChange={(e) => setChatSettings(prev => ({ ...prev, doctorName: e.target.value }))}
+                        placeholder="Dr. Carmen"
+                        className="w-full bg-neutral-800 border border-neutral-600 rounded-lg p-3 text-white focus:border-cyan-500 outline-none"
+                    />
+                    <p className="text-xs text-neutral-500 mt-1">This name appears next to user messages in the chat</p>
+                </div>
+
+                {/* Doctor Avatar */}
+                <div>
+                    <label className="block text-sm font-medium text-neutral-300 mb-2">Doctor Avatar (Optional)</label>
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-full bg-neutral-700 border border-neutral-600 flex items-center justify-center overflow-hidden">
+                            {previewAvatar ? (
+                                <img src={previewAvatar} alt="Doctor" className="w-full h-full object-cover" />
+                            ) : (
+                                <User className="w-8 h-8 text-neutral-500" />
+                            )}
+                        </div>
+                        <div className="flex-1">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleAvatarUpload}
+                                className="hidden"
+                                id="doctor-avatar-upload"
+                            />
+                            <label
+                                htmlFor="doctor-avatar-upload"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg cursor-pointer transition-colors text-sm"
+                            >
+                                <Upload className="w-4 h-4" />
+                                Upload Image
+                            </label>
+                            {previewAvatar && (
+                                <button
+                                    onClick={() => {
+                                        setChatSettings(prev => ({ ...prev, doctorAvatar: '' }));
+                                        setPreviewAvatar('');
+                                    }}
+                                    className="ml-2 px-3 py-2 text-red-400 hover:text-red-300 text-sm"
+                                >
+                                    Remove
+                                </button>
+                            )}
+                            <p className="text-xs text-neutral-500 mt-2">Square image recommended, max 500KB</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Save Button */}
+                <div className="pt-4">
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-500 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Save Chat Settings
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
@@ -1854,7 +2082,7 @@ function SystemLogs() {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold">System Logs & Data Export</h3>
+                <h3 className="text-lg font-bold">System Logs</h3>
                 <div className="flex gap-2">
                     <input
                         type="date"
@@ -1870,57 +2098,6 @@ function SystemLogs() {
                         className="px-3 py-1 bg-neutral-800 border border-neutral-700 rounded text-sm"
                         placeholder="End Date"
                     />
-                </div>
-            </div>
-
-            {/* Export Buttons */}
-            <div className="grid grid-cols-2 gap-4 p-4 bg-neutral-800 border border-neutral-700 rounded-lg">
-                <div className="space-y-2">
-                    <h4 className="font-bold text-sm">Login & Authentication Logs</h4>
-                    <button
-                        onClick={() => downloadCSV('login')}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-700 hover:bg-green-600 text-white rounded text-sm font-bold"
-                    >
-                        <Download className="w-4 h-4" />
-                        Export Login Logs (CSV)
-                    </button>
-                    <p className="text-xs text-neutral-400">All login, logout, and failed login attempts</p>
-                </div>
-
-                <div className="space-y-2">
-                    <h4 className="font-bold text-sm">Chat & Conversation Logs</h4>
-                    <button
-                        onClick={() => downloadCSV('chat')}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white rounded text-sm font-bold"
-                    >
-                        <Download className="w-4 h-4" />
-                        Export Chat Logs (CSV)
-                    </button>
-                    <p className="text-xs text-neutral-400">Complete conversation history with timestamps</p>
-                </div>
-
-                <div className="space-y-2">
-                    <h4 className="font-bold text-sm">Settings Change Logs</h4>
-                    <button
-                        onClick={() => downloadCSV('settings')}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white rounded text-sm font-bold"
-                    >
-                        <Download className="w-4 h-4" />
-                        Export Settings Logs (CSV)
-                    </button>
-                    <p className="text-xs text-neutral-400">All LLM and monitor settings changes</p>
-                </div>
-
-                <div className="space-y-2">
-                    <h4 className="font-bold text-sm">Session Settings Snapshots</h4>
-                    <button
-                        onClick={() => downloadCSV('session-settings')}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-700 hover:bg-orange-600 text-white rounded text-sm font-bold"
-                    >
-                        <Download className="w-4 h-4" />
-                        Export Session Settings (CSV)
-                    </button>
-                    <p className="text-xs text-neutral-400">Complete settings used in each session</p>
                 </div>
             </div>
 
@@ -2132,19 +2309,41 @@ function SystemLogs() {
                 ) : null}
             </div>
 
-            {/* Info Box */}
-            <div className="p-4 bg-blue-900/20 border border-blue-700/50 rounded-lg">
-                <h4 className="font-bold text-sm mb-2 flex items-center gap-2">
-                    <Database className="w-4 h-4" />
-                    Comprehensive Data Logging
+            {/* Export Section */}
+            <div className="border-t border-neutral-700 pt-6">
+                <h4 className="font-bold text-sm mb-4 flex items-center gap-2">
+                    <Download className="w-4 h-4" />
+                    Export Data (CSV)
                 </h4>
-                <div className="text-xs text-neutral-300 space-y-1">
-                    <p>✅ All logins, logouts, and failed attempts are logged</p>
-                    <p>✅ Every chat message is recorded with timestamps</p>
-                    <p>✅ All settings changes are tracked (LLM, monitor)</p>
-                    <p>✅ Each session includes complete settings snapshot</p>
-                    <p>✅ All data is linked by User, Session, and Case</p>
-                    <p className="mt-2 text-yellow-400">💾 Export to CSV for spreadsheet analysis (Excel, Google Sheets, etc.)</p>
+                <div className="grid grid-cols-4 gap-3">
+                    <button
+                        onClick={() => downloadCSV('login')}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-green-700 hover:bg-green-600 text-white rounded text-sm font-medium"
+                    >
+                        <Download className="w-4 h-4" />
+                        Login Logs
+                    </button>
+                    <button
+                        onClick={() => downloadCSV('chat')}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-blue-700 hover:bg-blue-600 text-white rounded text-sm font-medium"
+                    >
+                        <Download className="w-4 h-4" />
+                        Chat Logs
+                    </button>
+                    <button
+                        onClick={() => downloadCSV('settings')}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-purple-700 hover:bg-purple-600 text-white rounded text-sm font-medium"
+                    >
+                        <Download className="w-4 h-4" />
+                        Settings Logs
+                    </button>
+                    <button
+                        onClick={() => downloadCSV('session-settings')}
+                        className="flex items-center justify-center gap-2 px-3 py-2 bg-orange-700 hover:bg-orange-600 text-white rounded text-sm font-medium"
+                    >
+                        <Download className="w-4 h-4" />
+                        Session Settings
+                    </button>
                 </div>
             </div>
         </div>
@@ -2991,8 +3190,8 @@ PERSONALITY: You are anxious but cooperative. You're worried this might be a hea
     };
 
     const WIZARD_STEPS = [
-        { num: 1, title: 'Persona', icon: '🎭' },
-        { num: 2, title: 'Details', icon: '📋' },
+        { num: 1, title: 'Demographics', icon: '👤' },
+        { num: 2, title: 'Story', icon: '📖' },
         { num: 3, title: 'Scenario', icon: '📈' },
         { num: 4, title: 'Vitals', icon: '💓' },
         { num: 5, title: 'Labs', icon: '🧪' },
@@ -3083,72 +3282,17 @@ PERSONALITY: You are anxious but cooperative. You're worried this might be a hea
 
             <div className="flex-1 overflow-y-auto pr-2">
 
-                {/* STEP 1: PERSONA */}
+                {/* STEP 1: DEMOGRAPHICS (EHR-style) */}
                 {step === 1 && (
                     <div className="space-y-6">
-                        <div className="flex justify-between items-end">
-                            <h4 className="text-lg font-bold text-purple-400">1. Persona & Behavior</h4>
-                            <button onClick={applyPersonaDefaults} className="text-xs bg-neutral-800 hover:bg-neutral-700 px-3 py-1 rounded text-purple-300">
-                                Load Standard Defaults
-                            </button>
-                        </div>
+                        <h4 className="text-lg font-bold text-purple-400">1. Patient Demographics</h4>
+                        <p className="text-xs text-neutral-500 -mt-4">EHR-style patient information. Most fields are optional.</p>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="label-xs">Persona Type</label>
-                                <select
-                                    value={caseData.config?.persona_type || 'Standard Simulated Patient'}
-                                    onChange={e => updateConfig('persona_type', e.target.value)}
-                                    className="input-dark"
-                                >
-                                    <option>Standard Simulated Patient</option>
-                                    <option>Difficult/Angry Patient</option>
-                                    <option>Pediatric Proxy (Parent)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="label-xs">Initial Greeting</label>
-                                <input
-                                    type="text"
-                                    value={caseData.config?.greeting || ''}
-                                    onChange={e => updateConfig('greeting', e.target.value)}
-                                    className="input-dark"
-                                    placeholder="e.g. Doctor, I don't feel well..."
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="label-xs">Behavioral Constraints</label>
-                            <textarea
-                                value={caseData.config?.constraints || ''}
-                                onChange={e => updateConfig('constraints', e.target.value)}
-                                className="input-dark h-20"
-                                placeholder="e.g. Only speak English. Do not reveal diagnosis."
-                            />
-                        </div>
-
-                        <div>
-                            <label className="label-xs">System Prompt (Master Instruction)</label>
-                            <textarea
-                                value={caseData.system_prompt || ''}
-                                onChange={e => setCaseData({ ...caseData, system_prompt: e.target.value })}
-                                className="input-dark h-40 font-mono text-xs"
-                                placeholder="You are John Doe..."
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {/* STEP 2: DETAILS */}
-                {step === 2 && (
-                    <div className="space-y-6">
-                        <h4 className="text-lg font-bold text-purple-400">2. Case Details & Vitals</h4>
-
+                        {/* Top Section: Avatar + Basic Info */}
                         <div className="grid grid-cols-3 gap-6">
-                            {/* Avatar Preview */}
+                            {/* Avatar */}
                             <div className="col-span-1">
-                                <label className="label-xs">Patient Avatar</label>
+                                <label className="label-xs">Patient Photo</label>
                                 <div className="aspect-square bg-neutral-800 rounded-lg border border-neutral-700 overflow-hidden flex flex-col items-center justify-center relative group">
                                     {uploading ? (
                                         <div className="flex flex-col items-center gap-2">
@@ -3159,86 +3303,545 @@ PERSONALITY: You are anxious but cooperative. You're worried this might be a hea
                                         <img src={caseData.image_url} alt="Avatar" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="text-center p-4">
-                                            <Image className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
-                                            <p className="text-[10px] text-neutral-500">No Image</p>
+                                            <User className="w-10 h-10 text-neutral-600 mx-auto mb-2" />
+                                            <p className="text-[10px] text-neutral-500">No Photo</p>
                                         </div>
                                     )}
                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                                         <label className="text-[10px] font-bold bg-purple-600 hover:bg-purple-500 px-3 py-1.5 rounded cursor-pointer flex items-center gap-2">
-                                            <Upload className="w-3 h-3" /> Upload Photo
+                                            <Upload className="w-3 h-3" /> Upload
                                             <input type="file" className="hidden" accept="image/*" onChange={handlePhotoUpload} />
                                         </label>
-                                        <button
-                                            onClick={() => toast.info("Ask the AI to 'Generate Avatar' based on the summary.")}
-                                            className="text-[10px] font-bold bg-neutral-700 hover:bg-neutral-600 px-3 py-1.5 rounded flex items-center gap-2"
-                                        >
-                                            <Plus className="w-3 h-3" /> AI Generate
-                                        </button>
+                                        {caseData.image_url && (
+                                            <button onClick={() => setCaseData({ ...caseData, image_url: '' })} className="text-[10px] text-red-400 hover:text-red-300">
+                                                Remove
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="col-span-2 space-y-4">
+                            {/* Basic Info */}
+                            <div className="col-span-2 space-y-3">
                                 <div>
-                                    <label className="label-xs">Case Title (Internal)</label>
-                                    <input
-                                        type="text"
-                                        value={caseData.name}
-                                        onChange={e => setCaseData({ ...caseData, name: e.target.value })}
-                                        className="input-dark"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="label-xs">Patient Name (Display)</label>
+                                    <label className="label-xs">Patient Name <span className="text-red-400">*</span></label>
                                     <input
                                         type="text"
                                         value={caseData.config?.patient_name || ''}
                                         onChange={e => updateConfig('patient_name', e.target.value)}
                                         className="input-dark"
+                                        placeholder="e.g., John Smith"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="label-xs">Case Title (Internal)</label>
+                                        <input
+                                            type="text"
+                                            value={caseData.name}
+                                            onChange={e => setCaseData({ ...caseData, name: e.target.value })}
+                                            className="input-dark"
+                                            placeholder="e.g., Chest Pain - STEMI"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">MRN</label>
+                                        <input
+                                            type="text"
+                                            value={caseData.config?.demographics?.mrn || ''}
+                                            onChange={e => updateDemographics('mrn', e.target.value)}
+                                            className="input-dark"
+                                            placeholder="e.g., 12345678"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-3">
+                                    <div>
+                                        <label className="label-xs">Date of Birth</label>
+                                        <input
+                                            type="date"
+                                            value={caseData.config?.demographics?.dob || ''}
+                                            onChange={e => updateDemographics('dob', e.target.value)}
+                                            className="input-dark"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">Age</label>
+                                        <input
+                                            type="number"
+                                            value={caseData.config?.demographics?.age || ''}
+                                            onChange={e => updateDemographics('age', e.target.value)}
+                                            className="input-dark"
+                                            placeholder="Years"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">Gender</label>
+                                        <select
+                                            value={caseData.config?.demographics?.gender || ''}
+                                            onChange={e => updateDemographics('gender', e.target.value)}
+                                            className="input-dark"
+                                        >
+                                            <option value="">Select</option>
+                                            <option>Male</option>
+                                            <option>Female</option>
+                                            <option>Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Physical Measurements */}
+                        <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                            <h5 className="text-sm font-bold text-neutral-300 mb-3">Physical Measurements</h5>
+                            <div className="grid grid-cols-4 gap-3">
+                                <div>
+                                    <label className="label-xs">Height (cm)</label>
+                                    <input
+                                        type="number"
+                                        value={caseData.config?.demographics?.height || ''}
+                                        onChange={e => updateDemographics('height', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="170"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Weight (kg)</label>
+                                    <input
+                                        type="number"
+                                        value={caseData.config?.demographics?.weight || ''}
+                                        onChange={e => updateDemographics('weight', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="70"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">BMI</label>
+                                    <input
+                                        type="text"
+                                        value={
+                                            caseData.config?.demographics?.height && caseData.config?.demographics?.weight
+                                                ? (caseData.config.demographics.weight / Math.pow(caseData.config.demographics.height / 100, 2)).toFixed(1)
+                                                : ''
+                                        }
+                                        className="input-dark bg-neutral-900"
+                                        readOnly
+                                        placeholder="Auto"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Blood Type</label>
+                                    <select
+                                        value={caseData.config?.demographics?.bloodType || ''}
+                                        onChange={e => updateDemographics('bloodType', e.target.value)}
+                                        className="input-dark"
+                                    >
+                                        <option value="">Unknown</option>
+                                        <option>A+</option>
+                                        <option>A-</option>
+                                        <option>B+</option>
+                                        <option>B-</option>
+                                        <option>AB+</option>
+                                        <option>AB-</option>
+                                        <option>O+</option>
+                                        <option>O-</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Additional Demographics */}
+                        <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                            <h5 className="text-sm font-bold text-neutral-300 mb-3">Additional Information</h5>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="label-xs">Primary Language</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.language || ''}
+                                        onChange={e => updateDemographics('language', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="e.g., English"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Ethnicity</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.ethnicity || ''}
+                                        onChange={e => updateDemographics('ethnicity', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="e.g., Caucasian"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Occupation</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.occupation || ''}
+                                        onChange={e => updateDemographics('occupation', e.target.value)}
+                                        className="input-dark"
+                                        placeholder="e.g., Teacher"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Marital Status</label>
+                                    <select
+                                        value={caseData.config?.demographics?.maritalStatus || ''}
+                                        onChange={e => updateDemographics('maritalStatus', e.target.value)}
+                                        className="input-dark"
+                                    >
+                                        <option value="">Select</option>
+                                        <option>Single</option>
+                                        <option>Married</option>
+                                        <option>Divorced</option>
+                                        <option>Widowed</option>
+                                        <option>Separated</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Emergency Contact */}
+                        <div className="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                            <h5 className="text-sm font-bold text-neutral-300 mb-3">Emergency Contact</h5>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div>
+                                    <label className="label-xs">Contact Name</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.emergencyContact?.name || ''}
+                                        onChange={e => updateDemographics('emergencyContact', { ...caseData.config?.demographics?.emergencyContact, name: e.target.value })}
+                                        className="input-dark"
+                                        placeholder="e.g., Jane Smith"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Relationship</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.emergencyContact?.relationship || ''}
+                                        onChange={e => updateDemographics('emergencyContact', { ...caseData.config?.demographics?.emergencyContact, relationship: e.target.value })}
+                                        className="input-dark"
+                                        placeholder="e.g., Spouse"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="label-xs">Phone</label>
+                                    <input
+                                        type="text"
+                                        value={caseData.config?.demographics?.emergencyContact?.phone || ''}
+                                        onChange={e => updateDemographics('emergencyContact', { ...caseData.config?.demographics?.emergencyContact, phone: e.target.value })}
+                                        className="input-dark"
+                                        placeholder="e.g., 555-1234"
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        {/* Known Allergies */}
+                        <div>
+                            <label className="label-xs">Known Allergies</label>
+                            <input
+                                type="text"
+                                value={caseData.config?.demographics?.allergies || ''}
+                                onChange={e => updateDemographics('allergies', e.target.value)}
+                                className="input-dark"
+                                placeholder="e.g., Penicillin (rash), Sulfa, NKDA"
+                            />
+                            <p className="text-[10px] text-neutral-500 mt-1">Separate multiple allergies with commas</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* STEP 2: STORY */}
+                {step === 2 && (
+                    <div className="space-y-6">
+                        <div className="flex justify-between items-end">
                             <div>
-                                <label className="label-xs">Age</label>
-                                <input type="number" className="input-dark"
-                                    value={caseData.config?.demographics?.age || ''}
-                                    onChange={e => updateDemographics('age', e.target.value)}
-                                />
+                                <h4 className="text-lg font-bold text-purple-400">2. Patient Story & Behavior</h4>
+                                <p className="text-xs text-neutral-500">Define how the simulated patient behaves and communicates.</p>
                             </div>
-                            <div>
-                                <label className="label-xs">Gender</label>
-                                <select className="input-dark"
-                                    value={caseData.config?.demographics?.gender || ''}
-                                    onChange={e => updateDemographics('gender', e.target.value)}
-                                >
-                                    <option value="">Select</option>
-                                    <option>Male</option>
-                                    <option>Female</option>
-                                    <option>Other</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="label-xs">Weight (kg)</label>
-                                <input type="text" className="input-dark"
-                                    value={caseData.config?.demographics?.weight || ''}
-                                    onChange={e => updateDemographics('weight', e.target.value)}
-                                    placeholder="e.g. 70 kg"
-                                />
+                            <button onClick={applyPersonaDefaults} className="text-xs bg-neutral-800 hover:bg-neutral-700 px-3 py-1 rounded text-purple-300">
+                                Load Defaults
+                            </button>
+                        </div>
+
+                        {/* Personality Section */}
+                        <div className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-lg p-4 border border-purple-700/30">
+                            <h5 className="text-sm font-bold text-purple-300 mb-3">Personality & Communication</h5>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="label-xs">Persona Type</label>
+                                    <select
+                                        value={caseData.config?.persona_type || 'Standard Simulated Patient'}
+                                        onChange={e => updateConfig('persona_type', e.target.value)}
+                                        className="input-dark"
+                                    >
+                                        <option>Standard Simulated Patient</option>
+                                        <option>Difficult/Angry Patient</option>
+                                        <option>Anxious Patient</option>
+                                        <option>Depressed Patient</option>
+                                        <option>Elderly/Confused Patient</option>
+                                        <option>Pediatric Proxy (Parent)</option>
+                                        <option>Non-compliant Patient</option>
+                                        <option>Drug-seeking Patient</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Communication Style</label>
+                                    <select
+                                        value={caseData.config?.personality?.communicationStyle || 'normal'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, communicationStyle: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="normal">Normal</option>
+                                        <option value="verbose">Verbose (detailed answers)</option>
+                                        <option value="brief">Brief (short answers)</option>
+                                        <option value="tangential">Tangential (goes off-topic)</option>
+                                        <option value="guarded">Guarded (hesitant to share)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Emotional State</label>
+                                    <select
+                                        value={caseData.config?.personality?.emotionalState || 'neutral'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, emotionalState: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="neutral">Neutral</option>
+                                        <option value="calm">Calm</option>
+                                        <option value="anxious">Anxious</option>
+                                        <option value="fearful">Fearful</option>
+                                        <option value="angry">Angry/Frustrated</option>
+                                        <option value="sad">Sad/Tearful</option>
+                                        <option value="stoic">Stoic</option>
+                                        <option value="distressed">Distressed</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Pain Tolerance</label>
+                                    <select
+                                        value={caseData.config?.personality?.painTolerance || 'normal'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, painTolerance: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="high">High (minimizes pain)</option>
+                                        <option value="normal">Normal</option>
+                                        <option value="low">Low (expresses pain readily)</option>
+                                        <option value="dramatic">Dramatic (exaggerates)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Cooperativeness</label>
+                                    <select
+                                        value={caseData.config?.personality?.cooperativeness || 'cooperative'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, cooperativeness: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="very_cooperative">Very Cooperative</option>
+                                        <option value="cooperative">Cooperative</option>
+                                        <option value="neutral">Neutral</option>
+                                        <option value="reluctant">Reluctant</option>
+                                        <option value="uncooperative">Uncooperative</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="label-xs">Health Literacy</label>
+                                    <select
+                                        value={caseData.config?.personality?.healthLiteracy || 'average'}
+                                        onChange={e => updateConfig('personality', { ...caseData.config?.personality, healthLiteracy: e.target.value })}
+                                        className="input-dark"
+                                    >
+                                        <option value="high">High (medical background)</option>
+                                        <option value="average">Average</option>
+                                        <option value="low">Low (needs explanations)</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
-                        <div>
-                            <label className="label-xs">Case Summary (Description)</label>
+                        {/* Initial Greeting & Constraints */}
+                        <div className="grid grid-cols-1 gap-4">
+                            <div>
+                                <label className="label-xs">Initial Greeting</label>
+                                <input
+                                    type="text"
+                                    value={caseData.config?.greeting || ''}
+                                    onChange={e => updateConfig('greeting', e.target.value)}
+                                    className="input-dark"
+                                    placeholder="e.g., Doctor, I've had this terrible chest pain since this morning..."
+                                />
+                                <p className="text-[10px] text-neutral-500 mt-1">What the patient says when the conversation starts</p>
+                            </div>
+                            <div>
+                                <label className="label-xs">Behavioral Constraints & Guides</label>
+                                <textarea
+                                    value={caseData.config?.constraints || ''}
+                                    onChange={e => updateConfig('constraints', e.target.value)}
+                                    className="input-dark h-20"
+                                    placeholder="e.g., Only speaks English. Will not reveal drug use unless asked directly. Gets defensive when asked about alcohol."
+                                />
+                                <p className="text-[10px] text-neutral-500 mt-1">Rules the AI must follow during the conversation</p>
+                            </div>
+                        </div>
+
+                        {/* Story Mode Toggle */}
+                        <div className="border-t border-neutral-700 pt-4">
+                            <div className="flex items-center justify-between mb-4">
+                                <h5 className="text-sm font-bold text-neutral-300">Patient Story</h5>
+                                <div className="flex bg-neutral-800 rounded-lg p-1">
+                                    <button
+                                        onClick={() => updateConfig('storyMode', 'freeform')}
+                                        className={`px-3 py-1 text-xs font-bold rounded transition-colors ${
+                                            (caseData.config?.storyMode || 'freeform') === 'freeform'
+                                                ? 'bg-purple-600 text-white'
+                                                : 'text-neutral-400 hover:text-white'
+                                        }`}
+                                    >
+                                        Freeform
+                                    </button>
+                                    <button
+                                        onClick={() => updateConfig('storyMode', 'structured')}
+                                        className={`px-3 py-1 text-xs font-bold rounded transition-colors ${
+                                            caseData.config?.storyMode === 'structured'
+                                                ? 'bg-purple-600 text-white'
+                                                : 'text-neutral-400 hover:text-white'
+                                        }`}
+                                    >
+                                        Structured
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Freeform Mode */}
+                            {(caseData.config?.storyMode || 'freeform') === 'freeform' && (
+                                <div>
+                                    <label className="label-xs">Complete Patient Story / System Prompt</label>
+                                    <textarea
+                                        value={caseData.system_prompt || ''}
+                                        onChange={e => setCaseData({ ...caseData, system_prompt: e.target.value })}
+                                        className="input-dark h-64 font-mono text-xs"
+                                        placeholder="Write the complete patient story here. Include all relevant medical history, current symptoms, medications, social history, and any other details the AI needs to accurately portray this patient..."
+                                    />
+                                    <p className="text-[10px] text-neutral-500 mt-1">Full narrative description of the patient case. This is the master instruction for the AI.</p>
+                                </div>
+                            )}
+
+                            {/* Structured Mode */}
+                            {caseData.config?.storyMode === 'structured' && (
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="label-xs">Chief Complaint</label>
+                                        <input
+                                            type="text"
+                                            value={caseData.config?.structuredHistory?.chiefComplaint || ''}
+                                            onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, chiefComplaint: e.target.value })}
+                                            className="input-dark"
+                                            placeholder="e.g., Chest pain for 2 hours"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">History of Present Illness (HPI)</label>
+                                        <textarea
+                                            value={caseData.config?.structuredHistory?.hpi || ''}
+                                            onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, hpi: e.target.value })}
+                                            className="input-dark h-24"
+                                            placeholder="Describe the onset, location, duration, character, aggravating/alleviating factors, radiation, timing, and severity (OLDCARTS)..."
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label-xs">Past Medical History</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.pmh || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, pmh: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Hypertension, Type 2 DM, Hyperlipidemia"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label-xs">Past Surgical History</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.psh || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, psh: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Appendectomy (2010), Cholecystectomy (2015)"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label-xs">Current Medications</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.medications || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, medications: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Metformin 500mg BID, Lisinopril 10mg daily"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label-xs">Allergies</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.allergies || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, allergies: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Penicillin (rash), Sulfa (hives), NKDA"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="label-xs">Social History</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.socialHistory || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, socialHistory: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Smoker 1 PPD x 20 years, occasional alcohol, retired teacher, lives with spouse"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="label-xs">Family History</label>
+                                            <textarea
+                                                value={caseData.config?.structuredHistory?.familyHistory || ''}
+                                                onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, familyHistory: e.target.value })}
+                                                className="input-dark h-20"
+                                                placeholder="e.g., Father - MI at 55, Mother - DM, Sister - breast cancer"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">Review of Systems (Positive Findings)</label>
+                                        <textarea
+                                            value={caseData.config?.structuredHistory?.ros || ''}
+                                            onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, ros: e.target.value })}
+                                            className="input-dark h-20"
+                                            placeholder="e.g., Constitutional: fatigue, weight loss. Cardiac: chest pain, palpitations. Respiratory: SOB on exertion"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="label-xs">Additional Notes for AI</label>
+                                        <textarea
+                                            value={caseData.config?.structuredHistory?.additionalNotes || ''}
+                                            onChange={e => updateConfig('structuredHistory', { ...caseData.config?.structuredHistory, additionalNotes: e.target.value })}
+                                            className="input-dark h-16"
+                                            placeholder="Any additional context or instructions for the AI..."
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Case Description */}
+                        <div className="border-t border-neutral-700 pt-4">
+                            <label className="label-xs">Case Summary (for case selection screen)</label>
                             <textarea
                                 value={caseData.description || ''}
                                 onChange={e => setCaseData({ ...caseData, description: e.target.value })}
-                                className="input-dark h-24"
-                                placeholder="Brief summary of the case..."
+                                className="input-dark h-16"
+                                placeholder="Brief summary shown when selecting cases..."
                             />
-                            <p className="text-[10px] text-neutral-500 mt-1 italic">This summary will be used by the AI to generate the visual avatar.</p>
                         </div>
                     </div>
                 )}
