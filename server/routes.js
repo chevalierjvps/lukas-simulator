@@ -4302,8 +4302,7 @@ router.put('/user/password', authenticateToken, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        // Verify current password
-        const bcrypt = await import('bcryptjs');
+        // Verify current password (using bcrypt imported at top of file)
         const isValid = await bcrypt.compare(current_password, user.password_hash);
 
         if (!isValid) {
@@ -4311,8 +4310,7 @@ router.put('/user/password', authenticateToken, async (req, res) => {
         }
 
         // Hash new password
-        const salt = await bcrypt.genSalt(10);
-        const newHash = await bcrypt.hash(new_password, salt);
+        const newHash = await bcrypt.hash(new_password, 10);
 
         // Update password
         db.run(
