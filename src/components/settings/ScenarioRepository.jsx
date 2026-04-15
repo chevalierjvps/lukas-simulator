@@ -188,7 +188,7 @@ export default function ScenarioRepository({ onSelectScenario }) {
 
         try {
             const token = AuthService.getToken();
-            const isNew = !editingScenario.id || editingScenario.id.startsWith('builtin_');
+            const isNew = !editingScenario.id || String(editingScenario.id).startsWith('builtin_');
             const method = isNew ? 'POST' : 'PUT';
             const url = isNew
                 ? apiUrl('/scenarios')
@@ -238,10 +238,12 @@ export default function ScenarioRepository({ onSelectScenario }) {
         } else {
             setEditingScenario({
                 ...scenario,
-                timeline: scenario.timeline.map(step => ({
+                description: scenario.description || '',
+                is_public: !!scenario.is_public,
+                timeline: (Array.isArray(scenario.timeline) ? scenario.timeline : []).map(step => ({
                     ...step,
-                    params: { ...step.params },
-                    conditions: { ...step.conditions }
+                    params: { ...DEFAULT_STEP.params, ...step.params },
+                    conditions: { ...DEFAULT_STEP.conditions, ...step.conditions }
                 }))
             });
         }
@@ -252,10 +254,12 @@ export default function ScenarioRepository({ onSelectScenario }) {
             ...scenario,
             id: null,
             name: `${scenario.name} (Copy)`,
-            timeline: scenario.timeline.map(step => ({
+            description: scenario.description || '',
+            is_public: !!scenario.is_public,
+            timeline: (Array.isArray(scenario.timeline) ? scenario.timeline : []).map(step => ({
                 ...step,
-                params: { ...step.params },
-                conditions: { ...step.conditions }
+                params: { ...DEFAULT_STEP.params, ...step.params },
+                conditions: { ...DEFAULT_STEP.conditions, ...step.conditions }
             })),
             is_builtin: false
         });
@@ -613,7 +617,7 @@ export default function ScenarioRepository({ onSelectScenario }) {
                         <div className="p-4 border-b border-neutral-700 flex items-center justify-between">
                             <div>
                                 <h3 className="text-xl font-bold">
-                                    {editingScenario.id && !editingScenario.id.startsWith('builtin_')
+                                    {editingScenario.id && !String(editingScenario.id).startsWith('builtin_')
                                         ? 'Edit Scenario'
                                         : 'New Scenario'}
                                 </h3>
