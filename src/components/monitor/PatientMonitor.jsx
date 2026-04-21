@@ -398,13 +398,13 @@ export default function PatientMonitor({ caseParams, caseData, sessionId, isAdmi
       prevVitalsRef.current = displayVitals;
    }, [displayVitals, sessionId, eventLog]);
 
-   // Session timer - update every second
+   // Session timer — increments by 1 each second.
    useEffect(() => {
       const timer = setInterval(() => {
-         setElapsedTime(Math.floor((Date.now() - sessionStartTime) / 1000));
+         setElapsedTime(prev => prev + 1);
       }, 1000);
       return () => clearInterval(timer);
-   }, [sessionStartTime]);
+   }, []);
 
    // Load platform settings for monitor visibility
    useEffect(() => {
