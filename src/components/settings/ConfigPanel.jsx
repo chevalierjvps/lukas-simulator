@@ -16,7 +16,6 @@ import LabTestManager from './LabTestManager';
 import MedicationManager from './MedicationManager';
 import AgentTemplateManager from './AgentTemplateManager';
 import CaseTreatmentConfig from './CaseTreatmentConfig';
-import TnaDashboard from '../analytics/tna/TnaDashboard';
 import { SCENARIO_TEMPLATES, scaleScenarioTimeline } from '../../data/scenarioTemplates';
 
 export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
@@ -309,12 +308,6 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                                 className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'agents' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
                             >
                                 <Users className="w-4 h-4" /> Agent Personas
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('tna')}
-                                className={`px-4 py-3 text-left text-sm font-bold flex items-center gap-2 border-l-2 transition-colors ${activeTab === 'tna' ? 'border-purple-500 bg-neutral-900 text-white' : 'border-transparent text-neutral-500 hover:text-neutral-300'}`}
-                            >
-                                <Activity className="w-4 h-4" /> TNA Analytics
                             </button>
                         </>
                     )}
@@ -854,11 +847,6 @@ export default function ConfigPanel({ onClose, onLoadCase, fullPage = false }) {
                     {/* --- AGENT PERSONAS TAB (Admin Only) --- */}
                     {activeTab === 'agents' && isAdmin() && (
                         <AgentTemplateManager />
-                    )}
-
-                    {/* --- TNA ANALYTICS TAB (Admin Only) --- */}
-                    {activeTab === 'tna' && isAdmin() && (
-                        <TnaDashboard />
                     )}
 
                 </div>
@@ -2001,16 +1989,17 @@ function SystemLogs() {
             loadLoginLogs();
         } else if (activeLogTab === 'settings') {
             loadSettingsLogs();
-        } else if (activeLogTab === 'sessions') {
-            loadSessions();
-        } else if (activeLogTab === 'events') {
-            // Load sessions for event log selector
-            loadSessions();
-        } else if (activeLogTab === 'activity') {
-            // Load sessions for activity log selector
+        } else if (['sessions', 'events', 'activity'].includes(activeLogTab)) {
             loadSessions();
         }
     }, [activeLogTab, dateFilter]);
+
+    // Auto-refresh session list every 10 s so newly started sessions appear (no spinner)
+    useEffect(() => {
+        if (!['sessions', 'events', 'activity'].includes(activeLogTab)) return;
+        const interval = setInterval(() => loadSessions(false), 10000);
+        return () => clearInterval(interval);
+    }, [activeLogTab]);
 
     const loadLoginLogs = async () => {
         setLoading(true);
@@ -2044,19 +2033,20 @@ function SystemLogs() {
         }
     };
 
-    const loadSessions = async () => {
-        setLoading(true);
+    const loadSessions = async (showSpinner = true) => {
+        if (showSpinner) setLoading(true);
         const token = AuthService.getToken();
         try {
             const res = await fetch(apiUrl('/analytics/sessions'), {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 'Authorization': `Bearer ${token}` },
+                cache: 'no-store',
             });
             const data = await res.json();
             setSessionsList(data.sessions || []);
         } catch (err) {
             console.error('Failed to load sessions', err);
         } finally {
-            setLoading(false);
+            if (showSpinner) setLoading(false);
         }
     };
 

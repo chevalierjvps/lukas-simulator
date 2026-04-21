@@ -550,6 +550,7 @@
       "normal_findings": "Right atrial pressure: 2-8 mmHg (mean 5 mmHg). Right ventricular pressure: 15-30/0-8 mmHg. Pulmonary artery pressure: 15-30/8-15 mmHg (mean 10-20 mmHg). Pulmonary capillary wedge pressure: 6-12 mmHg. Cardiac output: 4-8 L/min. Cardiac index: 2.5-4.0 L/min/m². Pulmonary vascular resistance: <3 Wood units.",
       "normal_interpretation": "1. Normal right heart pressures.\n2. No pulmonary hypertension.\n3. Normal cardiac output and index."
     },
+
     {
       "id": "pericardiocentesis",
       "name": "Pericardiocentesis",
