@@ -181,17 +181,32 @@ const storage = multer.diskStorage({
 
 // File type validation
 const fileFilter = (req, file, cb) => {
-    // Allowed MIME types for images
+    // Allowed MIME types for images, audio, and video
     const allowedMimes = [
         'image/jpeg',
         'image/png',
         'image/gif',
         'image/webp',
-        'image/svg+xml'
+        'image/svg+xml',
+        // audio
+        'audio/mpeg',
+        'audio/wav',
+        'audio/ogg',
+        'audio/webm',
+        'audio/mp4',
+        // video
+        'video/mp4',
+        'video/webm',
+        'video/ogg',
+        'video/quicktime',
+        'video/x-msvideo',
+        'video/mpeg'
     ];
 
     // Allowed extensions
-    const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg',
+        '.mp3', '.wav', '.ogg', '.webm', '.m4a',
+        '.mp4', '.mov', '.avi', '.ogv', '.mpeg', '.mpg'];
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (allowedMimes.includes(file.mimetype) && allowedExts.includes(ext)) {
@@ -205,7 +220,7 @@ const upload = multer({
     storage: storage,
     fileFilter: fileFilter,
     limits: {
-        fileSize: 10 * 1024 * 1024 // 10MB max
+        fileSize: 100 * 1024 * 1024 // 100MB max
     }
 });
 
@@ -3332,6 +3347,7 @@ router.post('/sessions/:sessionId/order-radiology', authenticateToken, (req, res
             const findings = configuredResult?.findings || study?.normal_findings || '';
             const interpretation = configuredResult?.interpretation || study?.normal_interpretation || '';
             const imageUrl = configuredResult?.imageUrl || null;
+            const videoUrl = configuredResult?.videoUrl || null;
 
             // Build result data including configured findings
             const resultData = {
@@ -3339,6 +3355,7 @@ router.post('/sessions/:sessionId/order-radiology', authenticateToken, (req, res
                 body_region: bodyRegion,
                 findings: findings,
                 interpretation: interpretation,
+                videoUrl: videoUrl,
                 hasConfiguredResult: !!configuredResult,
                 isCustomStudy: isCustomStudy,
                 isNormalDefault: !configuredResult?.findings && !configuredResult?.interpretation && !!study?.normal_findings
@@ -7555,6 +7572,7 @@ router.post('/sessions/:sessionId/team-communications', authenticateToken, async
     }
 });
 
+
 // ============================================
 // TNA (Transition Network Analysis) ENDPOINTS
 // ============================================
@@ -7919,5 +7937,6 @@ router.get('/questionnaire-responses', authenticateToken, (req, res) => {
         res.json({ responses: parsed });
     });
 });
+
 
 export default router;
