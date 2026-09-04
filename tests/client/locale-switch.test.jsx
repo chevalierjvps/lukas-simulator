@@ -21,9 +21,10 @@ afterEach(async () => {
 });
 
 describe('setAppLanguage', () => {
-    it('starts in English', () => {
+    it('switches to Portuguese and renders translated text', async () => {
+        await setAppLanguage('pt');
         render(<Probe />);
-        expect(screen.getByText('Loading…')).toBeInTheDocument();
+        expect(screen.getByText('Carregando…')).toBeInTheDocument();
     });
 
     it('re-renders live components in Italian after the switch', async () => {
@@ -46,14 +47,9 @@ describe('setAppLanguage', () => {
         expect(value).toMatch(/Ĺóáðíñğ/);
     });
 
-    it('falls back to English for a key missing from a translated locale', async () => {
-        // Inject an English-only key at runtime (the integrity test forbids
-        // real gaps in the repo, and i18next-icu memoizes already-rendered
-        // keys, so removing an existing key can't simulate a gap): a key
-        // absent from the active locale must render English, never the raw
-        // key.
-        i18n.addResourceBundle('en', 'common', { __fallback_probe: 'English only' }, true, true);
+    it('falls back to default language for a key missing from a translated locale', async () => {
+        i18n.addResourceBundle('en', 'common', { __fallback_probe: 'Only in English' }, true, true);
         await setAppLanguage('it');
-        expect(i18n.t('common:__fallback_probe')).toBe('English only');
+        expect(i18n.t('common:__fallback_probe')).toBe('Only in English');
     });
 });

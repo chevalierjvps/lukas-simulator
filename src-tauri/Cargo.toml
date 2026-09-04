@@ -1,0 +1,42 @@
+[package]
+name = "lukas"
+version = "1.0.0"
+description = "Lukas 1.0 - Virtual Patient Simulation Platform for Unisud"
+authors = ["Unisud Medical Simulation Team"]
+edition = "2021"
+
+[lib]
+name = "osiris_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2"
+log = "0.4"
+env_logger = "0.11"
+rusqlite = { version = "0.32", features = ["bundled"] }
+uuid = { version = "1.10", features = ["v4", "serde"] }
+reqwest = { version = "0.12", features = ["json", "stream"] }
+rand = "0.8"
+
+[dev-dependencies]
+tempfile = "3"
+
+# Linux-only: lets us reach into the raw WebKitGTK WebView (via tauri's
+# `with_webview`) to auto-grant getUserMedia permission requests. WebKitGTK
+# has no built-in permission-prompt UI like Chrome/Firefox — with no
+# `permission-request` handler connected, it silently DENIES every
+# getUserMedia call, so the mic/STT feature reports "no microphone" even on
+# a machine with a real one plugged in. Pinned to the same versions Tauri's
+# own `wry`/webkit2gtk dependency chain already resolves to (see Cargo.lock)
+# so this doesn't pull in a second, incompatible copy of glib/webkit2gtk.
+[target.'cfg(target_os = "linux")'.dependencies]
+webkit2gtk = "2.0"
+glib = "0.18"

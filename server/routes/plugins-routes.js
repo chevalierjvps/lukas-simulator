@@ -279,11 +279,9 @@ function serveStarterFile(res, dir, contentPath, manifest, pluginId) {
 
     res.setHeader('Content-Type', type);
     res.setHeader('Content-Length', String(stat.size));
-    // A tile is immutable by construction — its bytes are named by the pyramid
-    // level and position of a fixed image. The catalogue is not.
-    res.setHeader('Cache-Control', contentPath.endsWith('.json')
-        ? 'no-cache'
-        : 'public, max-age=31536000, immutable');
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     return createReadStream(target).pipe(res);
 }
 

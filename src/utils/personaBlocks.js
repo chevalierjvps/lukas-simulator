@@ -25,18 +25,19 @@ function pickArray(value) {
  *
  * Accepts either a raw config object or anything with `dos` / `donts` keys.
  */
-export function buildPersonaBlocks(source) {
+export function buildPersonaBlocks(source, { lang = 'en' } = {}) {
     if (!source || typeof source !== 'object') return '';
     const dos = pickArray(source.dos);
     const donts = pickArray(source.donts);
     if (dos.length === 0 && donts.length === 0) return '';
+    const isPt = lang === 'pt';
 
     const parts = [];
     if (dos.length > 0) {
-        parts.push('You should:\n' + dos.map(d => `- ${d}`).join('\n'));
+        parts.push((isPt ? 'Você deve:\n' : 'You should:\n') + dos.map(d => `- ${d}`).join('\n'));
     }
     if (donts.length > 0) {
-        parts.push('You must not:\n' + donts.map(d => `- ${d}`).join('\n'));
+        parts.push((isPt ? 'Você não deve:\n' : 'You must not:\n') + donts.map(d => `- ${d}`).join('\n'));
     }
     return '\n\n' + parts.join('\n\n') + '\n';
 }

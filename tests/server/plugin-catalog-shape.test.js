@@ -162,12 +162,13 @@ describe('GET /api/plugins/pacs/catalog — the manifest declares the shape', ()
     }, 90_000);
 });
 
-describe('GET /api/plugins/pathology/catalog — a plugin with no learnerKeys is unchanged', () => {
+describe('GET /api/plugins/pathology/catalog — the reference-library room opted pathology in', () => {
     let server; let student;
 
     beforeAll(async () => {
-        // No origin at all: the point here is the ROLE gate, which must still
-        // refuse before anything is fetched.
+        // No origin at all: pathology's bundled local catalog.json is served
+        // without ROHY_PLUGIN_ORIGINS — that env var is only for the REMOTE
+        // proxy fallback, not the content this deployment ships.
         server = await startTestServer({ seed: false });
         const hash = await bcrypt.hash('Student1!', 4);
         await dbRun(
@@ -181,7 +182,25 @@ describe('GET /api/plugins/pathology/catalog — a plugin with no learnerKeys is
 
     afterAll(async () => { await server?.close(); });
 
-    it('still answers 403 to a learner — the projection is opt-in, per plugin', async () => {
-        expect((await student('/api/plugins/pathology/catalog')).status).toBe(403);
+    // Pathology's manifest now declares `catalog.learnerKeys` (added for the
+    // standalone reference-library room, which browses the SAME bundled
+    // slide catalog read-only) — the projection is opt-in per plugin, and
+    // pathology has opted in. This is the one case where a full catalogue IS
+    // safe to hand a student: outside an active case there is no rubric for
+    // a slide's label/organ/stain/description to spoil.
+    it('answers 200 to a learner with the allowlisted fields only', async () => {
+        const res = await student('/api/plugins/pathology/catalog');
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        const assets = body?.catalog?.assets ?? [];
+        expect(assets.length).toBeGreaterThan(0);
+        for (const asset of assets) {
+            expect(Object.keys(asset).sort()).toEqual(
+                ['currentRevisionId', 'description', 'format', 'id', 'label', 'organ', 'preview', 'revisions', 'stain', 'status'].sort()
+            );
+            // provenance/sourceId are real fields on the bundled catalog but
+            // not in learnerKeys — their absence here is the allowlist working.
+            expect(asset.provenance).toBeUndefined();
+        }
     });
 });

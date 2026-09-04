@@ -24,7 +24,7 @@ import { useNotifications } from './notifications/useNotifications';
 import { setExternalApi } from './notifications/externalApi';
 import { ToastSurface, BannerSurface, AudioSurface, BackendSurface, ConsoleSurface } from './notifications/surfaces';
 import DiagnosticBar from './components/debug/DiagnosticBar';
-import { PatientRecordProvider } from './services/PatientRecord';
+import { PatientRecordProvider, usePatientRecord } from './services/PatientRecord';
 import EventLogger, { COMPONENTS, registerWindowLifecycleLogging } from './services/eventLogger';
 import { ApiError, apiFetch, apiPut } from './services/apiClient';
 import { pickLandingCase } from './services/landingCase';
@@ -44,7 +44,42 @@ import { useSignalCapture } from './components/oyon/useSignalCapture';
 import { useOyonSignalGate } from './components/oyon/useOyonSignalGate';
 import AoiRegion from './components/oyon/AoiRegion';
 import { HelpCenter, OnboardingTour } from './help';
+import LukasTutorialModal from './components/tutorial/LukasTutorialModal';
 import FirstRunGate, { useSetup } from './components/setup/FirstRunGate';
+import TacticalClinicalHud from './components/hud/TacticalClinicalHud';
+
+// TacticalClinicalHud's stability bar must track the live simulation, not
+// the case's static starting vitals — PatientMonitor already pushes fresh
+// hr/bp/rr/spo2/pain into the shared PatientRecord context (via
+// updateVitals) on every jitter/treatment tick, so this reads from there
+// instead. Split into its own component so its ~2s-cadence re-render
+// (whenever the record updates) stays scoped here instead of re-rendering
+// all of MainApp.
+function LiveTacticalHud({ sessionId, fallbackVitals, patientName, onOpenInvestigations, onOpenExam }) {
+   const { getCurrentState } = usePatientRecord();
+   const liveVitals = getCurrentState()?.vitals;
+   const vitals = (liveVitals && liveVitals.hr != null)
+      ? {
+         hr: liveVitals.hr,
+         bpSys: liveVitals.bp_sys,
+         bpDia: liveVitals.bp_dia,
+         spo2: liveVitals.spo2,
+         rr: liveVitals.rr,
+         pain: liveVitals.pain,
+         rhythm: liveVitals.rhythm
+      }
+      : fallbackVitals;
+
+   return (
+      <TacticalClinicalHud
+         sessionId={sessionId}
+         vitals={vitals}
+         patientName={patientName}
+         onOpenInvestigations={onOpenInvestigations}
+         onOpenExam={onOpenExam}
+      />
+   );
+}
 
 // Persistence rule: a session ends ONLY through the Exit or End buttons
 // (or an explicit case-switch). Refresh, tab close, idle time — none of
@@ -135,9 +170,22 @@ function MainApp() {
    const [caseEndedAt, setCaseEndedAt] = useState(null);
    const [showEndConfirm, setShowEndConfirm] = useState(false);
    const [showHelpCenter, setShowHelpCenter] = useState(false);
+   const [showTutorial, setShowTutorial] = useState(false);
    const showExamination = currentRoom === 'examination';
    const showInvestigations = currentRoom === 'lab' || currentRoom === 'radiology';
    const showDiscussion = currentRoom === 'consultant';
+   // Radiología now carries two tabs in one room ("Pedidos" / "Imágenes") —
+   // see InvestigationsScreen.jsx's onOpenImages and RoomNavigator.jsx's
+   // HIDDEN_PLUGIN_ROOMS for the two other pieces of this. Local to App
+   // rather than InvestigationsScreen because the 'images' tab renders the
+   // PACS plugin through the same generic PluginRoom mount used everywhere
+   // else in this file (RPS-1 peaceful exclusion: a core room component may
+   // never import a plugin directly), and only App already has the
+   // plugin session/caseConfig/grants that mount needs.
+   const [radiologyTab, setRadiologyTab] = useState('orders');
+   useEffect(() => {
+      if (currentRoom !== 'radiology') setRadiologyTab('orders');
+   }, [currentRoom]);
 
    useEffect(() => {
       if (!showUserMenu) return;
@@ -351,10 +399,20 @@ function MainApp() {
    // restored `rohy_view` blob naming a plugin room this case does not offer).
    // Leaving currentRoom pointing at a room nothing renders would strand the
    // user on the patient screen with no tab highlighted.
+   //
+   // Debounced rather than immediate: `enabledPlugins` is recomputed from
+   // `pluginCaseConfig`/`pluginSession`/`pluginOrders`, and an unrelated
+   // background refresh (a treatment's vitals effect, an orders poll) can
+   // produce one render where the case config briefly reads as unset before
+   // the next fetch repopulates it. An immediate eviction here silently threw
+   // a learner out of Pathology/PACS back to the chat mid-read — the room
+   // rendered fine, then vanished a couple of seconds later. Requiring the
+   // room to stay unavailable across a short window filters that flicker out
+   // while still catching a genuine case switch, which stays unavailable.
    useEffect(() => {
-      if (pluginRegistry.get(currentRoom) && !enabledPlugins.includes(currentRoom)) {
-         setCurrentRoom('chat');
-      }
+      if (!pluginRegistry.get(currentRoom) || enabledPlugins.includes(currentRoom)) return undefined;
+      const timer = setTimeout(() => setCurrentRoom('chat'), 1500);
+      return () => clearTimeout(timer);
    }, [currentRoom, enabledPlugins]);
 
    // Core rooms plus whatever plugins are installed (RPS-1). This list used to
@@ -1007,15 +1065,18 @@ function MainApp() {
                }
             />
          ) : showInvestigations ? (
-            <InvestigationsScreen
-               topBarControls={topBarControls}
-               activeCase={activeCase}
-               sessionId={sessionId}
-               patientInfo={patientInfo}
-               activeKind={currentRoom === 'radiology' ? 'radiology' : 'lab'}
-               enabledPlugins={enabledPlugins}
-               onSelectRoom={navigateToRoom}
-               roomNav={
+            // Radiología carries two tabs in one room now — "Pedidos" (the
+            // order/report workflow below) and "Imágenes" (the real PACS
+            // viewer, mounted through the same generic PluginRoom every
+            // other plugin uses — see the radiologyTab comment above for why
+            // this can't be a direct import). The tab bar itself only
+            // renders in radiology mode, and only once the case actually has
+            // imaging to show (enabledPlugins gates that, same check
+            // InvestigationsScreen's own "ver imágenes" report button uses).
+            (() => {
+               const hasImaging = currentRoom === 'radiology' && enabledPlugins.includes('pacs');
+               const showImagesTab = hasImaging && radiologyTab === 'images';
+               const roomNavEl = (
                   <RoomNavigator
                      currentRoom={currentRoom}
                      onSelectRoom={navigateToRoom}
@@ -1023,8 +1084,58 @@ function MainApp() {
                      onOpenCourse={openCourseForCase}
                      sessionId={sessionId}
                   />
-               }
-            />
+               );
+               return (
+                  <div className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--console-machine-bg,#05090a)]">
+                     {hasImaging && (
+                        <div role="tablist" aria-label="Radiología" className="flex shrink-0 gap-1 border-b border-white/10 bg-black/40 px-4 py-2">
+                           {[['orders', 'Pedidos'], ['images', 'Imágenes']].map(([key, label]) => (
+                              <button
+                                 key={key}
+                                 type="button"
+                                 role="tab"
+                                 aria-selected={radiologyTab === key}
+                                 onClick={() => setRadiologyTab(key)}
+                                 className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                                    radiologyTab === key
+                                       ? 'bg-cyan-500/15 text-cyan-200 ring-1 ring-cyan-500/30'
+                                       : 'text-slate-400 hover:bg-white/5'
+                                 }`}
+                              >
+                                 {label}
+                              </button>
+                           ))}
+                        </div>
+                     )}
+                     <div className="min-h-0 flex-1">
+                        {showImagesTab ? (
+                           <PluginRoom
+                              pluginId="pacs"
+                              topBarControls={topBarControls}
+                              caseTitle={activeCase?.name ?? null}
+                              session={pluginSession}
+                              caseConfig={pluginCaseConfig}
+                              eventLogger={EventLogger}
+                              grants={pluginGrants}
+                              navigate={navigateToRoom}
+                              roomNav={roomNavEl}
+                           />
+                        ) : (
+                           <InvestigationsScreen
+                              topBarControls={topBarControls}
+                              activeCase={activeCase}
+                              sessionId={sessionId}
+                              patientInfo={patientInfo}
+                              activeKind={currentRoom === 'radiology' ? 'radiology' : 'lab'}
+                              enabledPlugins={enabledPlugins}
+                              onOpenImagesTab={() => setRadiologyTab('images')}
+                              roomNav={roomNavEl}
+                           />
+                        )}
+                     </div>
+                  </div>
+               );
+            })()
          ) : activePlugin ? (
             // Generic plugin mount. App knows the room key and the case
             // config; everything plugin-specific — which prop is called
@@ -1197,8 +1308,27 @@ function MainApp() {
          {/* In-app Help & Support (Stage 4). The drawer is always mounted
              and self-hides on !open. The first-run onboarding tour shows
              once per role per TOUR_VERSION (persisted in localStorage). */}
-         <HelpCenter open={showHelpCenter} onClose={() => setShowHelpCenter(false)} />
+         <HelpCenter
+            open={showHelpCenter}
+            onClose={() => setShowHelpCenter(false)}
+            onOpenTutorial={() => setShowTutorial(true)}
+         />
+         <LukasTutorialModal
+            isOpen={showTutorial}
+            onClose={() => setShowTutorial(false)}
+         />
          {user?.role && <OnboardingTour role={user.role} />}
+
+         {/* Tactical Clinical HUD & Action Wheel (Gamified HUD by Jvps) */}
+         {activeCase && sessionId && !caseEnded && (
+            <LiveTacticalHud
+               sessionId={sessionId}
+               fallbackVitals={activeCase?.config?.vitals || {}}
+               patientName={activeCase?.config?.patient_name || activeCase?.title}
+               onOpenInvestigations={() => navigateToRoom('radiology')}
+               onOpenExam={() => navigateToRoom('examination')}
+            />
+         )}
 
          {/* Bottom RoomNavigator on the main chat surface. Same
              component renders inside PhysicalExamScreen and

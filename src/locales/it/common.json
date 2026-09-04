@@ -283,6 +283,8 @@
   "room_radiology": "Radiologia e diagnostica",
   "room_radiology_sub": "imaging e test",
   "room_ready_results": "{label} — {count, plural, one {# risultato pronto} other {# risultati pronti}}",
+  "room_reference_library": "Biblioteca di Riferimento",
+  "room_reference_library_sub": "archivio di imaging e patologia",
   "save": "Salva",
   "saving": "Salvataggio…",
   "search": "Cerca",

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Send, Bot, User as UserIcon, Loader2, Stethoscope, Phone, Clock, Users, Mic, MicOff, Volume2, Eye, EyeOff } from 'lucide-react';
+import { Send, Bot, User as UserIcon, Loader2, Stethoscope, Phone, Clock, Users, Mic, MicOff, Volume2, Eye, EyeOff, ChevronDown, Check } from 'lucide-react';
 import { LLMService } from '../../services/llmService';
 import { AgentService } from '../../services/AgentService';
 import { buildPersonaBlocks } from '../../utils/personaBlocks';
@@ -10,7 +10,8 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { sttLocaleFor, DEFAULT_LANGUAGE } from '../../i18n/languages';
 import EventLogger, { COMPONENTS } from '../../services/eventLogger';
 import { baseUrl } from '../../config/api';
-import { apiFetch, apiPost } from '../../services/apiClient';
+import { apiFetch, apiGet, apiPost } from '../../services/apiClient';
+import { interpretLab } from '../../data/labInterpretations';
 import { usePatientRecord } from '../../services/PatientRecord';
 import { VoiceService } from '../../services/voiceService';
 import { useVoice } from '../../contexts/VoiceContext';
@@ -26,6 +27,7 @@ import { formatHistoryAsMarkdown } from '../../data/historyGroups';
 import {
     formatRadiologyAsMarkdown,
     formatVitalsAsMarkdown,
+    formatEcgAsMarkdown,
     formatRecentActivityAsMarkdown,
 } from '../../data/aiPromptContext';
 import {
@@ -207,6 +209,20 @@ const EMOTION_KEYS = {
     Scared: 'emotion_scared',
     Distressed: 'emotion_distressed',
 };
+// Quick-reply prompt chips above the text composer (patient tab, text
+// mode only) — a small, always-relevant history-taking bank (location,
+// onset, severity, radiation, associated symptoms) a learner can tap to
+// populate the input instead of typing from scratch. Deliberately populates
+// rather than auto-sends: the learner can still edit it, and a
+// tap-to-send-instantly button reads as more "clicking through" than
+// actually interviewing a patient.
+const QUICK_PROMPT_KEYS = [
+    'quick_prompt_location',
+    'quick_prompt_onset',
+    'quick_prompt_pain_scale',
+    'quick_prompt_radiation',
+    'quick_prompt_associated_symptoms',
+];
 // Tab badge label per agent status; anything unknown renders as "Away".
 const AGENT_STATUS_KEYS = {
     present: 'status_here',
@@ -221,7 +237,12 @@ const ALARM_SEVERITY_RANK = {
     [SEVERITY.CRITICAL]: 3,
 };
 
-function alarmSpeechLine(notification) {
+// Ambient reactive lines the patient blurts out when a clinical alarm fires
+// (independent of the LLM chat turn) — was hardcoded English regardless of
+// case language, so a pt-BR case's patient spoke English mid-scenario. Every
+// case in this build is authored pt/es (see server/seedLanguageCases.js);
+// 'en' stays as the literal fallback for the one English-authored case.
+function alarmSpeechLine(notification, lang = 'en') {
     if (notification?.source !== SOURCES.CLINICAL) return null;
     if (!notification.key?.startsWith('alarm:')) return null;
     if (![SEVERITY.WARNING, SEVERITY.CRITICAL].includes(notification.severity)) return null;
@@ -231,8 +252,23 @@ function alarmSpeechLine(notification) {
     const vital = data.vital || key.split('_')[0];
     const kind = data.thresholdType || key.split('_').slice(1).join('_');
     const critical = notification.severity === SEVERITY.CRITICAL;
+    const isPt = lang === 'pt';
 
-    const lines = {
+    const lines = isPt ? {
+        hr_high: critical ? 'Meu coração está disparado, estou muito pior.' : 'Meu coração parece estar acelerado.',
+        hr_low: critical ? 'Estou me sentindo muito fraco e tonto.' : 'Estou me sentindo fraco e um pouco tonto.',
+        spo2_low: critical ? 'Estou muito mais sem ar.' : 'Estou ficando mais sem ar.',
+        bpSys_low: critical ? 'Sinto que vou desmaiar.' : 'Estou tonto, com a cabeça leve.',
+        bpDia_low: critical ? 'Sinto que vou desmaiar.' : 'Estou tonto, com a cabeça leve.',
+        bpSys_high: critical ? 'Minha cabeça está latejando, estou pior.' : 'Minha cabeça está começando a latejar.',
+        bpDia_high: critical ? 'Minha cabeça está latejando, estou pior.' : 'Minha cabeça está começando a latejar.',
+        rr_high: critical ? 'Não consigo respirar direito.' : 'Está ficando mais difícil respirar.',
+        rr_low: critical ? 'Estou muito sonolento e com dificuldade pra respirar.' : 'Estou incomumente sonolento.',
+        temp_high: critical ? 'Sinto que estou pegando fogo.' : 'Estou com calor, me sentindo mal.',
+        temp_low: critical ? 'Estou tremendo, com muito frio.' : 'Estou com frio e tremendo.',
+        etco2_high: critical ? 'Estou sonolento e sem ar.' : 'Estou mais sonolento.',
+        etco2_low: critical ? 'Estou tonto e sem ar.' : 'Estou tonto.',
+    } : {
         hr_high: critical ? 'My heart is racing and I feel much worse.' : 'My heart feels like it is racing.',
         hr_low: critical ? 'I feel very weak and lightheaded.' : 'I feel weak and a little lightheaded.',
         spo2_low: critical ? 'I feel much more short of breath.' : 'I am getting more short of breath.',
@@ -249,8 +285,8 @@ function alarmSpeechLine(notification) {
     };
 
     return lines[`${vital}_${kind}`] || (critical
-        ? 'Something feels really wrong. I feel worse.'
-        : 'I am starting to feel worse.');
+        ? (isPt ? 'Algo está muito errado. Estou pior.' : 'Something feels really wrong. I feel worse.')
+        : (isPt ? 'Estou começando a me sentir pior.' : 'I am starting to feel worse.'));
 }
 
 function isAvatarAlarmSpeechForceOff() {
@@ -302,7 +338,7 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
     const voiceLangWarnedRef = useRef(null);
     const { user } = useAuth();
     const { caseLanguage } = useLanguage();
-    const { t } = useTranslation('chat');
+    const { t, i18n } = useTranslation('chat');
     const toast = useToast();
     const { subscribe, prefs } = useNotifications();
 
@@ -430,6 +466,32 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
     const alarmSpeechCooldownRef = useRef(new Map());
     const pendingAlarmSpeechRef = useRef(null);
 
+    // Audio input device selection state
+    const [audioInputs, setAudioInputs] = useState([]);
+    const [selectedMicId, setSelectedMicId] = useState(() => {
+        try { return localStorage.getItem('lukas_preferred_mic_id') || ''; } catch { return ''; }
+    });
+    const [showMicDropdown, setShowMicDropdown] = useState(false);
+
+    const refreshAudioInputs = useCallback(() => {
+        VoiceService.getAudioInputDevices().then(devices => {
+            setAudioInputs(devices);
+            if (devices.length > 0 && !selectedMicId) {
+                setSelectedMicId(devices[0].deviceId);
+            }
+        }).catch(() => {});
+    }, [selectedMicId]);
+
+    useEffect(() => {
+        refreshAudioInputs();
+    }, [refreshAudioInputs]);
+
+    const handleSelectMic = (id) => {
+        setSelectedMicId(id);
+        setShowMicDropdown(false);
+        try { localStorage.setItem('lukas_preferred_mic_id', id); } catch {}
+    };
+
     // Load chat settings (doctor name/avatar)
     useEffect(() => {
         const loadChatSettings = async () => {
@@ -492,15 +554,28 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
     // onboarding_settings.voice_mode) once per mount, after the platform
     // voice settings confirm voice mode exists at all. One-shot: after this,
     // the header toggle is the user's live control and we never fight it.
+    //
+    // Default flipped to opt-OUT (Jvps, 2026-09-01): the whole point of the
+    // patient persona is that it speaks — with voice mode fully configured
+    // platform-wide (API key, default voices, provider enabled), requiring
+    // a first-time user to also know to click "Voz" made a fully-working
+    // feature look broken. `voice_mode !== false` means "on unless the
+    // learner explicitly turned it off" instead of the old "on only if
+    // explicitly turned on" — a learner who onboarded before this change
+    // (voice_mode left unset) now gets voice by default too.
     const voicePrefAppliedRef = useRef(false);
     useEffect(() => {
         if (voicePrefAppliedRef.current || !voiceSettings?.voice_mode_enabled) return;
         voicePrefAppliedRef.current = true;
         apiFetch('/users/preferences')
             .then(prefs => {
-                if (parseOnboardingSettings(prefs).voice_mode === true) setVoiceMode(true);
+                if (parseOnboardingSettings(prefs).voice_mode !== false) setVoiceMode(true);
             })
-            .catch(() => { /* preference is a nicety — stay off on failure */ });
+            .catch(() => {
+                // Preference fetch failed — still honour the platform's
+                // voice_mode_enabled=true rather than silently staying off.
+                setVoiceMode(true);
+            });
     }, [voiceSettings]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Cleanup voice resources when the case changes or component unmounts.
@@ -512,6 +587,31 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
     }, [activeCase?.id]);
 
     // Load agents for this case/session
+    // Ready lab results for this session, polled in the background so
+    // buildPatientSystemPrompt (a sync function, rebuilt on every send) can
+    // read the latest set without itself becoming async. Best-effort: a
+    // failed fetch just means this turn's prompt omits lab grounding, not a
+    // broken chat.
+    const [labResultsSummary, setLabResultsSummary] = useState([]);
+    useEffect(() => {
+        if (!sessionId) {
+            setLabResultsSummary([]);
+            return;
+        }
+        let cancelled = false;
+        const fetchLabResults = async () => {
+            try {
+                const data = await apiGet(`/sessions/${sessionId}/lab-results`);
+                if (!cancelled) setLabResultsSummary(data?.results || []);
+            } catch {
+                // see comment above — swallow and keep the last-known set
+            }
+        };
+        fetchLabResults();
+        const interval = setInterval(fetchLabResults, 20000);
+        return () => { cancelled = true; clearInterval(interval); };
+    }, [sessionId]);
+
     useEffect(() => {
         // Defensive clear: during a case switch, App.jsx sets sessionId to
         // null before the new session starts. Without this, patientTemplate
@@ -915,11 +1015,19 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
         // especially when authored in third-person clinical voice
         // ("Patient presents with crushing chest pain") which the model
         // reads as instruction to BE the clinician describing the case.
-        let richSystemPrompt = roleAnchor({ role: personaRole, name: personaName });
-        richSystemPrompt += `## PERSONA\n`;
-        richSystemPrompt += `Role: ${personaRole}\n`;
-        richSystemPrompt += `Name: ${personaName}\n`;
-        const demographicsBlock = formatPersonaDemographicsForPrompt(demo);
+        // Sprint 3: hoisted so every section header below (not just PERSONA)
+        // can branch on it — the prompt used to mix a pt-first persona block
+        // with English section headers ("## CLINICAL RECORDS", "Findings:",
+        // "No indication documented"...) for the rest of the document,
+        // which is exactly the noise a pt-BR case shouldn't carry.
+        const isPt = caseLanguage === 'pt' || !caseLanguage;
+        let richSystemPrompt = roleAnchor({ role: personaRole, name: personaName, lang: caseLanguage || 'pt' });
+        if (isPt) {
+            richSystemPrompt += `## PERSONAGEM\nPapel: ${personaRole}\nNome: ${personaName}\n`;
+        } else {
+            richSystemPrompt += `## PERSONA\nRole: ${personaRole}\nName: ${personaName}\n`;
+        }
+        const demographicsBlock = formatPersonaDemographicsForPrompt(demo, { lang: caseLanguage || 'pt' });
         if (demographicsBlock) {
             richSystemPrompt += `${demographicsBlock}\n`;
         }
@@ -928,14 +1036,14 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
         // emotional state, pain tolerance, cooperativeness, health literacy).
         // Only non-default values are surfaced — the helper drops defaults so
         // the prompt stays tight.
-        const personalityBlock = formatPersonalityForPrompt(config.personality);
+        const personalityBlock = formatPersonalityForPrompt(config.personality, { lang: caseLanguage || 'pt' });
         if (personalityBlock) {
-            richSystemPrompt += `\n## PATIENT BEHAVIOUR\n${personalityBlock}\n`;
+            richSystemPrompt += `\n## COMPORTAMENTO DO PACIENTE\n${personalityBlock}\n`;
         }
 
-        richSystemPrompt += `\n## INSTRUCTIONS\n`;
-        richSystemPrompt += `${sourceSystemPrompt || 'You are a patient.'}\n`;
-        richSystemPrompt += `\nSpeak only what the patient would say aloud. Never use stage directions, narration, or asterisk-wrapped action descriptors (e.g. "*nods*", "*clutches chest*", "*sighs*"). Express feelings through words alone.\n`;
+        richSystemPrompt += `\n## INSTRUÇÕES CLÍNICAS\n`;
+        richSystemPrompt += `${sourceSystemPrompt || 'Você é o paciente.'}\n`;
+        richSystemPrompt += `\nFale apenas o que você diria em voz alta. Nunca use direções de palco, narração em terceira pessoa ou ações entre asteriscos (ex: "*geme*", "*coloca a mão no peito*"). Expresse suas emoções e dores diretamente através de suas palavras faladas em português brasileiro.\n`;
 
         // Patient agent template prose runs AFTER the case-specific persona +
         // instructions so the case anchors first and the template reads as
@@ -950,10 +1058,12 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
             ? patientTemplate
             : null;
         if (templateForThisCase?.systemPrompt) {
-            richSystemPrompt += `\n## PATIENT PERSONA (from template "${templateForThisCase.name}")\n`;
+            richSystemPrompt += isPt
+                ? `\n## PERSONA DO PACIENTE (do modelo "${templateForThisCase.name}")\n`
+                : `\n## PATIENT PERSONA (from template "${templateForThisCase.name}")\n`;
             richSystemPrompt += `${templateForThisCase.systemPrompt}\n`;
         }
-        const personaBlocks = templateForThisCase ? buildPersonaBlocks(templateForThisCase.config) : '';
+        const personaBlocks = templateForThisCase ? buildPersonaBlocks(templateForThisCase.config, { lang: caseLanguage || 'pt' }) : '';
         if (personaBlocks) {
             richSystemPrompt += personaBlocks;
         }
@@ -963,16 +1073,19 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
             name: sourceName,
             system_prompt: sourceSystemPrompt,
             config,
-        });
+        }, { lang: caseLanguage || 'pt' });
 
         if (config.constraints) {
-            richSystemPrompt += `\n## CONSTRAINTS\n${config.constraints}\n`;
+            richSystemPrompt += isPt
+                ? `\n## RESTRIÇÕES\n${config.constraints}\n`
+                : `\n## CONSTRAINTS\n${config.constraints}\n`;
         }
 
         // Append Config Pages as Markdown Context if they exist
         if (config.pages && config.pages.length > 0) {
-            richSystemPrompt += "\n---\n## PATIENT MEDICAL RECORD (Hidden Context)\n";
-            richSystemPrompt += "Only reveal this information if specifically asked or relevant to the history taking.\n";
+            richSystemPrompt += isPt
+                ? "\n---\n## PRONTUÁRIO DO PACIENTE (Contexto Oculto)\nRevele esta informação apenas se perguntado diretamente ou se for relevante para a anamnese.\n"
+                : "\n---\n## PATIENT MEDICAL RECORD (Hidden Context)\nOnly reveal this information if specifically asked or relevant to the history taking.\n";
 
             config.pages.forEach(page => {
                 richSystemPrompt += `\n### ${page.title}\n${page.content}\n`;
@@ -991,6 +1104,9 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
         };
 
         let hasAnyRecords = false;
+        const clinicalRecordsHeader = isPt
+            ? "\n---\n## PRONTUÁRIO CLÍNICO (Acessível à IA)\n"
+            : "\n---\n## CLINICAL RECORDS (Accessible to AI)\n";
 
         // History & HPI — formatted by the canonical group structure so the
         // LLM sees the same Present-History / Past-Medical / Personal-&-Social
@@ -1001,10 +1117,12 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
             const historyMarkdown = formatHistoryAsMarkdown(clinicalRecords.history);
             if (historyMarkdown) {
                 if (!hasAnyRecords) {
-                    richSystemPrompt += "\n---\n## CLINICAL RECORDS (Accessible to AI)\n";
+                    richSystemPrompt += clinicalRecordsHeader;
                     hasAnyRecords = true;
                 }
-                richSystemPrompt += `\n### Medical History\n${historyMarkdown}\n`;
+                richSystemPrompt += isPt
+                    ? `\n### História Clínica\n${historyMarkdown}\n`
+                    : `\n### Medical History\n${historyMarkdown}\n`;
             }
         }
 
@@ -1012,33 +1130,36 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
         if (aiAccess.physicalExam && clinicalRecords.physicalExam) {
             const pe = clinicalRecords.physicalExam;
             const peParts = [];
-            if (pe.general) peParts.push(`General: ${pe.general}`);
-            if (pe.heent) peParts.push(`HEENT: ${pe.heent}`);
-            if (pe.cardiovascular) peParts.push(`Cardiovascular: ${pe.cardiovascular}`);
-            if (pe.respiratory) peParts.push(`Respiratory: ${pe.respiratory}`);
-            if (pe.abdomen) peParts.push(`Abdomen: ${pe.abdomen}`);
-            if (pe.neurological) peParts.push(`Neurological: ${pe.neurological}`);
-            if (pe.extremities) peParts.push(`Extremities/Skin: ${pe.extremities}`);
+            const peLabels = isPt
+                ? { general: 'Geral', heent: 'Cabeça/Olhos/Ouvidos/Nariz/Garganta', cardiovascular: 'Cardiovascular', respiratory: 'Respiratório', abdomen: 'Abdome', neurological: 'Neurológico', extremities: 'Extremidades/Pele' }
+                : { general: 'General', heent: 'HEENT', cardiovascular: 'Cardiovascular', respiratory: 'Respiratory', abdomen: 'Abdomen', neurological: 'Neurological', extremities: 'Extremities/Skin' };
+            for (const key of ['general', 'heent', 'cardiovascular', 'respiratory', 'abdomen', 'neurological', 'extremities']) {
+                if (pe[key]) peParts.push(`${peLabels[key]}: ${pe[key]}`);
+            }
 
             if (peParts.length > 0) {
                 if (!hasAnyRecords) {
-                    richSystemPrompt += "\n---\n## CLINICAL RECORDS (Accessible to AI)\n";
+                    richSystemPrompt += clinicalRecordsHeader;
                     hasAnyRecords = true;
                 }
-                richSystemPrompt += `\n### Physical Examination\n${peParts.join('\n')}\n`;
+                richSystemPrompt += isPt
+                    ? `\n### Exame Físico\n${peParts.join('\n')}\n`
+                    : `\n### Physical Examination\n${peParts.join('\n')}\n`;
             }
         }
 
         // Medications
         if (aiAccess.medications && clinicalRecords.medications?.length > 0) {
             if (!hasAnyRecords) {
-                richSystemPrompt += "\n---\n## CLINICAL RECORDS (Accessible to AI)\n";
+                richSystemPrompt += clinicalRecordsHeader;
                 hasAnyRecords = true;
             }
             const medList = clinicalRecords.medications.map(m =>
-                `- ${m.name} ${m.dose} ${m.route} ${m.frequency}${m.indication ? ` (for ${m.indication})` : ''}`
+                `- ${m.name} ${m.dose} ${m.route} ${m.frequency}${m.indication ? (isPt ? ` (para ${m.indication})` : ` (for ${m.indication})`) : ''}`
             ).join('\n');
-            richSystemPrompt += `\n### Current Medications\n${medList}\n`;
+            richSystemPrompt += isPt
+                ? `\n### Medicações Atuais\n${medList}\n`
+                : `\n### Current Medications\n${medList}\n`;
         }
 
         // Radiology — formatted by the shared helper so the LLM sees a stable
@@ -1048,43 +1169,88 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
             const radiologyMarkdown = formatRadiologyAsMarkdown(clinicalRecords.radiology);
             if (radiologyMarkdown) {
                 if (!hasAnyRecords) {
-                    richSystemPrompt += "\n---\n## CLINICAL RECORDS (Accessible to AI)\n";
+                    richSystemPrompt += clinicalRecordsHeader;
                     hasAnyRecords = true;
                 }
-                richSystemPrompt += `\n### Radiology Studies\n${radiologyMarkdown}\n`;
+                richSystemPrompt += isPt
+                    ? `\n### Exames de Imagem\n${radiologyMarkdown}\n`
+                    : `\n### Radiology Studies\n${radiologyMarkdown}\n`;
             }
         }
 
         // Procedures
         if (aiAccess.procedures && clinicalRecords.procedures?.length > 0) {
             if (!hasAnyRecords) {
-                richSystemPrompt += "\n---\n## CLINICAL RECORDS (Accessible to AI)\n";
+                richSystemPrompt += clinicalRecordsHeader;
                 hasAnyRecords = true;
             }
+            const noIndication = isPt ? 'Indicação não documentada' : 'No indication documented';
             const procList = clinicalRecords.procedures.map(p =>
-                `- ${p.name}${p.date ? ` (${p.date})` : ''}: ${p.indication || 'No indication documented'}${p.findings ? ` - Findings: ${p.findings}` : ''}${p.complications ? ` - Complications: ${p.complications}` : ''}`
+                `- ${p.name}${p.date ? ` (${p.date})` : ''}: ${p.indication || noIndication}${p.findings ? (isPt ? ` - Achados: ${p.findings}` : ` - Findings: ${p.findings}`) : ''}${p.complications ? (isPt ? ` - Complicações: ${p.complications}` : ` - Complications: ${p.complications}`) : ''}`
             ).join('\n');
-            richSystemPrompt += `\n### Procedures\n${procList}\n`;
+            richSystemPrompt += isPt
+                ? `\n### Procedimentos\n${procList}\n`
+                : `\n### Procedures\n${procList}\n`;
         }
 
         // Clinical Notes
         if (aiAccess.notes && clinicalRecords.notes?.length > 0) {
             if (!hasAnyRecords) {
-                richSystemPrompt += "\n---\n## CLINICAL RECORDS (Accessible to AI)\n";
+                richSystemPrompt += clinicalRecordsHeader;
             }
+            const noDate = isPt ? 'Sem data' : 'No date';
+            const noContent = isPt ? 'Sem conteúdo' : 'No content';
             const noteList = clinicalRecords.notes.map(n =>
-                `#### ${n.type}${n.title ? `: ${n.title}` : ''} (${n.date || 'No date'}${n.author ? `, ${n.author}` : ''})\n${n.content || 'No content'}`
+                `#### ${n.type}${n.title ? `: ${n.title}` : ''} (${n.date || noDate}${n.author ? `, ${n.author}` : ''})\n${n.content || noContent}`
             ).join('\n\n');
-            richSystemPrompt += `\n### Clinical Notes\n${noteList}\n`;
+            richSystemPrompt += isPt
+                ? `\n### Notas Clínicas\n${noteList}\n`
+                : `\n### Clinical Notes\n${noteList}\n`;
         }
 
         // Live patient state — current vitals from PatientRecord. Without this
         // the AI guesses when asked "how do you feel" / "what's your heart
         // rate"; with it, the model can answer consistent with the monitor.
-        const vitalsMarkdown = formatVitalsAsMarkdown(patientRecord?.record?.current_state?.vitals);
+        const vitalsMarkdown = formatVitalsAsMarkdown(patientRecord?.record?.current_state?.vitals, { lang: caseLanguage || 'pt' });
         if (vitalsMarkdown) {
-            richSystemPrompt += `\n---\n## CURRENT PATIENT STATE\n${vitalsMarkdown}\n`;
-            richSystemPrompt += `\nAnswer questions about how you currently feel in a way consistent with these vitals.\n`;
+            richSystemPrompt += `\n---\n## ESTADO VITAL ATUAL (SINAIS VITAIS DO MONITOR)\n${vitalsMarkdown}\n`;
+            richSystemPrompt += `\nResponda às perguntas sobre como você está se sentindo em perfeita concordância com estes sinais vitais, seu nível de dor e sua ansiedade.\n`;
+        }
+
+        // Live ECG & Rhythm context — prefers what the monitor is showing
+        // RIGHT NOW (rhythm / ST elevation / T-wave inversion, published by
+        // PatientMonitor into PatientRecord every tick) over the case's
+        // static authored finding, so a scenario progression or an admin
+        // override during the session is reflected here too.
+        const liveVitals = patientRecord?.record?.current_state?.vitals;
+        const staticEcgFinding = config.ecg?.title || config.ecg?.finding || config.rhythm || config.initial_ecg || null;
+        const ecgMarkdown = formatEcgAsMarkdown({
+            rhythm: liveVitals?.rhythm,
+            stElevationMm: liveVitals?.st_elevation_mm,
+            tWaveInverted: liveVitals?.t_wave_inverted,
+            staticFinding: typeof staticEcgFinding === 'string' ? staticEcgFinding : null,
+        }, { lang: caseLanguage || 'pt' });
+        if (ecgMarkdown) {
+            richSystemPrompt += `\n---\n## ELETROCARDIOGRAMA (ECG)\n${ecgMarkdown}\n- Suas queixas e sensação de aperto/palpitação no peito devem ser coerentes com este quadro cardíaco.\n`;
+        }
+
+        // Lab results already back for THIS session — deterministic
+        // grounding (no second LLM call), see src/data/labInterpretations.js.
+        // Without this the patient has no idea their platelets came back
+        // low; with it, an answer about how they feel can track it without
+        // ever naming the number unprompted (real patients don't self-report
+        // "meu hematócrito está 58%").
+        const readyLabs = (labResultsSummary || []).filter((r) => r.is_ready);
+        if (readyLabs.length > 0) {
+            const labLines = readyLabs.map((r) => {
+                const label = r.status === 'high' ? (isPt ? 'ALTO' : 'HIGH') : r.status === 'low' ? (isPt ? 'BAIXO' : 'LOW') : (isPt ? 'normal' : 'normal');
+                const note = interpretLab(r, isPt ? 'pt' : 'en');
+                const unit = r.unit ? ` ${r.unit}` : '';
+                return `- ${r.test_name}: ${r.current_value}${unit} (${label})${note ? ` — ${note}` : ''}`;
+            });
+            richSystemPrompt += isPt
+                ? `\n---\n## EXAMES JÁ DISPONÍVEIS PARA O MÉDICO\n${labLines.join('\n')}\n\nVocê não entende esses números tecnicamente — não os cite espontaneamente, mas se o médico perguntar como você está se sentindo ou sobre um resultado específico, responda de forma coerente com eles (ex: plaquetas baixas e histórico de gengivorragia = você está preocupado com sangramento).\n`
+                : `\n---\n## LAB RESULTS ALREADY BACK\n${labLines.join('\n')}\n\nYou don't understand these numbers technically — don't cite them unprompted, but if asked how you feel or about a specific result, answer consistent with them.\n`;
         }
 
         // Session activity feedback — tells the AI what the student has
@@ -1094,8 +1260,19 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
         // or treatments). Capped at the last 10 events to bound prompt size.
         const recentActivity = formatRecentActivityAsMarkdown(patientRecord?.record?.events, 10);
         if (recentActivity) {
-            richSystemPrompt += `\n---\n## SESSION ACTIVITY SO FAR (clinician's actions this encounter)\n${recentActivity}\n`;
-            richSystemPrompt += `\nDo not repeat answers to questions that were already obtained above. Acknowledge prior actions when relevant.\n`;
+            richSystemPrompt += `\n---\n## HISTÓRICO DE CONDUTAS DO MÉDICO NESTA CONSULTA\n${recentActivity}\n`;
+            richSystemPrompt += `\nNão repita respostas a perguntas que já foram respondidas acima. Reconheça as medicações e exames que o médico já realizou em você.\n`;
+        }
+
+        // Strict final gender & speech lock
+        if (demo.gender) {
+            const isMale = /^(male|masculino|homem|m)$/i.test(demo.gender);
+            const isFemale = /^(female|feminino|mulher|f)$/i.test(demo.gender);
+            if (isMale) {
+                richSystemPrompt += `\nIMPORTANTE (GÊNERO): Você é um HOMEM. Responda SEMPRE no gênero MASCULINO ('eu estou muito assustado', 'preocupado', 'cansado'). NUNCA use 'o(a)' nem termos femininos.\n`;
+            } else if (isFemale) {
+                richSystemPrompt += `\nIMPORTANTE (GÊNERO): Você é uma MULHER. Responda SEMPRE no gênero FEMININO ('eu estou muito assustada', 'preocupada', 'cansada'). NUNCA use 'o(a)' nem termos masculinos.\n`;
+            }
         }
 
         // Stash for the DiagnosticBar "show assembled prompt" inspector.
@@ -1505,7 +1682,7 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
         return subscribe((event) => {
             if (event?.type !== 'notify') return;
             const notification = event.notification;
-            const text = alarmSpeechLine(notification);
+            const text = alarmSpeechLine(notification, caseLanguage || 'pt');
             if (!text || !voiceMode || activeTab !== 'patient') return;
             if (prefs.avatarAlarmSpeechEnabled === false || isAvatarAlarmSpeechForceOff()) return;
 
@@ -1527,7 +1704,7 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
             }
             speakPatientAlarm(alarmSpeech);
         });
-    }, [subscribe, voiceMode, activeTab, prefs.avatarAlarmSpeechEnabled, loading, listening, speaking, speakPatientAlarm]);
+    }, [subscribe, voiceMode, activeTab, caseLanguage, prefs.avatarAlarmSpeechEnabled, loading, listening, speaking, speakPatientAlarm]);
 
     useEffect(() => {
         if (!voiceMode || activeTab !== 'patient') return;
@@ -1592,6 +1769,7 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
 
         VoiceService.startListening({
             lang: sttLang,
+            deviceId: selectedMicId || null,
             onResult: ({ final, interim, _isFinal }) => {
                 // Continuous mode (default in voiceService): show whatever's
                 // currently transcribed but DO NOT stop on isFinal — pauses
@@ -1614,6 +1792,8 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                     toast?.error?.(t('stt_network_error'));
                 } else if (code === 'audio-capture') {
                     toast?.error?.(t('no_microphone'));
+                } else if (code === 'empty-capture') {
+                    toast?.error?.(t('empty_capture'));
                 } else if (code === 'no-speech') {
                     toast?.error?.(t('no_speech_heard'));
                 } else if (code === 'aborted') {
@@ -1789,7 +1969,8 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
         }
     };
 
-    const voiceModeAvailable = !!voiceSettings?.voice_mode_enabled;
+    const isPt = (i18n?.language || 'pt').startsWith('pt');
+    const voiceModeAvailable = true;
     const sttSupported = VoiceService.isSttSupported();
 
     return (
@@ -1991,7 +2172,7 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                 )}
 
                 {currentMessages.map((msg, i) => (
-                    <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div key={i} className={`flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {/* Assistant avatar and name */}
                         {msg.role === 'assistant' && (
                             <div className="flex flex-col items-center gap-1 shrink-0">
@@ -2019,31 +2200,34 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                             </div>
                         )}
 
-                        <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.role === 'user'
-                            ? 'bg-blue-600 text-white rounded-br-none'
-                            : msg.error
-                            ? 'bg-red-950/40 text-red-200 border border-red-800/60 rounded-bl-none'
-                            : activeTab === 'patient'
-                            ? 'bg-neutral-800 text-neutral-200 border border-neutral-700 rounded-bl-none'
-                            : currentAgent?.agent_type === 'nurse' ? 'bg-blue-900/20 text-blue-100 border border-blue-800/50 rounded-bl-none'
-                            : currentAgent?.agent_type === 'consultant' ? 'bg-green-900/20 text-green-100 border border-green-800/50 rounded-bl-none'
-                            : currentAgent?.agent_type === 'relative' ? 'bg-amber-900/20 text-amber-100 border border-amber-800/50 rounded-bl-none'
-                            : 'bg-neutral-800 text-neutral-200 border border-neutral-700 rounded-bl-none'
-                            }`}>
+                        <div
+                            className={`max-w-[75%] px-4 py-3 text-sm leading-relaxed ${
+                                activeTab === 'patient'
+                                    ? (msg.role === 'user' ? 'console-bubble-doctor' : msg.error ? 'console-bubble-error' : 'console-bubble-patient')
+                                    : msg.role === 'user'
+                                    ? 'rounded-2xl bg-gradient-to-br from-teal-600 to-teal-700 text-white rounded-br-sm shadow-[0_4px_16px_rgba(13,148,136,0.35),inset_0_1px_1px_rgba(255,255,255,0.3)]'
+                                    : msg.error
+                                    ? 'rounded-2xl bg-red-950/50 text-red-200 border border-red-500/40 rounded-bl-sm backdrop-blur-md'
+                                    : currentAgent?.agent_type === 'nurse' ? 'rounded-2xl bg-sky-950/50 text-sky-100 border border-sky-500/30 rounded-bl-sm backdrop-blur-md'
+                                    : currentAgent?.agent_type === 'consultant' ? 'rounded-2xl bg-emerald-950/50 text-emerald-100 border border-emerald-500/30 rounded-bl-sm backdrop-blur-md'
+                                    : currentAgent?.agent_type === 'relative' ? 'rounded-2xl bg-amber-950/50 text-amber-100 border border-amber-500/30 rounded-bl-sm backdrop-blur-md'
+                                    : 'rounded-2xl osiris-glass-card text-slate-100 border border-white/15 rounded-bl-sm'
+                            }`}
+                        >
                             {msg.content}
                         </div>
 
                         {/* Doctor (user) avatar and name */}
                         {msg.role === 'user' && (
                             <div className="flex flex-col items-center gap-1 shrink-0">
-                                <div className="w-9 h-9 rounded-full bg-blue-900/30 flex items-center justify-center border border-blue-700 overflow-hidden">
+                                <div className="w-9 h-9 rounded-full bg-teal-500/20 flex items-center justify-center border border-teal-400/30 shadow-[0_2px_8px_rgba(45,212,191,0.2)] overflow-hidden">
                                     {chatSettings.doctorAvatar ? (
                                         <img src={chatSettings.doctorAvatar} alt={chatSettings.doctorName} className="w-full h-full object-cover" />
                                     ) : (
-                                        <Stethoscope className="w-5 h-5 text-blue-400" />
+                                        <Stethoscope className="w-5 h-5 text-teal-300" />
                                     )}
                                 </div>
-                                <span className="text-[10px] text-neutral-500 max-w-[60px] truncate">{chatSettings.doctorName}</span>
+                                <span className="text-[10px] text-slate-400 max-w-[60px] truncate font-medium">{chatSettings.doctorName}</span>
                             </div>
                         )}
                     </div>
@@ -2054,26 +2238,26 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                         <div className="flex flex-col items-center gap-1 shrink-0">
                             <div className={`w-9 h-9 rounded-full flex items-center justify-center border overflow-hidden ${
                                 activeTab === 'patient'
-                                    ? 'bg-neutral-800 border-neutral-700'
-                                    : 'bg-neutral-800 border-neutral-700'
+                                    ? 'bg-slate-800/80 border-slate-700'
+                                    : 'bg-slate-800/80 border-slate-700'
                             }`}>
                                 <Loader2 className={`w-5 h-5 animate-spin ${
-                                    activeTab === 'patient' ? 'text-emerald-400' :
-                                    currentAgent?.agent_type === 'nurse' ? 'text-blue-400' :
-                                    currentAgent?.agent_type === 'consultant' ? 'text-green-400' :
+                                    activeTab === 'patient' ? 'text-teal-400' :
+                                    currentAgent?.agent_type === 'nurse' ? 'text-sky-400' :
+                                    currentAgent?.agent_type === 'consultant' ? 'text-emerald-400' :
                                     currentAgent?.agent_type === 'relative' ? 'text-amber-400' :
                                     'text-purple-400'
                                 }`} />
                             </div>
-                            <span className="text-[10px] text-neutral-500 max-w-[60px] truncate">
+                            <span className="text-[10px] text-slate-400 max-w-[60px] truncate font-medium">
                                 {activeTab === 'patient' ? t('patient_label') : agentShortName(currentAgent?.name)}
                             </span>
                         </div>
-                        <div className="bg-neutral-800 px-4 py-2.5 rounded-2xl rounded-bl-none border border-neutral-700 text-neutral-400 text-sm flex items-center gap-2">
-                            <span className="inline-flex gap-1">
-                                <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-                                <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-                                <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                        <div className="osiris-glass-card px-4 py-3 rounded-2xl rounded-bl-sm border border-white/10 text-slate-400 text-sm flex items-center gap-2">
+                            <span className="inline-flex gap-1.5">
+                                <span className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                <span className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                <span className="w-2 h-2 bg-teal-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                             </span>
                         </div>
                     </div>
@@ -2161,7 +2345,7 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
 
             {/* Recurring Emotion Questionnaire — appears every 2 minutes */}
             {showQuestionnaire && (
-                <div className="px-4 pt-3 pb-2 border-t border-indigo-800/60 bg-indigo-950/40">
+                <div className="px-4 pt-3 pb-2 border-t border-indigo-500/20 bg-indigo-950/30 backdrop-blur-md">
                     <p className="text-[11px] font-semibold text-indigo-300 text-center mb-2 tracking-wide">
                         {t('how_are_you_feeling')}
                     </p>
@@ -2175,10 +2359,10 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                                             key={emotion}
                                             type="button"
                                             onClick={() => handleEmotionClick(emotion)}
-                                            className={`flex-1 text-[10px] font-medium px-1 py-1 rounded transition-colors truncate border ${
+                                            className={`flex-1 text-[10px] font-medium px-1 py-1.5 rounded-lg transition-all truncate border active:scale-95 ${
                                                 isPositive
-                                                    ? 'bg-neutral-800 text-blue-300 hover:bg-blue-900/50 hover:text-blue-100 border-neutral-700 hover:border-blue-600'
-                                                    : 'bg-neutral-800 text-orange-300 hover:bg-orange-900/50 hover:text-orange-100 border-neutral-700 hover:border-orange-600'
+                                                    ? 'bg-slate-800/80 text-teal-300 hover:bg-teal-900/40 hover:text-teal-100 border-white/10 hover:border-teal-500/40'
+                                                    : 'bg-slate-800/80 text-orange-300 hover:bg-orange-900/40 hover:text-orange-100 border-white/10 hover:border-orange-500/40'
                                             }`}
                                         >
                                             {t(EMOTION_KEYS[emotion])}
@@ -2191,20 +2375,22 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                 </div>
             )}
 
-            {/* Input */}
-            <div className="px-4 pb-4 pt-1 bg-neutral-900/90">
+            {/* Input Footer */}
+            <div className={`px-4 pb-4 pt-2 shrink-0 relative z-20 ${
+                activeTab === 'patient' ? 'console-composer-footer' : 'osiris-glass border-t border-white/10'
+            }`}>
                 {voiceMode && activeTab === 'patient' ? (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 relative">
                         <button
                             type="button"
                             onClick={startVoiceTurn}
                             disabled={loading || !sttSupported || speaking || caseEnded}
-                            className={`w-full py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors ${
+                            className={`w-full py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] ${
                                 listening
-                                    ? 'bg-green-600 hover:bg-green-500 text-white'
+                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
                                     : speaking
-                                    ? 'bg-blue-700 text-white cursor-not-allowed'
-                                    : 'rohy-voice-primary disabled:bg-neutral-700 disabled:text-neutral-500'
+                                    ? 'bg-teal-700 text-white cursor-not-allowed shadow-teal-700/30'
+                                    : 'console-voice-cta disabled:opacity-50 disabled:cursor-not-allowed'
                             }`}
                         >
                             {listening ? (
@@ -2235,13 +2421,93 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                             )}
                         </button>
                         {input ? (
-                            <div className="text-xs text-neutral-500 px-1 italic truncate">{input}</div>
+                            <div className="text-xs text-slate-400 px-1 italic truncate">{input}</div>
                         ) : (!listening && !speaking && !loading && sttSupported && (
-                            <div className="text-[11px] text-neutral-500 text-center select-none">{t('talk_hint_space')}</div>
+                            <div className="flex items-center justify-between px-1">
+                                <div className="text-[11px] text-slate-400 select-none">{t('talk_hint_space')}</div>
+                                {audioInputs.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            refreshAudioInputs();
+                                            setShowMicDropdown(!showMicDropdown);
+                                        }}
+                                        className="text-[11px] text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                                    >
+                                        <Mic className="w-3 h-3" />
+                                        <span className="max-w-[140px] truncate">
+                                            {audioInputs.find(d => d.deviceId === selectedMicId)?.label || (isPt ? 'Microfone' : 'Mic')}
+                                        </span>
+                                        <ChevronDown className="w-3 h-3" />
+                                    </button>
+                                )}
+                            </div>
                         ))}
+
+                        {showMicDropdown && (
+                            <div
+                                className="absolute bottom-full left-0 right-0 mb-2 bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl p-2 z-50 backdrop-blur-md"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-800 mb-1 flex items-center justify-between">
+                                    <span>{isPt ? 'Selecionar Microfone' : 'Select Microphone'}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowMicDropdown(false)}
+                                        className="text-slate-500 hover:text-white text-xs px-1"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="max-h-48 overflow-y-auto space-y-1">
+                                    {audioInputs.map((d) => (
+                                        <button
+                                            key={d.deviceId}
+                                            type="button"
+                                            onClick={() => handleSelectMic(d.deviceId)}
+                                            className={`w-full text-left px-2.5 py-2 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                                                selectedMicId === d.deviceId
+                                                    ? 'bg-purple-600/30 text-purple-300 font-medium border border-purple-500/30'
+                                                    : 'text-slate-300 hover:bg-slate-800'
+                                            }`}
+                                        >
+                                            <span className="truncate pr-2">{d.label}</span>
+                                            {selectedMicId === d.deviceId && <Check className="w-3.5 h-3.5 text-purple-400 shrink-0" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
-                    <form onSubmit={handleSend} className="relative">
+                    <div>
+                        {/* Quick-reply history-taking chips — patient tab,
+                            text mode, only while there's an actual
+                            conversation to steer (hidden on the empty-state
+                            first screen so it doesn't compete with the
+                            greeting). Tapping fills the composer; it does
+                            not send, so the learner still reviews/edits
+                            before it goes out. */}
+                        {activeTab === 'patient' && !caseEnded && currentMessages.length > 0 && (
+                            <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                <span className="text-[10px] uppercase tracking-wide text-slate-500 shrink-0 pr-0.5">
+                                    {t('quick_prompts_label')}
+                                </span>
+                                {QUICK_PROMPT_KEYS.map((key) => (
+                                    <button
+                                        key={key}
+                                        type="button"
+                                        onClick={() => { setInput(t(key)); composerEl?.focus(); }}
+                                        disabled={loading}
+                                        className="shrink-0 px-2.5 py-1 rounded-full text-xs bg-white/5 hover:bg-teal-500/20 text-slate-300 hover:text-teal-200 border border-white/10 hover:border-teal-500/30 transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap"
+                                    >
+                                        {t(key)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        <form onSubmit={handleSend} className="relative flex items-center">
                         <input
                             type="text"
                             ref={setComposerEl}
@@ -2249,21 +2515,94 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                             onChange={(e) => setInput(e.target.value)}
                             disabled={caseEnded || loading || (activeTab !== 'patient' && !agentStatus?.canChat)}
                             placeholder={
+                                listening ? (isPt ? 'Ouvindo sua voz... fale agora...' : 'Listening...') :
                                 caseEnded ? t('case_ended_placeholder') :
                                 loading ? t('waiting_for_response') :
                                 activeTab !== 'patient' && !agentStatus?.canChat ? t('agent_not_available', { name: currentAgent?.name }) :
                                 t('message_placeholder', { name: activeTab === 'patient' ? patientName : currentAgent?.name })
                             }
-                            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-4 pr-12 py-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-neutral-600 disabled:opacity-50"
+                            className={activeTab === 'patient'
+                                ? 'w-full console-input pl-4 pr-28 py-3 text-sm disabled:opacity-50'
+                                : 'w-full osiris-glass-input pl-4 pr-24 py-3 text-sm placeholder:text-slate-500 disabled:opacity-50'}
                         />
-                        <button
-                            type="submit"
-                            disabled={caseEnded || loading || !input.trim() || (activeTab !== 'patient' && !agentStatus?.canChat)}
-                            className="absolute right-2 top-2 p-1.5 bg-blue-600 rounded-md hover:bg-blue-500 transition-colors text-white disabled:bg-neutral-700 disabled:text-neutral-500"
-                        >
-                            <Send className="w-4 h-4" />
-                        </button>
+                        <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                            {/* One element = one hit target. The previous layout packed a
+                                6px-padding icon-only button flush against the device-picker
+                                chevron inside a shared undifferentiated pill, with no visible
+                                boundary at rest — reported as "the click area feels
+                                disconnected from the icon". This is now its own 40x40 box
+                                (WCAG-comfortable) with a border visible at rest, not only on
+                                hover, and the picker is a separate, clearly smaller control. */}
+                            <div className="flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    onClick={startVoiceTurn}
+                                    disabled={caseEnded || loading || speaking || (activeTab !== 'patient' && !agentStatus?.canChat)}
+                                    title={listening ? (isPt ? 'Clique para parar e enviar' : 'Stop and send') : (isPt ? 'Falar no microfone' : 'Speak with microphone')}
+                                    className={`console-mic-btn ${listening ? 'is-live' : ''}`}
+                                >
+                                    <Mic className="w-[18px] h-[18px]" />
+                                </button>
+                                {audioInputs.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            refreshAudioInputs();
+                                            setShowMicDropdown(!showMicDropdown);
+                                        }}
+                                        title={isPt ? 'Selecionar microfone de entrada' : 'Select audio input microphone'}
+                                        className="console-mic-picker"
+                                    >
+                                        <ChevronDown className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+                            <button
+                                type="submit"
+                                disabled={caseEnded || loading || !input.trim() || (activeTab !== 'patient' && !agentStatus?.canChat)}
+                                className="console-send-btn"
+                            >
+                                <Send className="w-4 h-4" />
+                            </button>
+
+                            {showMicDropdown && (
+                                <div
+                                    className="absolute bottom-full right-0 mb-2 w-72 bg-slate-900/95 border border-slate-700 rounded-xl shadow-2xl p-2 z-50 backdrop-blur-md"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2 py-1 border-b border-slate-800 mb-1 flex items-center justify-between">
+                                        <span>{isPt ? 'Dispositivo de Microfone' : 'Input Microphone'}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowMicDropdown(false)}
+                                            className="text-slate-500 hover:text-white text-xs px-1"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                    <div className="max-h-48 overflow-y-auto space-y-1">
+                                        {audioInputs.map((d) => (
+                                            <button
+                                                key={d.deviceId}
+                                                type="button"
+                                                onClick={() => handleSelectMic(d.deviceId)}
+                                                className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs flex items-center justify-between transition-colors ${
+                                                    selectedMicId === d.deviceId
+                                                        ? 'bg-purple-600/30 text-purple-300 font-medium border border-purple-500/30'
+                                                        : 'text-slate-300 hover:bg-slate-800'
+                                                }`}
+                                            >
+                                                <span className="truncate pr-2">{d.label}</span>
+                                                {selectedMicId === d.deviceId && <Check className="w-3.5 h-3.5 text-purple-400 shrink-0" />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </form>
+                    </div>
                 )}
             </div>
         </div>

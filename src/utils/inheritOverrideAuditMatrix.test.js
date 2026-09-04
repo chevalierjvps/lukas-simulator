@@ -14,6 +14,10 @@
 
 import { describe, it, expect } from 'vitest';
 import { resolveVoice } from './voiceResolver.js';
+// DEFAULT_LANGUAGE is 'pt' (the rebrand made the platform pt-first) — the
+// one case below testing the IMPLICIT platform-default fallback (no
+// language passed) must key its fixture off this constant, not 'en'.
+import { DEFAULT_LANGUAGE } from '../i18n/languages.js';
 
 const PROVIDERS = ['piper', 'kokoro', 'google', 'openai'];
 
@@ -105,7 +109,7 @@ describe('exhaustive inherit/override audit — sovereignty', () => {
     it('nothing configured anywhere → the language default speaks, declared', () => {
         const r = resolveVoice({
             voice: {},
-            voiceSettings: settingsWith({ defaults: { en: 'am_adam' } })
+            voiceSettings: settingsWith({ defaults: { [DEFAULT_LANGUAGE]: 'am_adam' } })
         });
         expect(r).toMatchObject({
             file: 'am_adam',

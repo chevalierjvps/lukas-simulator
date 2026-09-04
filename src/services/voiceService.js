@@ -33,10 +33,23 @@ import { Lipsync } from 'wawa-lipsync';
 import { apiFetch } from './apiClient.js';
 import EventLogger from './eventLogger.js';
 import { guessVoiceProvider } from '../../server/shared/voiceIdentity.js';
+import { isTauri } from './tauriBridge.js';
 
 const SR = (typeof window !== 'undefined')
     ? (window.SpeechRecognition || window.webkitSpeechRecognition)
     : null;
+
+// WebKitGTK (the desktop build's webview) feature-detects `SR` as present —
+// the constructor exists — but has no functional speech-recognition backend
+// wired into the open-source Linux port: `.start()` silently ends
+// immediately with zero results and zero error. Left alone, that read to
+// the trainee as "no microphone" with a confusing HTTPS hint (see
+// ChatInterface.jsx's `listening_ended_no_speech`), when the real fix is to
+// never trust native SR here and go straight to the MediaRecorder + server
+// STT path below, which is what actually works on this platform. Browser
+// deployments (Chrome/Firefox, where native SR is fast and reliable) are
+// unaffected — `isTauri()` is false there.
+const SKIP_NATIVE_SR = isTauri();
 
 const SILENT_VISEME = { viseme_sil: 1 };
 
@@ -361,6 +374,62 @@ function scheduleChunk(session, audioCtx, analyser, audioBuffer) {
     }
 }
 
+function speakWithBrowserSpeech(text, session) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return false;
+    try {
+        const utterance = new SpeechSynthesisUtterance(text);
+        const lang = session?.language === 'pt' || session?.language?.startsWith('pt') ? 'pt-BR' : (session?.language || 'pt-BR');
+        utterance.lang = lang;
+        if (session?.rate) utterance.rate = Math.max(0.5, Math.min(2, session.rate));
+        if (session?.pitch) utterance.pitch = Math.max(0, Math.min(2, 1 + (session.pitch || 0) * 0.1));
+
+        let animInterval = null;
+        let phase = 0;
+        const PHONEMES = ['viseme_aa', 'viseme_E', 'viseme_I', 'viseme_O', 'viseme_PP', 'viseme_DD', 'viseme_SS', 'viseme_FF'];
+
+        utterance.onstart = () => {
+            if (session && !session.startedFired) {
+                session.startedFired = true;
+                _started = true;
+                session.onStart?.();
+            }
+            if (animInterval) clearInterval(animInterval);
+            animInterval = setInterval(() => {
+                if (!session || session.aborted) {
+                    if (animInterval) clearInterval(animInterval);
+                    return;
+                }
+                phase += 0.28;
+                const openAmount = Math.abs(Math.sin(phase * 3.8)) * 0.85 + 0.15;
+                const phonemeIndex = Math.floor((phase * 2) % PHONEMES.length);
+                const phoneme = PHONEMES[phonemeIndex];
+                session.emit?.({
+                    [phoneme]: openAmount,
+                    jawOpen: openAmount * 0.8,
+                    viseme_aa: openAmount * 0.6,
+                });
+            }, 45);
+        };
+        utterance.onend = () => {
+            if (animInterval) clearInterval(animInterval);
+            session?.emit?.({ viseme_sil: 1, jawOpen: 0 });
+            session?.onEnd?.();
+        };
+        utterance.onerror = (e) => {
+            console.warn('[VoiceService] Browser speech synthesis error:', e);
+            if (animInterval) clearInterval(animInterval);
+            session?.emit?.({ viseme_sil: 1, jawOpen: 0 });
+            session?.onEnd?.();
+        };
+
+        window.speechSynthesis.speak(utterance);
+        return true;
+    } catch (e) {
+        console.warn('[VoiceService] Browser speech fallback error:', e);
+        return false;
+    }
+}
+
 // Synthesise + schedule one sentence. Tries Kokoro streaming first, falls
 // back to Piper / Kokoro-non-streaming WAV per request. Each sentence is
 // independent at the network layer; ordering is enforced by the caller's
@@ -383,20 +452,30 @@ async function speakOneSentence(session, text) {
     let res;
     const engine = session.provider || guessVoiceProvider(session.voice);
     let stream = engine !== 'piper';
-    if (stream) {
-        try {
-            res = await ttsFetch(true, body, session.abort.signal);
-        } catch (err) {
-            if (err.name === 'AbortError') return;
-            if (err.message?.startsWith('expected pcm-stream')) {
-                stream = false;
-                res = await ttsFetch(false, body, session.abort.signal);
-            } else {
-                throw err;
+    try {
+        if (stream) {
+            try {
+                res = await ttsFetch(true, body, session.abort.signal);
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                if (err.message?.startsWith('expected pcm-stream')) {
+                    stream = false;
+                    res = await ttsFetch(false, body, session.abort.signal);
+                } else {
+                    throw err;
+                }
             }
+        } else {
+            res = await ttsFetch(false, body, session.abort.signal);
         }
-    } else {
-        res = await ttsFetch(false, body, session.abort.signal);
+    } catch (err) {
+        if (err.name === 'AbortError') return;
+        // Fallback to client-side browser speech synthesis
+        const spoke = speakWithBrowserSpeech(text, session);
+        if (!spoke) {
+            session.onError?.(err);
+        }
+        return;
     }
 
     const lipsync = await ensureLipsync();
@@ -552,68 +631,214 @@ function beginSpeechSession({ voice, rate, pitch, gender, provider, language, on
     };
 }
 
+let _mediaRecorder = null;
+let _audioStream = null;
+let _audioChunks = [];
+
 export const VoiceService = {
     isSttSupported() {
-        return !!SR;
+        return !!SR || (typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia);
     },
 
-    startListening({ lang, onResult, onError, onEnd, continuous = true }) {
-        if (!SR) {
-            onError?.(new Error('SpeechRecognition not supported in this browser'));
-            return;
+    async getAudioInputDevices() {
+        try {
+            if (typeof navigator === 'undefined' || !navigator.mediaDevices?.enumerateDevices) return [];
+            let devices = await navigator.mediaDevices.enumerateDevices();
+            let inputs = devices.filter(d => d.kind === 'audioinput');
+            // Per spec, enumerateDevices() only returns real labels (and on
+            // some engines, the full device list at all) once the origin has
+            // been granted mic permission at least once — otherwise every
+            // entry comes back with `label: ''`, indistinguishable in the
+            // picker. This was previously a comment ("request permissions
+            // briefly if labels are empty") with no code behind it, so the
+            // picker silently showed generic "Microfone 1/2/3" even when a
+            // real device list was one prompt away. A throwaway stream,
+            // stopped immediately, is enough to unlock the labels for the
+            // rest of the page's lifetime.
+            if (inputs.length === 0 || inputs.every(d => !d.label)) {
+                try {
+                    const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    probe.getTracks().forEach(t => t.stop());
+                    devices = await navigator.mediaDevices.enumerateDevices();
+                    inputs = devices.filter(d => d.kind === 'audioinput');
+                } catch {
+                    // Permission denied or no device — fall through with
+                    // whatever (possibly unlabeled/empty) list we already had.
+                }
+            }
+            return inputs.map((d, index) => ({
+                deviceId: d.deviceId,
+                label: d.label || `Microfone ${index + 1}`
+            }));
+        } catch {
+            return [];
         }
+    },
+
+    async startListening({ lang, deviceId = null, onResult, onError, onEnd, continuous = true }) {
         if (!lang || typeof lang !== 'string') {
             onError?.(new Error('lang is required (BCP-47 from voice settings)'));
             return;
         }
         this.stopListening();
 
-        const rec = new SR();
-        rec.lang = lang;
-        rec.interimResults = true;
-        // continuous=true keeps the mic open across pauses so a learner can
-        // think mid-sentence without the recognizer ending the session.
-        // The Web Speech API default is false (built for one-shot voice
-        // commands); for conversational UX we want the opposite. Callers can
-        // still opt out by passing continuous: false.
-        rec.continuous = continuous;
+        if (SR && !deviceId && !SKIP_NATIVE_SR) {
+            try {
+                const rec = new SR();
+                rec.lang = lang;
+                rec.interimResults = true;
+                rec.continuous = continuous;
 
-        let finalT = '';
-        rec.onresult = (e) => {
-            let interim = '';
-            for (let i = e.resultIndex; i < e.results.length; i++) {
-                const r = e.results[i];
-                if (r.isFinal) finalT += r[0].transcript;
-                else interim += r[0].transcript;
+                let finalT = '';
+                rec.onresult = (e) => {
+                    let interim = '';
+                    for (let i = e.resultIndex; i < e.results.length; i++) {
+                        const r = e.results[i];
+                        if (r.isFinal) finalT += r[0].transcript;
+                        else interim += r[0].transcript;
+                    }
+                    onResult?.({
+                        final: finalT.trim(),
+                        interim: interim.trim(),
+                        isFinal: !!finalT
+                    });
+                    EventLogger.sttResult({
+                        finalLength: finalT.trim().length,
+                        interimLength: interim.trim().length,
+                        isFinal: !!finalT,
+                        lang: rec.lang,
+                    });
+                };
+                rec.onerror = (e) => {
+                    const message = e.error || 'speech recognition error';
+                    EventLogger.sttError(message, { lang: rec.lang });
+                    if (message === 'network' || message === 'service-not-allowed' || message === 'not-allowed') {
+                        this._startMediaRecorderListening({ lang, deviceId, onResult, onError, onEnd });
+                    } else {
+                        onError?.(new Error(message));
+                    }
+                };
+                rec.onend = () => {
+                    _recognition = null;
+                    onEnd?.({ final: finalT.trim() });
+                };
+
+                _recognition = rec;
+                rec.start();
+                return;
+            } catch (err) {
+                console.warn('[VoiceService] Native SpeechRecognition start failed, trying MediaRecorder:', err);
             }
-            onResult?.({
-                final: finalT.trim(),
-                interim: interim.trim(),
-                isFinal: !!finalT
-            });
-            EventLogger.sttResult({
-                finalLength: finalT.trim().length,
-                interimLength: interim.trim().length,
-                isFinal: !!finalT,
-                lang: rec.lang,
-            });
-        };
-        rec.onerror = (e) => {
-            const message = e.error || 'speech recognition error';
-            EventLogger.sttError(message, { lang: rec.lang });
-            onError?.(new Error(message));
-        };
-        rec.onend = () => {
-            _recognition = null;
-            onEnd?.({ final: finalT.trim() });
-        };
+        }
 
-        _recognition = rec;
+        await this._startMediaRecorderListening({ lang, deviceId, onResult, onError, onEnd });
+    },
+
+    async _startMediaRecorderListening({ lang, deviceId = null, onResult, onError, onEnd }) {
         try {
-            rec.start();
+            if (!navigator?.mediaDevices?.getUserMedia) {
+                onError?.(new Error('no_microphone'));
+                return;
+            }
+            const audioConstraints = deviceId ? { deviceId: { exact: deviceId } } : true;
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+            _audioStream = stream;
+            _audioChunks = [];
+
+            const mimeType = (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.('audio/webm;codecs=opus'))
+                ? 'audio/webm;codecs=opus'
+                : (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported?.('audio/ogg;codecs=opus'))
+                ? 'audio/ogg;codecs=opus'
+                : 'audio/webm';
+
+            const mediaRecorder = new MediaRecorder(stream);
+            _mediaRecorder = mediaRecorder;
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) {
+                    _audioChunks.push(e.data);
+                }
+            };
+
+            mediaRecorder.onstop = async () => {
+                try {
+                    stream.getTracks().forEach((track) => track.stop());
+                    const audioBlob = new Blob(_audioChunks, { type: mimeType });
+                    if (audioBlob.size < 50) {
+                        // getUserMedia granted a stream and MediaRecorder ran
+                        // (no permission/security error at any point), but
+                        // the capture pipeline behind it never delivered real
+                        // samples — a genuinely different failure from "no
+                        // mic" or "blocked". On this stack it has shown up as
+                        // a WebKitGTK+PipeWire capture-path problem (confirmed
+                        // via direct GStreamer testing outside the app: the
+                        // OS-level mic and fallback audio pipeline both
+                        // capture real audio fine, so this is not a
+                        // hardware/OS issue) — distinct from the generic
+                        // 'audio-capture' code so the UI doesn't send someone
+                        // chasing an HTTPS/no-device red herring for what is
+                        // actually an empty recording.
+                        onError?.(new Error('empty-capture'));
+                        return;
+                    }
+                    const arrayBuffer = await audioBlob.arrayBuffer();
+                    const uint8 = new Uint8Array(arrayBuffer);
+                    let binary = '';
+                    for (let i = 0; i < uint8.length; i++) {
+                        binary += String.fromCharCode(uint8[i]);
+                    }
+                    const base64 = btoa(binary);
+
+                    // Was a raw fetch() with a hand-rolled Authorization
+                    // header read straight from localStorage. That worked
+                    // right after a fresh login (authService.js populates
+                    // localStorage there), but a session RESTORED from the
+                    // rohy_auth cookie — reopening the app, a long-lived tab
+                    // — never goes through login again, so localStorage's
+                    // token stays empty. With no Authorization header the
+                    // request still authenticated fine via the cookie
+                    // apiClient.js's own comment (F-012 area) describes, but
+                    // a cookie-authed state-changing request needs the
+                    // X-CSRF-Token double-submit header (server/middleware/
+                    // csrf.js) — which this call never sent. Every STT
+                    // request in a cookie-restored session 403'd with
+                    // "CSRF token missing", not just occasionally: reusing
+                    // apiFetch (already imported above, already used for
+                    // /tts a few lines up) covers both auth paths and the
+                    // CSRF header the same way the rest of the app does.
+                    const res = await apiFetch('/stt', {
+                        method: 'POST',
+                        json: {
+                            audioBase64: base64,
+                            language: lang || 'pt-BR'
+                        },
+                        parseAs: 'response',
+                    });
+
+                    if (!res.ok) {
+                        const errJson = await res.json().catch(() => ({}));
+                        throw new Error(errJson.error || `STT status ${res.status}`);
+                    }
+
+                    const json = await res.json();
+                    const transcript = (json.transcript || '').trim();
+                    onResult?.({ final: transcript, interim: '', isFinal: true });
+                    onEnd?.({ final: transcript });
+                } catch (err) {
+                    console.error('[VoiceService] MediaRecorder STT failed:', err);
+                    onError?.(err);
+                } finally {
+                    _mediaRecorder = null;
+                    _audioStream = null;
+                    _audioChunks = [];
+                }
+            };
+
+            mediaRecorder.start(250);
+            onResult?.({ final: '', interim: 'Gravando áudio...', isFinal: false });
         } catch (err) {
-            _recognition = null;
-            onError?.(err);
+            console.error('[VoiceService] Failed to access microphone:', err);
+            onError?.(new Error('audio-capture'));
         }
     },
 
@@ -621,6 +846,13 @@ export const VoiceService = {
         if (_recognition) {
             try { _recognition.stop(); } catch { /* noop */ }
             _recognition = null;
+        }
+        if (_mediaRecorder && _mediaRecorder.state !== 'inactive') {
+            try { _mediaRecorder.stop(); } catch { /* noop */ }
+        }
+        if (_audioStream) {
+            try { _audioStream.getTracks().forEach((t) => t.stop()); } catch { /* noop */ }
+            _audioStream = null;
         }
     },
 

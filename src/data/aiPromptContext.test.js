@@ -89,6 +89,18 @@ describe('formatVitalsAsMarkdown', () => {
         expect(formatVitalsAsMarkdown({})).toBe('');
         expect(formatVitalsAsMarkdown({ hr: null, bp_sys: null, bp_dia: null })).toBe('');
     });
+
+    // Sprint 3: anxiety rides the same PatientRecord.current_state.vitals
+    // channel as pain, so the patient persona can be told "you are anxious"
+    // consistent with what treatments/events actually did this session.
+    it('renders anxiety alongside pain, in both languages', () => {
+        const en = formatVitalsAsMarkdown({ pain: 6, anxiety: 8 });
+        expect(en).toContain('Pain: 6 /10');
+        expect(en).toContain('Anxiety: 8 /10');
+        const pt = formatVitalsAsMarkdown({ pain: 6, anxiety: 8 }, { lang: 'pt' });
+        expect(pt).toContain('Dor Atual');
+        expect(pt).toContain('Ansiedade Atual');
+    });
 });
 
 describe('formatRecentActivityAsMarkdown', () => {

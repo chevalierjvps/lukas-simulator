@@ -1,8 +1,8 @@
 {
-  "name": "rohy",
+  "name": "lukas",
   "private": true,
-  "version": "2.9.144",
-  "description": "Virtual Patient Simulation Platform for Medical Education",
+  "version": "1.0.0",
+  "description": "Lukas 1.0 - Virtual Patient Simulation Platform for Medical Education",
   "author": {
     "name": "Mohammed Saqr",
     "email": "mohammed.saqr@uef.fi",
@@ -14,6 +14,10 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "client": "vite",
     "server": "node --watch server/server.js",
+    "tauri": "tauri",
+    "tauri:dev": "MANGOHUD=0 GDK_BACKEND=x11 WEBKIT_DISABLE_COMPOSITING_MODE=1 tauri dev",
+    "tauri:run": "MANGOHUD=0 GDK_BACKEND=x11 WEBKIT_DISABLE_COMPOSITING_MODE=1 ./src-tauri/target/debug/lukas",
+    "tauri:build": "tauri build",
     "oyon:update": "bash scripts/update-oyonr.sh",
     "setup:oyon": "bash OyonR/scripts/download-models.sh && npm run verify:oyon",
     "verify:oyon": "node scripts/verify-oyon-install.mjs",
@@ -105,6 +109,8 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@playwright/test": "^1.59.1",
+    "@tauri-apps/api": "^2.11.1",
+    "@tauri-apps/cli": "^2.11.4",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
@@ -130,5 +136,17 @@
     "vite": "^7.2.4",
     "vitepress": "^1.6.4",
     "vitest": "^4.1.5"
+  },
+  "allowScripts": {
+    "bcrypt@6.0.0": true,
+    "core-js@3.29.1": true,
+    "esbuild": true,
+    "msw@2.14.6": true,
+    "onnxruntime-node@1.21.0": true,
+    "protobufjs@7.6.5": true,
+    "sharp@0.34.5": true,
+    "sqlite3@5.1.7": true,
+    "file:../OyonR": true,
+    "file:../../dynajs": true
   }
 }

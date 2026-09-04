@@ -28,7 +28,8 @@
     { "id": "rb_business_female_02.glb","label": "Professional woman 02",      "gender":"female", "age": "adult" },
     { "id": "rb_business_male_07.glb",  "label": "Professional man 07",        "gender":"male",   "age": "adult" },
     { "id": "rb_sports_male_02.glb",    "label": "Athlete (male)",             "gender":"male",   "age": "adult" },
-    { "id": "rb_delivery_male_01.glb",  "label": "Delivery worker (male)",     "gender":"male",   "age": "adult" }
+    { "id": "rb_delivery_male_01.glb",  "label": "Delivery worker (male)",     "gender":"male",   "age": "adult" },
+    { "id": "cj.glb",                   "label": "CJ (bone-rigged face, no blendshapes)", "gender":"male", "age": "middle", "camera": { "pos": [0, 1.70, 1.05], "lookY": 1.70, "fov": 22 } }
   ],
   "female": {
     "young":   ["vroid.glb", "avaturn.glb"],

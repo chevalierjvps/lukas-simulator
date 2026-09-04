@@ -2,49 +2,58 @@
   "studies": [
     {
       "id": "xray_chest_pa",
-      "name": "Chest X-Ray (PA/Lateral)",
-      "modality": "X-Ray",
-      "body_region": "Chest",
+      "name": "Raio-X de Tórax (PA e Perfil)",
+      "modality": "Radiografia",
+      "body_region": "Tórax",
       "turnaround_minutes": 1,
       "common_indications": [
         "Pneumonia",
-        "Heart failure",
-        "Lung mass",
-        "Rib fracture",
-        "Pleural effusion"
+        "Insuficiência cardíaca",
+        "Nódulo/Massa pulmonar",
+        "Fratura de costela",
+        "Derrame pleural"
       ],
-      "normal_findings": "The lungs are clear bilaterally without focal consolidation, effusion, or pneumothorax. The cardiac silhouette is normal in size and contour. The mediastinum is unremarkable. The visualized osseous structures are intact. No acute cardiopulmonary abnormality.",
-      "normal_interpretation": "1. No acute cardiopulmonary disease.\n2. Normal heart size.\n3. Clear lungs bilaterally."
+      "normal_findings": "Campos pleuropulmonares transparentes, sem consolidações focais, derrame pleural ou pneumotórax. Área cardíaca de dimensões normais. Mediastino centrado de contornos anatômicos normais. Estruturas ósseas íntegras. Seios costofrênicos e cardiofrênicos livres.",
+      "normal_interpretation": "1. Radiografia de tórax dentro dos limites da normalidade.\n2. Índice cardiotorácico preservado.\n3. Ausência de infiltrados ou congestão.",
+      "name_es": "Radiografía de Tórax (PA y Lateral)",
+      "normal_findings_es": "Campos pleuropulmonares transparentes, sin consolidaciones focales, derrame pleural o neumotórax. Silueta cardíaca de dimensiones normales. Mediastino centrado, de contornos anatómicos normales. Estructuras óseas íntegras. Senos costofrénicos y cardiofrénicos libres.",
+      "normal_interpretation_es": "1. Radiografía de tórax dentro de los límites de la normalidad.\n2. Índice cardiotorácico conservado.\n3. Ausencia de infiltrados o congestión."
     },
     {
       "id": "xray_chest_portable",
-      "name": "Chest X-Ray (Portable/AP)",
-      "modality": "X-Ray",
-      "body_region": "Chest",
+      "name": "Raio-X de Tórax no Leito (AP Portátil)",
+      "modality": "Radiografia",
+      "body_region": "Tórax",
       "turnaround_minutes": 1,
       "common_indications": [
-        "ICU monitoring",
-        "Post-procedure",
-        "ETT placement",
-        "Line placement"
+        "Monitorização em UTI",
+        "Controle pós-intubação / TOT",
+        "Posicionamento de Cateter Venoso Central",
+        "Desconforto agudo no leito"
       ],
-      "normal_findings": "Portable AP chest radiograph demonstrates clear lungs without focal consolidation or effusion. The cardiac silhouette is within normal limits, allowing for portable technique. No pneumothorax. Support devices, if present, are in satisfactory position. The visualized osseous structures show no acute abnormality.",
-      "normal_interpretation": "1. No acute cardiopulmonary abnormality.\n2. Support devices in satisfactory position (if applicable).\n3. No pneumothorax."
+      "normal_findings": "Radiografia de tórax no leito em incidência AP demonstrando parênquima pulmonar sem consolidações grosseiras. Silhueta cardíaca com magnificação habitual pelo método AP. Ausência de pneumotórax. Dispositivos invasivos bem posicionados.",
+      "normal_interpretation": "1. Sem alterações pleuropulmonares agudas evidenciáveis no leito.\n2. Dispositivos invasivos em topografia adequada (quando presentes).",
+      "name_es": "Radiografía de Tórax Portátil (AP en Cama)",
+      "normal_findings_es": "Radiografía de tórax portátil en incidencia AP que muestra parénquima pulmonar sin consolidaciones groseras. Silueta cardíaca con magnificación habitual propia de la técnica AP. Ausencia de neumotórax. Dispositivos invasivos, si presentes, bien posicionados.",
+      "normal_interpretation_es": "1. Sin alteraciones pleuropulmonares agudas evidenciables en esta placa portátil.\n2. Dispositivos invasivos en posición adecuada (cuando presentes)."
     },
     {
       "id": "xray_abdomen",
-      "name": "Abdominal X-Ray (KUB)",
-      "modality": "X-Ray",
-      "body_region": "Abdomen",
+      "name": "Radiografia Simples de Abdome (KUB)",
+      "modality": "Radiografia",
+      "body_region": "Abdome",
       "turnaround_minutes": 1,
       "common_indications": [
-        "Bowel obstruction",
-        "Kidney stones",
-        "Constipation",
-        "Foreign body"
+        "Abdome agudo obstrutivo",
+        "Cálculo renal radiopaco",
+        "Constipação fecal",
+        "Corpo estranho"
       ],
-      "normal_findings": "The bowel gas pattern is nonobstructive. No dilated loops of small or large bowel. No free intraperitoneal air. No radiopaque calculi identified in the expected course of the ureters or bladder. The visualized osseous structures are unremarkable.",
-      "normal_interpretation": "1. Nonobstructive bowel gas pattern.\n2. No evidence of bowel obstruction.\n3. No radiopaque urinary calculi identified."
+      "normal_findings": "Distribuição habitual dos gases gastrointestinais, sem níveis hidroaéreos patológicos ou dilatações de alças intestinais. Ausência de pneumoperitônio (ar livre subdiafragmático). Sombras das lojas renais e dos músculos psoas com contornos preservados. Ausência de calcificações anormais.",
+      "normal_interpretation": "1. Padrão gasoso fisiológico sem sinais de obstrução intestinal mecânica.\n2. Ausência de pneumoperitônio ou cálculos radiopacos.",
+      "name_es": "Radiografía Simple de Abdomen (KUB)",
+      "normal_findings_es": "Distribución habitual del gas intestinal, sin niveles hidroaéreos patológicos ni dilatación de asas. Ausencia de neumoperitoneo (aire libre subdiafragmático). Sombras renales y de los músculos psoas con contornos conservados. Ausencia de calcificaciones anormales.",
+      "normal_interpretation_es": "1. Patrón gaseoso fisiológico, sin signos de obstrucción intestinal mecánica.\n2. Ausencia de neumoperitoneo o cálculos radiopacos."
     },
     {
       "id": "xray_cspine",
@@ -188,18 +197,18 @@
     },
     {
       "id": "ct_head_noncon",
-      "name": "CT Head (Non-Contrast)",
-      "modality": "CT",
-      "body_region": "Head",
+      "name": "Tomografia Computadorizada de Crânio (Sem Contraste)",
+      "modality": "Tomografia Computadorizada",
+      "body_region": "Crânio / Encéfalo",
       "turnaround_minutes": 3,
       "common_indications": [
-        "Stroke",
-        "Head trauma",
-        "Altered mental status",
-        "Headache"
+        "Suspeita de AVC agudo (isquêmico vs hemorrágico)",
+        "Traumatismo cranioencefálico (TCE)",
+        "Cefaleia súbita intensa (Thunderclap)",
+        "Rebaixamento de consciência"
       ],
-      "normal_findings": "No acute intracranial hemorrhage, mass effect, or midline shift. The ventricles and sulci are normal in size and configuration for the patient's age. Gray-white matter differentiation is preserved. No acute territorial infarct identified. The visualized paranasal sinuses and mastoid air cells are clear. The orbits are unremarkable. The calvarium is intact.",
-      "normal_interpretation": "1. No acute intracranial abnormality.\n2. No hemorrhage, mass, or acute infarct.\n3. Normal ventricular size and configuration."
+      "normal_findings": "Parênquima encefálico com coeficientes de atenuação normais, com adequada diferenciação entre as substâncias branca e cinzenta. Ausência de hemorragias intra ou extra-axiais agudas. Sistema ventricular simétrico e de dimensões normais para a faixa etária. Linha média centrada, sem desvios ou herniações. Cisternas da base e sulcos corticais preservados. Calota craniana íntegra.",
+      "normal_interpretation": "1. Ausência de hemorragia intracraniana aguda ou efeito de massa expansivo.\n2. Ausência de sinais precoces de infarto territorial extenso (ASPECTS 10/10)."
     },
     {
       "id": "ct_head_con",
@@ -231,17 +240,18 @@
     },
     {
       "id": "ct_chest_con",
-      "name": "CT Chest (With Contrast)",
-      "modality": "CT",
-      "body_region": "Chest",
+      "name": "Tomografia de Tórax com Contraste Venoso",
+      "modality": "Tomografia Computadorizada",
+      "body_region": "Tórax",
       "turnaround_minutes": 3,
       "common_indications": [
-        "Lung mass",
-        "Mediastinal mass",
-        "Staging"
+        "Empiema pleural",
+        "Massa mediastinal",
+        "Estadiamento oncológico",
+        "Infecção pulmonar complicada"
       ],
-      "normal_findings": "The lungs are clear bilaterally without masses or nodules. No pleural effusion. The mediastinum demonstrates normal vascular structures with no pathologic lymphadenopathy. The heart and pericardium are normal. The esophagus is unremarkable. The thoracic aorta is normal in caliber. The visualized upper abdomen is unremarkable.",
-      "normal_interpretation": "1. No pulmonary mass or nodule.\n2. No mediastinal lymphadenopathy.\n3. Normal thoracic vasculature."
+      "normal_findings": "Parênquima pulmonar sem consolidações, massas ou áreas de atenuação em vidro fosco. Mediastino anatômico sem linfonodomegalias patológicas. Grandes vasos torácicos pérvios com opacificação homogênea pelo meio de contraste. Ausência de derrame pleural ou pericárdico.",
+      "normal_interpretation": "1. Exame tomográfico do tórax com contraste dentro dos limites anatômicos habituais."
     },
     {
       "id": "ct_abdomen_pelvis",
@@ -270,7 +280,10 @@
         "AAA screening"
       ],
       "normal_findings": "No renal or ureteral calculi identified. The kidneys are normal in size without hydronephrosis. The abdominal aorta is normal in caliber without aneurysm. The liver, spleen, and pancreas are unremarkable on this non-contrast study. No free fluid or free air.",
-      "normal_interpretation": "1. No urinary tract calculi.\n2. No hydronephrosis.\n3. Normal caliber abdominal aorta."
+      "normal_interpretation": "1. No urinary tract calculi.\n2. No hydronephrosis.\n3. Normal caliber abdominal aorta.",
+      "name_es": "TC de Abdomen (Sin Contraste)",
+      "normal_findings_es": "No se identifican cálculos renales ni ureterales. Riñones de tamaño normal, sin hidronefrosis. Aorta abdominal de calibre normal, sin aneurisma. Hígado, bazo y páncreas sin alteraciones evidentes en este estudio sin contraste. Sin líquido libre ni aire libre.",
+      "normal_interpretation_es": "1. Sin cálculos en la vía urinaria.\n2. Sin hidronefrosis.\n3. Aorta abdominal de calibre normal."
     },
     {
       "id": "cta_head",
@@ -289,16 +302,18 @@
     },
     {
       "id": "cta_chest",
-      "name": "CT Angiography Chest (PE Protocol)",
-      "modality": "CT",
-      "body_region": "Chest",
+      "name": "Angiotomografia de Tórax (Protocolo TEP / Tromboembolismo)",
+      "modality": "Tomografia Computadorizada",
+      "body_region": "Tórax / Vascular",
       "turnaround_minutes": 3,
       "common_indications": [
-        "Pulmonary embolism",
-        "Aortic dissection"
+        "Suspeita clínica de Tromboembolismo Pulmonar (TEP)",
+        "Dor torácica pleurítica súbita",
+        "Hipoxemia inexplicada",
+        "Dispneia súbita com D-Dímero elevado"
       ],
-      "normal_findings": "No filling defect within the main, lobar, segmental, or subsegmental pulmonary arteries to suggest pulmonary embolism. The thoracic aorta is normal in caliber without dissection or intramural hematoma. The heart size is normal. The lungs are clear. No pleural effusion or pneumothorax.",
-      "normal_interpretation": "1. No pulmonary embolism.\n2. No aortic dissection.\n3. Clear lungs without acute cardiopulmonary abnormality."
+      "normal_findings": "Excelente opacificação contrastada do tronco da artéria pulmonar e dos ramos principais direito e esquerdo, bem como dos ramos lobares, segmentares e subsegmentares. Ausência de falhas de enchimento vasculares endoluminais. Relação ventrículo direito/ventrículo esquerdo (VD/VE) normal (< 0.9), sem sinais de sobrecarga ventricular direita. Parênquima pulmonar sem infartos.",
+      "normal_interpretation": "1. Ausência de sinais tomográficos de tromboembolismo pulmonar agudo.\n2. Ausência de sinais de cor pulmonale agudo."
     },
     {
       "id": "cta_abdomen",
@@ -513,7 +528,10 @@
         "Ascites"
       ],
       "normal_findings": "The liver is normal in size and echogenicity without focal lesion. No intrahepatic biliary dilatation. The gallbladder is normal without stones, wall thickening, or pericholecystic fluid. The common bile duct is normal in caliber. The pancreas is normal where visualized. The spleen is normal in size. The kidneys are normal in size and echogenicity bilaterally without hydronephrosis, stones, or masses. The aorta is normal in caliber. No ascites.",
-      "normal_interpretation": "1. Normal liver and gallbladder without stones.\n2. Normal kidneys bilaterally.\n3. No ascites or abdominal abnormality identified."
+      "normal_interpretation": "1. Normal liver and gallbladder without stones.\n2. Normal kidneys bilaterally.\n3. No ascites or abdominal abnormality identified.",
+      "name_es": "Ecografía Abdominal Completa",
+      "normal_findings_es": "Hígado de tamaño y ecogenicidad normales, sin lesiones focales. Sin dilatación de la vía biliar intrahepática. Vesícula biliar normal, sin cálculos, engrosamiento parietal ni líquido pericolecístico. Colédoco de calibre normal. Páncreas normal en los segmentos visualizados. Bazo de tamaño normal. Riñones de tamaño y ecogenicidad normales bilateralmente, sin hidronefrosis, cálculos ni masas. Aorta de calibre normal. Sin ascitis.",
+      "normal_interpretation_es": "1. Hígado y vesícula biliar normales, sin cálculos.\n2. Riñones normales bilateralmente.\n3. Sin ascitis ni otra anomalía abdominal identificada."
     },
     {
       "id": "us_ruq",
@@ -616,19 +634,18 @@
     },
     {
       "id": "echo_tte",
-      "name": "Echocardiogram (TTE)",
-      "modality": "Ultrasound",
-      "body_region": "Chest",
+      "name": "Ecocardiograma Transtorácico (ECO TT)",
+      "modality": "Ultrassonografia / Cardiologia",
+      "body_region": "Tórax / Coração",
       "turnaround_minutes": 2,
       "common_indications": [
-        "Heart failure",
-        "Murmur",
-        "Chest pain",
-        "Dyspnea",
-        "Valve disease"
+        "Insuficiência cardíaca",
+        "Avaliação de síncope ou dor torácica",
+        "Pesquisa de valvopatias",
+        "Infarto agudo do miocárdio"
       ],
-      "normal_findings": "Left ventricular size is normal with normal wall thickness. Left ventricular systolic function is normal with estimated ejection fraction of 55-60%. No regional wall motion abnormalities. The right ventricle is normal in size and function. The left atrium is normal in size. The right atrium is normal in size. The mitral valve is structurally normal without stenosis or significant regurgitation. The aortic valve is trileaflet and structurally normal without stenosis or regurgitation. The tricuspid valve is normal without significant regurgitation. The pulmonic valve is normal. No pericardial effusion. The aortic root is normal in size.",
-      "normal_interpretation": "1. Normal left ventricular size and systolic function (EF 55-60%).\n2. No significant valvular abnormality.\n3. No pericardial effusion."
+      "normal_findings": "Ventrículo esquerdo com dimensões cavitárias e espessura parietal normais. Fração de ejeção do ventrículo esquerdo (FEVE) preservada estimada em 64% (método de Simpson biplanar). Contratilidade segmentar e global preservada, sem discinesias ou acinesias. Valvas cardíacas aórtica, mitral, tricúspide e pulmonar com abertura e fechamento normais, sem refluxos ou estênoses significativas. Átrio esquerdo e cavidades direitas normais. Pericárdio livre de derrame.",
+      "normal_interpretation": "1. Função sistólica global e segmentar do VE preservada (FEVE 64%).\n2. Ausência de alterações valvares hemodinamicamente relevantes.\n3. Pericárdio sem derrame."
     },
     {
       "id": "echo_tee",
@@ -705,18 +722,17 @@
     },
     {
       "id": "ccta",
-      "name": "Coronary CT Angiography (CCTA)",
-      "modality": "Cardiac",
-      "body_region": "Chest",
+      "name": "Angiotomografia de Artérias Coronárias (Angio-TC Coronária)",
+      "modality": "Cardiologia / TC",
+      "body_region": "Tórax / Coronárias",
       "turnaround_minutes": 5,
       "common_indications": [
-        "Chest pain",
-        "Coronary artery disease",
-        "Calcium scoring",
-        "Anomalous coronaries"
+        "Estratificação de dor torácica aguda em sala de emergência",
+        "Suspeita de doença arterial coronariana",
+        "Score de cálcio e anatomia coronariana"
       ],
-      "normal_findings": "The coronary arteries arise normally. The left main coronary artery is patent without stenosis. The left anterior descending artery and its branches are patent without stenosis. The left circumflex artery and its branches are patent without stenosis. The right coronary artery is patent without stenosis. No coronary artery calcification. No significant coronary artery disease. Normal coronary anatomy.",
-      "normal_interpretation": "1. No coronary artery stenosis.\n2. Coronary Artery Disease-Reporting and Data System (CAD-RADS) 0.\n3. Normal coronary anatomy."
+      "normal_findings": "Origem anatômica e trajeto habitual das artérias coronárias. Tronco da coronária esquerda (TCE), artéria descendente anterior (DA), artéria circunflexa (CX) e artéria coronária direita (CD) pérvias, com lúmen regular e ausência de placas ateroscleróticas estenosantes significativas (< 25% de estenose luminal). Escore de Cálcio de Agatston: 0.",
+      "normal_interpretation": "1. Artérias coronárias pérvias sem evidência de estenose obstrutiva significativa (CAD-RADS 0).\n2. Escore de cálcio Agatston = 0 (baixo risco cardiovascular)."
     },
     {
       "id": "ct_calcium_score",
@@ -763,19 +779,17 @@
     },
     {
       "id": "cardiac_cath",
-      "name": "Coronary Angiography (Cardiac Catheterization)",
-      "modality": "Cardiac",
-      "body_region": "Chest",
+      "name": "Cineangiocoronariografia (Cateterismo Cardíaco)",
+      "modality": "Hemodinâmica / Intervencionista",
+      "body_region": "Coração / Coronárias",
       "turnaround_minutes": 5,
       "common_indications": [
-        "ACS/STEMI",
-        "NSTEMI",
-        "Unstable angina",
-        "Positive stress test",
-        "Heart failure workup"
+        "Síndrome Coronariana Aguda (SCA / IAM com e sem supra de ST)",
+        "Angina refratária",
+        "Estratificação invasiva de alto risco"
       ],
-      "normal_findings": "Left main coronary artery: Normal, no stenosis. Left anterior descending artery: Normal, no stenosis, normal TIMI 3 flow. Left circumflex artery: Normal, no stenosis, normal TIMI 3 flow. Right coronary artery: Normal, no stenosis, normal TIMI 3 flow. Left ventriculography (if performed): Normal left ventricular systolic function with estimated ejection fraction of 55-60%. No mitral regurgitation.",
-      "normal_interpretation": "1. Angiographically normal coronary arteries.\n2. No obstructive coronary artery disease.\n3. Normal left ventricular function."
+      "normal_findings": "Acesso vascular femoral/radial com introdutor posicionado. Ventriculografia esquerda revelando cavidade de dimensões normais e função contrátil preservada. Coronária esquerda: TCE sem lesões; artéria DA e ramos diagonais sem estenoses; artéria CX e marginais sem obstruções. Coronária direita dominante, com fluxo coronário TIMI 3 preservado em todas as artérias.",
+      "normal_interpretation": "1. Árvore coronária isenta de lesões ateromatosas obstrutivas (ausência de DAC obstrutiva).\n2. Fluxo coronário distal TIMI 3 mantido."
     },
     {
       "id": "right_heart_cath",
@@ -883,17 +897,17 @@
     },
     {
       "id": "us_fast",
-      "name": "FAST Exam (Trauma)",
-      "modality": "Ultrasound",
-      "body_region": "Abdomen",
+      "name": "POCUS FAST / E-FAST (Trauma e Emergência)",
+      "modality": "Ultrassonografia",
+      "body_region": "Abdome e Tórax",
       "turnaround_minutes": 2,
       "common_indications": [
-        "Trauma",
-        "Hemoperitoneum",
-        "Pericardial effusion"
+        "Trauma abdominal contuso/penetrante",
+        "Choque hipovolêmico de origem indeterminada",
+        "Instabilidade hemodinâmica na sala vermelha"
       ],
-      "normal_findings": "Right upper quadrant (Morison's pouch): No free fluid. Left upper quadrant (perisplenic): No free fluid. Pelvis (pouch of Douglas/rectovesical): No free fluid. Subxiphoid cardiac view: No pericardial effusion. Normal cardiac contractility.",
-      "normal_interpretation": "1. Negative FAST examination.\n2. No free intraperitoneal fluid.\n3. No pericardial effusion."
+      "normal_findings": "Janela hepatorrenal (Espaço de Morrison): sem lâmina líquida anecoica livre. Janela esplenorrenal: sem líquido livre intraperitoneal. Janela suprapúbica / retrovesical: ausência de líquido livre na pelve. Janela subxifoide pericárdica: sem derrame pericárdico ou tamponamento cardíaco. Janelas pleurais anteriores: presença de deslizamento pleural (lung sliding) e linhas A bilaterais, descartando pneumotórax.",
+      "normal_interpretation": "1. Protocolo E-FAST negativo para líquido livre intra-abdominal ou pélvico.\n2. Ausência de hemopericárdio ou tamponamento cardíaco.\n3. Ausência de pneumotórax bilateral."
     },
     {
       "id": "us_aorta",

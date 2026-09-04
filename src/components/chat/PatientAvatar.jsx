@@ -29,6 +29,33 @@ const HEAD_BONE_NAMES = new Set(['Head', 'Bip01_Head']);
 const HEAD_FOLLOW = 0.4;      // head turns this fraction of the eye angle
 const GAZE_SMOOTHING = 6;     // 1/s — exponential ease toward the target
 
+// --- Bone-driven face fallback ----------------------------------------------
+// Every stock head is a RocketBox/TalkingHead conversion with a viseme
+// blendshape rig (see manifest.json's _comment), so the morph-target path
+// above is normally the only one that ever runs. A user-supplied GLB (e.g. a
+// fan-rigged game character) may have NO blendshapes at all but still carry
+// named face BONES the mesh is actually skinned to — jaw, eyelids — from an
+// era of facial animation that predates blendshape rigs. Rather than leaving
+// such a head frozen, drive those bones with the same `aimBone` used for eye
+// gaze above (world-axis pitch), gated so it only ever activates when the
+// blendshape path found nothing to drive — it can never fight a real rig.
+// Matching is substring-based on a normalized (lowercased, non-alnum-stripped)
+// name rather than an exact set, because bone names here are arbitrary
+// modeler-authored strings ("head jaw_030"), not a fixed convention.
+const normalizeBoneName = (name) => (name || '').toLowerCase().replace(/[^a-z]/g, '');
+const isJawBone = (n) => n.includes('jaw');
+const isUpperEyelidBone = (n) => n.includes('eyelid') && n.includes('upper');
+const JAW_MAX_PITCH = 0.30;      // rad (~17°) — full "aa" mouth-open
+const EYELID_CLOSE_PITCH = 0.35; // rad — enough to visibly close a lid of this size
+// Rough "how open is the mouth for this viseme" weight, 0 (closed) – 1 (wide
+// open). Consonant shapes (PP/FF/TH/DD/kk/CH/SS/nn/RR) keep the jaw mostly
+// shut; vowels drive it open, "aa" most of all.
+const VISEME_OPEN_WEIGHT = {
+    viseme_sil: 0, viseme_PP: 0.1, viseme_FF: 0.15, viseme_TH: 0.25, viseme_DD: 0.3,
+    viseme_kk: 0.3, viseme_CH: 0.2, viseme_SS: 0.15, viseme_nn: 0.2, viseme_RR: 0.3,
+    viseme_aa: 1.0, viseme_E: 0.55, viseme_I: 0.35, viseme_O: 0.75, viseme_U: 0.45
+};
+
 const _parentQuat = new Quaternion();
 const _deltaQuat = new Quaternion();
 const _axis = new Vector3();
@@ -64,7 +91,7 @@ export function CameraAim({ pos, lookY, fov }) {
     return null;
 }
 
-function HeadMesh({ url, visemesRef, blinkRef }) {
+function HeadMesh({ url, visemesRef, blinkRef, patient }) {
     const { scene: original } = useGLTF(url);
     // Clone so multiple avatars sharing this URL don't fight over morph/bone
     // state. SkeletonUtils.clone (not Object3D.clone) because a naive clone
@@ -78,11 +105,17 @@ function HeadMesh({ url, visemesRef, blinkRef }) {
     const gazeRig = useRef(null);
     // Smoothed gaze state, eased toward the live target each frame.
     const gaze = useRef({ yaw: 0, pitch: 0 });
+    // Bone-driven face fallback (see VISEME_OPEN_WEIGHT above): only
+    // populated when the head has jaw/eyelid bones, only ever READ when
+    // morphTargets.current is empty.
+    const faceBonesRig = useRef(null);
 
     useEffect(() => {
         const targets = [];
         const eyes = [];
         let head = null;
+        const jaw = [];
+        const upperEyelids = [];
         scene.traverse((obj) => {
             if (obj.morphTargetDictionary && obj.morphTargetInfluences) {
                 targets.push(obj);
@@ -93,9 +126,15 @@ function HeadMesh({ url, visemesRef, blinkRef }) {
             if (obj.isBone && HEAD_BONE_NAMES.has(obj.name) && !head) {
                 head = { bone: obj, rest: obj.quaternion.clone() };
             }
+            if (obj.isBone) {
+                const norm = normalizeBoneName(obj.name);
+                if (isJawBone(norm)) jaw.push({ bone: obj, rest: obj.quaternion.clone() });
+                else if (isUpperEyelidBone(norm)) upperEyelids.push({ bone: obj, rest: obj.quaternion.clone() });
+            }
         });
         morphTargets.current = targets;
         gazeRig.current = { eyes, head };
+        faceBonesRig.current = (jaw.length > 0 || upperEyelids.length > 0) ? { jaw, upperEyelids } : null;
     }, [scene]);
 
     // Three.js requires us to mutate the morphTargetInfluences array in-place;
@@ -103,14 +142,15 @@ function HeadMesh({ url, visemesRef, blinkRef }) {
     /* eslint-disable react-hooks/immutability */
     useFrame((_, delta) => {
         const targets = morphTargets.current;
-        if (targets.length === 0) return;
-
         const target = visemesRef.current || {};
         const blink = blinkRef.current ? 1 : 0;
 
         const decay = 8 * delta;
         const rise = 12 * delta;
 
+        // Blendshape path — the normal case for every stock head. Skipped
+        // (not an early `return`, so gaze and the bone fallback below still
+        // run) when this GLB has no morph targets at all.
         for (const mesh of targets) {
             const dict = mesh.morphTargetDictionary;
             const infl = mesh.morphTargetInfluences;
@@ -130,6 +170,41 @@ function HeadMesh({ url, visemesRef, blinkRef }) {
             const rIdx = dict.eyeBlinkRight ?? dict.eyesClosed;
             if (lIdx != null) infl[lIdx] = blink;
             if (rIdx != null && rIdx !== lIdx) infl[rIdx] = blink;
+
+            // Blend physiological pain and emotional facial expressions
+            const painFactor = (window.__LUKAS_PATIENT_PAIN ?? (patient?.initialVitals?.conditions?.stElev ? 0.75 : 0.4));
+            const anxietyFactor = (window.__LUKAS_PATIENT_ANXIETY ?? 0.6);
+
+            const browDown = Math.min(0.85, painFactor * 0.8 + anxietyFactor * 0.2);
+            const eyeSquint = Math.min(0.75, painFactor * 0.7);
+            const browInnerUp = Math.min(0.7, anxietyFactor * 0.6);
+
+            if (dict.browDownLeft != null) infl[dict.browDownLeft] = browDown;
+            if (dict.browDownRight != null) infl[dict.browDownRight] = browDown;
+            if (dict.browDown != null) infl[dict.browDown] = browDown;
+            if (dict.eyeSquintLeft != null) infl[dict.eyeSquintLeft] = eyeSquint;
+            if (dict.eyeSquintRight != null) infl[dict.eyeSquintRight] = eyeSquint;
+            if (dict.browInnerUp != null) infl[dict.browInnerUp] = browInnerUp;
+        }
+
+        // Bone-driven face fallback — only for a head with no morph targets
+        // at all (see the comment by VISEME_OPEN_WEIGHT above). Reuses
+        // `aimBone`'s world-axis pitch, exactly like the eye/head gaze below,
+        // so "open" always means "rotate forward/down" regardless of the
+        // bone's own local axis conventions.
+        if (targets.length === 0 && faceBonesRig.current) {
+            let openness = 0;
+            for (const key of VISEME_KEYS) {
+                const w = target[key];
+                if (w) openness += w * (VISEME_OPEN_WEIGHT[key] ?? 0);
+            }
+            openness = Math.min(1, openness);
+            for (const { bone, rest } of faceBonesRig.current.jaw) {
+                aimBone(bone, rest, 0, openness * JAW_MAX_PITCH);
+            }
+            for (const { bone, rest } of faceBonesRig.current.upperEyelids) {
+                aimBone(bone, rest, 0, blink * EYELID_CLOSE_PITCH);
+            }
         }
 
         // Gaze priority: a scripted glance (e.g. the patient checking his
@@ -265,6 +340,7 @@ export default function PatientAvatar({
                         url={url}
                         visemesRef={visemesRef}
                         blinkRef={blinkRef}
+                        patient={patient}
                     />
                 </Suspense>
             </Canvas>

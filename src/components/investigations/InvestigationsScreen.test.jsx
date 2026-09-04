@@ -26,6 +26,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { setAppLanguage } from '../../i18n/index.js';
 
 // --- API mocks ----------------------------------------------------------
 const apiFetch = vi.fn();
@@ -173,7 +174,8 @@ async function renderScreen(overrides = {}) {
     return utils;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
+    await setAppLanguage('en');
     apiFetch.mockReset();
     apiPost.mockReset();
     toastSuccess.mockClear();
@@ -182,7 +184,10 @@ beforeEach(() => {
     componentOpened.mockClear();
     componentClosed.mockClear();
 });
-afterEach(() => cleanup());
+afterEach(async () => {
+    await setAppLanguage('pt');
+    cleanup();
+});
 
 describe('InvestigationsScreen — topbar', () => {
     function headerOf(container) {

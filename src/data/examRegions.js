@@ -6,80 +6,83 @@
  * with comprehensive, systematic documentation of normal findings
  */
 
+import { PT_DEFAULT_FINDINGS } from './examFindingsPt.js';
+import { ES_DEFAULT_FINDINGS } from './examFindingsEs.js';
+
 // Examination technique definitions
 export const EXAM_TECHNIQUES = {
     inspection: {
         id: 'inspection',
-        name: 'Inspection',
+        name: 'Inspeção',
         icon: 'Eye',
-        description: 'Visual examination'
+        description: 'Exame visual detalhado'
     },
     palpation: {
         id: 'palpation',
-        name: 'Palpation',
+        name: 'Palpação',
         icon: 'Hand',
-        description: 'Examination by touch'
+        description: 'Exame tátil de estruturas e pontos dolorosos'
     },
     percussion: {
         id: 'percussion',
-        name: 'Percussion',
+        name: 'Percussão',
         icon: 'Pointer',
-        description: 'Tapping to assess underlying structures'
+        description: 'Avaliação de timpanismo, macicez e ressonância'
     },
     auscultation: {
         id: 'auscultation',
-        name: 'Auscultation',
+        name: 'Ausculta',
         icon: 'Stethoscope',
-        description: 'Listening with stethoscope'
+        description: 'Ausculta de sons cardiopulmonares e vasculares com estetoscópio'
     },
     special: {
         id: 'special',
-        name: 'Special Tests',
+        name: 'Manobras Especiais',
         icon: 'ClipboardCheck',
-        description: 'Specific diagnostic maneuvers'
+        description: 'Manobras e testes semiológicos específicos'
     },
     // Neurological examination techniques
     mentalStatus: {
         id: 'mentalStatus',
-        name: 'Mental Status',
+        name: 'Estado Mental',
         icon: 'Brain',
-        description: 'Higher mental functions, GCS, orientation, cognition'
+        description: 'Funções mentais superiores, Glasgow, orientação e cognição'
     },
     cranialNerves: {
         id: 'cranialNerves',
-        name: 'Cranial Nerves',
+        name: 'Pares Cranianos',
         icon: 'Eye',
-        description: 'Examination of all 12 cranial nerves'
+        description: 'Exame sistemático dos 12 pares cranianos'
     },
     motor: {
         id: 'motor',
-        name: 'Motor Examination',
+        name: 'Exame Motor',
         icon: 'Dumbbell',
-        description: 'Tone, power, bulk, fasciculations'
+        description: 'Tônus, força muscular, trofismo e fasciculações'
     },
     sensory: {
         id: 'sensory',
-        name: 'Sensory Examination',
+        name: 'Sensibilidade',
         icon: 'Hand',
-        description: 'Light touch, pinprick, vibration, proprioception'
+        description: 'Tátil superficial, dolorosa, térmica e proprioceptiva'
     },
     reflexes: {
         id: 'reflexes',
-        name: 'Reflexes',
+        name: 'Reflexos',
         icon: 'Zap',
-        description: 'Deep tendon and superficial reflexes'
+        description: 'Reflexos miotáticos profundos e superficiais'
     },
     coordination: {
         id: 'coordination',
-        name: 'Coordination',
+        name: 'Coordenação',
         icon: 'Target',
-        description: 'Cerebellar function tests'
+        description: 'Provas de função cerebelar e dismetria'
     },
     gait: {
         id: 'gait',
-        name: 'Gait',
+        name: 'Marcha',
         icon: 'Footprints',
-        description: 'Gait pattern and balance assessment'
+        description: 'Avaliação do padrão de marcha e equilíbrio dinâmico'
     }
 };
 
@@ -1084,11 +1087,20 @@ export function getExamTypesForRegion(regionId) {
     return region.examTypes.map(typeId => EXAM_TECHNIQUES[typeId]);
 }
 
-// Get default finding for a region and exam type
-export function getDefaultFinding(regionId, examType) {
+// Get default finding for a region and exam type. `lang` is the CASE's
+// language (caseLanguage from LanguageContext), not the student's UI chrome
+// language — a Spanish-language case must render Spanish findings regardless
+// of what language the student's interface is in, and vice versa.
+export function getDefaultFinding(regionId, examType, lang = null) {
+    if (lang?.startsWith('es') && ES_DEFAULT_FINDINGS[regionId]?.[examType]) {
+        return ES_DEFAULT_FINDINGS[regionId][examType];
+    }
+    if ((!lang || lang.startsWith('pt') || lang === 'pt') && PT_DEFAULT_FINDINGS[regionId]?.[examType]) {
+        return PT_DEFAULT_FINDINGS[regionId][examType];
+    }
     const region = BODY_REGIONS[regionId];
-    if (!region || !region.defaultFindings) return 'Not examined';
-    return region.defaultFindings[examType] || 'Not examined';
+    if (!region || !region.defaultFindings) return PT_DEFAULT_FINDINGS[regionId]?.[examType] || 'Não examinado';
+    return region.defaultFindings[examType] || PT_DEFAULT_FINDINGS[regionId]?.[examType] || 'Não examinado';
 }
 
 // Generate empty physical exam template for case configuration

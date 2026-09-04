@@ -272,6 +272,20 @@ export const PLUGIN_MANIFESTS = [
             "persist",
             "remote"
         ],
+        "catalog": {
+            "learnerKeys": [
+                "id",
+                "status",
+                "label",
+                "format",
+                "organ",
+                "stain",
+                "description",
+                "preview",
+                "currentRevisionId",
+                "revisions"
+            ]
+        },
         "document": {
             "learnerOmit": [
                 "rubric"
@@ -614,6 +628,25 @@ export const PLUGIN_MANIFESTS = [
                     "severity": "DEBUG"
                 }
             }
+        }
+    },
+    {
+        "capabilities": [],
+        "id": "reference_library",
+        "minRole": "student",
+        "room": {
+            "accent": "slate",
+            "icon": "BookOpen",
+            "key": "reference_library",
+            "labelKey": "room_reference_library",
+            "order": 60,
+            "subKey": "room_reference_library_sub"
+        },
+        "version": "1.0.0",
+        "vocabulary": {
+            "components": {},
+            "objectTypes": {},
+            "verbs": {}
         }
     }
 ];

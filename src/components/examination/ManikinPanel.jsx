@@ -8,6 +8,7 @@ import ExamLog from './ExamLog';
 import { BODY_REGIONS, getDefaultFinding, SAMPLE_ABNORMAL_EXAM } from '../../data/examRegions';
 import { regionLabel } from './examinationLabels';
 import { useToast } from '../../contexts/ToastContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { usePatientRecord } from '../../services/PatientRecord';
 import { bodyMapGender } from '../../services/patientDemographics';
 import { apiPost } from '../../services/apiClient';
@@ -46,6 +47,7 @@ export default function ManikinPanel({
 }) {
     const { t } = useTranslation('examination');
     const toast = useToast();
+    const { caseLanguage } = useLanguage();
     const { examined, elicited } = usePatientRecord();
     // State
     const [view, setView] = useState('anterior'); // anterior | posterior
@@ -111,6 +113,7 @@ export default function ManikinPanel({
         let audioUrls = {};
         let heartAudio = null;
         let lungAudio = null;
+        let points = null;
 
         // Check if we have configured data for this exam
         if (examData[selectedRegion] && examData[selectedRegion][examType]) {
@@ -120,13 +123,19 @@ export default function ManikinPanel({
             audioUrls = examData[selectedRegion][examType].audioUrls || {};
             heartAudio = examData[selectedRegion][examType].heartAudio || null;
             lungAudio = examData[selectedRegion][examType].lungAudio || null;
+            // Per-focus synth override (auscultation only) — see
+            // AuscultationPanel's `points` prop and PhysicalExamEditor's
+            // per-focus pickers. Absent on every case authored before this.
+            points = examData[selectedRegion][examType].points || null;
         } else {
-            // Use default finding
-            finding = getDefaultFinding(selectedRegion, examType);
+            // Default findings follow the CASE's language (what the patient
+            // chart is authored in), not the student's UI chrome language —
+            // those are deliberately distinct (see LanguageContext.jsx).
+            finding = getDefaultFinding(selectedRegion, examType, caseLanguage || 'pt');
             abnormal = false;
         }
 
-        setCurrentFinding({ finding, abnormal, audioUrl, audioUrls, heartAudio, lungAudio });
+        setCurrentFinding({ finding, abnormal, audioUrl, audioUrls, heartAudio, lungAudio, points });
 
         // Add to exam log. specialTestName (Bug 3) records WHICH special
         // test the learner ran; the finding itself is the region's combined
@@ -262,11 +271,12 @@ export default function ManikinPanel({
     // stable across renders.
     const body = (
         <>
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 bg-slate-800/50">
+                {/* Header — Console do Leito chrome: the exam room reads as
+                    part of the same instrument, not a disconnected screen. */}
+                <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--console-machine-line)', background: 'var(--console-machine-panel)' }}>
                     <div className="flex items-center gap-3">
-                        <User className="w-6 h-6 text-cyan-400" />
-                        <h2 className="text-xl font-bold text-white">{t('physical_examination')}</h2>
+                        <User className="w-6 h-6" style={{ color: 'var(--console-spo2-cyan)' }} />
+                        <h2 className="text-xl font-bold" style={{ color: 'var(--console-machine-text)' }}>{t('physical_examination')}</h2>
                     </div>
                     <div className="flex items-center gap-2">
                         {examLog.length > 0 && (
@@ -430,6 +440,7 @@ export default function ManikinPanel({
                                 audioUrls={currentFinding?.audioUrls || {}}
                                 heartAudio={currentFinding?.heartAudio}
                                 lungAudio={currentFinding?.lungAudio}
+                                points={currentFinding?.points}
                             />
                         </div>
 
@@ -448,14 +459,14 @@ export default function ManikinPanel({
 
     if (embedded) {
         return (
-            <div className="w-full h-full flex flex-col bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+            <div className="w-full h-full flex flex-col rounded-xl border overflow-hidden" style={{ background: 'var(--console-machine-bg)', borderColor: 'var(--console-machine-line)' }}>
                 {body}
             </div>
         );
     }
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-            <div className="bg-slate-900 rounded-xl shadow-2xl border border-slate-700 w-full max-w-5xl h-[85vh] overflow-hidden flex flex-col">
+            <div className="rounded-xl shadow-2xl border w-full max-w-5xl h-[85vh] overflow-hidden flex flex-col" style={{ background: 'var(--console-machine-bg)', borderColor: 'var(--console-machine-line)' }}>
                 {body}
             </div>
         </div>

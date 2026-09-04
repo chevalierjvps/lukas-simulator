@@ -7,9 +7,9 @@
     {
       "plugin": "pacs",
       "file": "rohy-content-pacs-v1.tar.gz",
-      "bytes": 766538659,
-      "sha256": "75dee2dd5c90f885c449609e7f47a6d57c8add3317773dac73ad6c447f91266b",
-      "contentVersion": "starter-20260831T113013Z",
+      "bytes": 777460547,
+      "sha256": "e4977c9f1cda272ad0cfc7acb16e3ab1e306fcfed224dedf95a0cbe800152097",
+      "contentVersion": "starter-20260901T143337Z",
       "files": 4267
     },
     {

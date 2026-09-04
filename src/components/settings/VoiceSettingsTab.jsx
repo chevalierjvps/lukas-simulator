@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext.jsx';
 import { useVoice } from '../../contexts/VoiceContext.jsx';
 import { sttOptions, LANGUAGES } from '../../i18n/languages.js';
 import { TTS_PROVIDERS, isPaidProvider, voiceMatchesLanguage, guessVoiceProvider } from '../../utils/voiceResolver.js';
+import { VoiceService } from '../../services/voiceService.js';
 import TestVoiceButton from './TestVoiceButton.jsx';
 
 // Voice 2.0 (docs/design/voice-2.0-plan.md §6.4) — THERE IS NO ENGINE DROPDOWN. Each
@@ -81,6 +82,10 @@ export default function VoiceSettingsTab() {
     const [models, setModels] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [audioInputs, setAudioInputs] = useState([]);
+    const [selectedMicId, setSelectedMicId] = useState(() => {
+        try { return localStorage.getItem('lukas_preferred_mic_id') || ''; } catch { return ''; }
+    });
     // Engine-off impact modal: { provider, entries } while awaiting the
     // admin's confirm. Configured voices are literal (never substituted),
     // so disabling an engine strands every case/persona voiced on it —
@@ -122,6 +127,14 @@ export default function VoiceSettingsTab() {
             setVoiceSettings?.(s);
             setCatalogue(v.providers || []);
             setModels(m.models || []);
+
+            try {
+                const devs = await VoiceService.getAudioInputDevices();
+                setAudioInputs(devs);
+                if (devs.length > 0 && !selectedMicId) {
+                    setSelectedMicId(devs[0].deviceId);
+                }
+            } catch {}
         } catch (err) {
             toast.error?.(`Failed to load voice settings: ${err.message}`);
         } finally {
@@ -429,19 +442,41 @@ export default function VoiceSettingsTab() {
                 </div>
             </div>
 
-            {/* STT language */}
-            <label className="block max-w-sm">
-                <span className="text-xs text-neutral-400 block mb-1">Speech recognition language</span>
-                <select
-                    value={settings.stt_language}
-                    onChange={(e) => update('stt_language', e.target.value)}
-                    className="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm text-white"
-                >
-                    {STT_LANGUAGES.map(l => (
-                        <option key={l.code} value={l.code}>{l.label} ({l.code})</option>
-                    ))}
-                </select>
-            </label>
+            {/* STT language & Audio Input Device */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+                <label className="block">
+                    <span className="text-xs text-neutral-400 block mb-1">Speech recognition language</span>
+                    <select
+                        value={settings.stt_language}
+                        onChange={(e) => update('stt_language', e.target.value)}
+                        className="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm text-white"
+                    >
+                        {STT_LANGUAGES.map(l => (
+                            <option key={l.code} value={l.code}>{l.label} ({l.code})</option>
+                        ))}
+                    </select>
+                </label>
+
+                <label className="block">
+                    <span className="text-xs text-neutral-400 block mb-1">Entrada de Áudio (Microfone)</span>
+                    <select
+                        value={selectedMicId}
+                        onChange={(e) => {
+                            setSelectedMicId(e.target.value);
+                            try { localStorage.setItem('lukas_preferred_mic_id', e.target.value); } catch {}
+                        }}
+                        className="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1.5 text-sm text-white"
+                    >
+                        {audioInputs.length === 0 ? (
+                            <option value="">Microfone Padrão do Sistema</option>
+                        ) : (
+                            audioInputs.map(d => (
+                                <option key={d.deviceId} value={d.deviceId}>{d.label}</option>
+                            ))
+                        )}
+                    </select>
+                </label>
+            </div>
 
             {/* Avatar type */}
             <fieldset>

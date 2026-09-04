@@ -120,14 +120,22 @@ export default function OrdersDrawer({ caseId, sessionId, caseData, isAdmin = fa
 
     return (
         <>
-            {/* Floating Action Buttons — horizontal strip sitting one
-                tier above the RoomNavigator (72px nav + 16px gap = 88px
-                from bottom). Left edge starts at the column seam so the
-                strip lies over the vitals monitor, never the chat. */}
+            {/* Floating Action Buttons — horizontal strip sitting above
+                both the RoomNavigator dock AND TacticalClinicalHud's
+                action wheel (bottom-[130px] + its own padding/button
+                height, see TacticalClinicalHud.jsx:222). A prior 200px here
+                was meant to clear the wheel but didn't leave real margin —
+                same z-40 as the wheel, and the wheel mounts later in
+                App.jsx so it painted on top, cutting this strip in half.
+                250px gives genuine vertical clearance regardless of exact
+                wheel height; z-45 is belt-and-suspenders so a future
+                tie-breaking DOM reorder can't reintroduce the same bug.
+                Left edge starts at the column seam so the strip lies over
+                the vitals monitor, never the chat. */}
             {!isOpen && (
                 <div
-                    className="fixed z-40 flex gap-2"
-                    style={{ bottom: '88px', left: 'calc(max(35vw, 350px) + 1rem)' }}
+                    className="fixed z-[45] flex gap-2"
+                    style={{ bottom: '250px', left: 'calc(max(35vw, 350px) + 1rem)' }}
                 >
                     {tabs.map(tab => (
                         <button

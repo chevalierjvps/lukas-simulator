@@ -71,9 +71,17 @@ describe('GET /api/plugins/:pluginId/catalog', () => {
         expect(res.headers.get('cache-control')).toMatch(/private/);
     });
 
-    it('is gated on the plugin\'s authoring role — a student gets 403, not the library', async () => {
-        expect((await student('/api/plugins/pathology/catalog')).status).toBe(403);
+    it('is gated on authentication — an unauthenticated caller gets 401; a student gets the learner projection, not the raw library', async () => {
         expect((await fetch(`${server.baseUrl}/api/plugins/pathology/catalog`)).status).toBe(401);
+        // Pathology's manifest now declares catalog.learnerKeys (added for the
+        // reference-library room), so a student gets 200 with the allowlisted
+        // fields — not the raw catalog an author sees (no `sourceId`/free-form
+        // extras beyond the allowlist, even though this test's CATALOG fixture
+        // happens not to carry any).
+        const res = await student('/api/plugins/pathology/catalog');
+        expect(res.status).toBe(200);
+        const body = await res.json();
+        expect(body.catalog.assets).toEqual(CATALOG.assets);
     });
 
     it('unknown plugin → 404; and /api/health/plugins now reports has_catalog', async () => {

@@ -137,6 +137,15 @@ function defaultHandlers() {
         http.get('*/avatars/heads/manifest.json', () =>
             HttpResponse.json({})
         ),
+        // Voice-mode preference: default OFF here so the many tests that
+        // interact with the text input aren't racing the async
+        // voicePrefAppliedRef effect in ChatInterface.jsx (which defaults
+        // voice mode ON when this preference is unset/true — see the "voice
+        // toggle" describe block below). Tests exercising that default-on
+        // behaviour override this handler locally via `server.use(...)`.
+        http.get('*/api/users/preferences', () =>
+            HttpResponse.json({ onboarding_settings: { voice_mode: false } })
+        ),
         // Session start (fired only when a logged-in user exists; we keep
         // user=null so this is mostly inert, but keep a handler in case).
         http.post('*/api/sessions', () =>
@@ -297,51 +306,62 @@ describe('ChatInterface — broader behaviour (Phase 4 sibling, not the leak tes
         expect(container.querySelector('input[type="text"]')).toBeNull();
     });
 
-    it('renders an off-by-default voice toggle when voice mode is platform-enabled', async () => {
-        // CONTRACT: Voice toggle visibility hinges on
-        // voiceSettings.voice_mode_enabled. Default state on first render is
-        // OFF (label "Voice", not "Voice on").
+    it('renders an on-by-default voice toggle when voice mode is platform-enabled', async () => {
+        // CONTRACT (flipped 2026-09-01, Jvps): voice mode used to default
+        // OFF even when the platform had it fully configured (API key,
+        // default voices, provider enabled) — a working feature that
+        // required a first-time user to discover and click a toggle before
+        // the patient would ever speak. Default state on first render is now
+        // ON (label "Voice on") whenever voiceSettings.voice_mode_enabled is
+        // true; a learner who explicitly opts out (onboarding
+        // voice_mode:false) still gets OFF — see ChatInterface.jsx's
+        // voicePrefAppliedRef effect. defaultHandlers() pins
+        // /users/preferences to voice_mode:false for every other test in
+        // this file (they care about the text input, not voice) — this is
+        // the one place we override it back to "no explicit preference".
+        server.use(http.get('*/api/users/preferences', () => HttpResponse.json({})));
         mount(caseFixture);
-        const toggle = await screen.findByRole('button', { name: /^voice$/i });
+        const toggle = await screen.findByRole('button', { name: /voice on/i });
         expect(toggle).toBeInTheDocument();
-        // Definitely not the "Voice on" variant.
-        expect(screen.queryByRole('button', { name: /voice on/i })).toBeNull();
+        // Definitely not the bare "Voice" (off) variant.
+        expect(screen.queryByRole('button', { name: /^voice$/i })).toBeNull();
     });
 
-    it('clicking the voice toggle flips voiceMode and swaps the input for the listening UI', async () => {
-        // CONTRACT: The button click sets VoiceContext.voiceMode=true; on the
-        // patient tab, the input form is replaced by a single full-width
-        // talk button (the listening UI). The exact label varies by STT
-        // support — in jsdom there's no SpeechRecognition, so the label is
-        // "Speech recognition not supported in this browser". We assert on
-        // the structural change (input gone, full-width button present)
-        // rather than the label, which is environment-dependent.
+    it('clicking the voice toggle (on by default) swaps to text input, then back to the listening UI', async () => {
+        // CONTRACT: voice mode starts ON (see test above), so the patient
+        // tab starts on the listening UI, not the text input. Clicking the
+        // toggle sets VoiceContext.voiceMode=false and the input form
+        // returns; clicking again flips back to the listening UI. The exact
+        // listening-UI label varies by STT support — in jsdom there's no
+        // SpeechRecognition, so the label is "Speech recognition not
+        // supported in this browser". We assert on the structural change
+        // (input gone/back, full-width button present) rather than the
+        // label, which is environment-dependent.
+        server.use(http.get('*/api/users/preferences', () => HttpResponse.json({})));
         mount(caseFixture);
-        const toggle = await screen.findByRole('button', { name: /^voice$/i });
-        const inputBefore = await screen.findByPlaceholderText(/message alice original/i);
-        expect(inputBefore).toBeInTheDocument();
-
-        fireEvent.click(toggle);
-
-        // The toggle's label has flipped.
-        await screen.findByRole('button', { name: /voice on/i });
-        // The patient-tab input is gone; the listening UI is rendered.
-        await waitFor(() => {
-            expect(screen.queryByPlaceholderText(/message alice original/i)).toBeNull();
-        });
-        // The voice-mode talk button is the only full-width type=button
-        // inside the input area; it carries either "Click to talk", "Listening…",
-        // "Patient speaking…", or the no-STT fallback label.
+        const toggleOn = await screen.findByRole('button', { name: /voice on/i });
+        // Starts on the listening UI — no message input yet.
+        expect(screen.queryByPlaceholderText(/message alice original/i)).toBeNull();
         expect(
             screen.getByRole('button', {
                 name: /(click to talk|listening|speaking|speech recognition|thinking)/i,
             })
         ).toBeInTheDocument();
 
-        // Flip back: input form returns.
-        fireEvent.click(screen.getByRole('button', { name: /voice on/i }));
+        fireEvent.click(toggleOn);
+
+        // The toggle's label has flipped back to the bare "Voice" (off).
+        await screen.findByRole('button', { name: /^voice$/i });
+        // The patient-tab input form returns.
         await waitFor(() => {
             expect(screen.getByPlaceholderText(/message alice original/i)).toBeInTheDocument();
+        });
+
+        // Flip back on: listening UI returns, input goes away again.
+        fireEvent.click(screen.getByRole('button', { name: /^voice$/i }));
+        await screen.findByRole('button', { name: /voice on/i });
+        await waitFor(() => {
+            expect(screen.queryByPlaceholderText(/message alice original/i)).toBeNull();
         });
     });
 
@@ -510,6 +530,13 @@ describe('ChatInterface — broader behaviour (Phase 4 sibling, not the leak tes
             expect(sessionRequests.length).toBeGreaterThan(0);
         });
 
+        // Voice mode now defaults on (platformVoice.voice_mode_enabled is
+        // true), landed via an async /users/preferences fetch racing this
+        // test's own waits. This test cares about the text input, not
+        // voice, so normalize back to text-input mode if the async default
+        // won the race before we get there — <VoiceModeForcer on={false}/>
+        // below is a no-op on rerender (its `on` prop is unchanged, so the
+        // effect doesn't re-fire).
         // Rerender with the swapped case (different system_prompt, same id).
         rerender(
             <>

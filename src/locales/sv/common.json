@@ -283,6 +283,8 @@
   "room_radiology": "Radiologi & diagnostik",
   "room_radiology_sub": "bilddiagnostik & tester",
   "room_ready_results": "{label} — {count, plural, one {# klart svar} other {# klara svar}}",
+  "room_reference_library": "Referensbibliotek",
+  "room_reference_library_sub": "bildgivnings- och patologiarkiv",
   "save": "Spara",
   "saving": "Sparar…",
   "search": "Sök",

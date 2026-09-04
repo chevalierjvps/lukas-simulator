@@ -29,6 +29,7 @@ export const TIER_LABELS = {
 // everything else → OpenAI-compatible /chat/completions); `group` drives the
 // grouped <optgroup> in the pickers.
 export const LLM_PROVIDERS = {
+    google:     { name: 'Google (Gemini)',            defaultBase: 'https://generativelanguage.googleapis.com/v1beta/openai',             needsKey: true,  modelRequired: true,  keyPrefix: 'AIza',    apiShape: 'openai',    group: 'cloud' },
     lmstudio:   { name: 'LM Studio (Local)',          defaultBase: 'http://localhost:1234/v1',                                            needsKey: false, modelRequired: false, keyPrefix: '',        apiShape: 'openai',    group: 'local' },
     ollama:     { name: 'Ollama (Local)',             defaultBase: 'http://localhost:11434/v1',                                           needsKey: false, modelRequired: true,  keyPrefix: '',        apiShape: 'openai',    group: 'local' },
     openai:     { name: 'OpenAI',                      defaultBase: 'https://api.openai.com/v1',                                           needsKey: true,  modelRequired: true,  keyPrefix: 'sk-',     apiShape: 'openai',    group: 'cloud' },
@@ -44,6 +45,20 @@ export const LLM_PROVIDERS = {
 // entirely deployment-specific (lmstudio, azure, custom) get [] — the picker
 // falls straight through to the "Custom…" free-text field for those.
 export const LLM_MODELS = {
+    // Verified against the live models.list response from this deployment's
+    // own key (2026-09-03) and ai.google.dev/gemini-api/docs/pricing the same
+    // day. gemini-2.5-flash/-pro started 404ing with "no longer available to
+    // new users" that day — Google's own error names gemini-3.6-flash as the
+    // replacement — so those two drop to 'legacy' rather than being deleted:
+    // a session created before the cutover may still have one saved as its
+    // per-case override, and the picker needs somewhere to show it.
+    google: [
+        { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro',        tier: 'flagship' },
+        { id: 'gemini-3.6-flash',       label: 'Gemini 3.6 Flash',      tier: 'fast'     },
+        { id: 'gemini-3.5-flash-lite',  label: 'Gemini 3.5 Flash-Lite', tier: 'fast'     },
+        { id: 'gemini-2.5-pro',         label: 'Gemini 2.5 Pro (legacy)',   tier: 'legacy' },
+        { id: 'gemini-2.5-flash',       label: 'Gemini 2.5 Flash (legacy)', tier: 'legacy' }
+    ],
     anthropic: [
         { id: 'claude-opus-4-8',            label: 'Claude Opus 4.8',            tier: 'flagship' },
         { id: 'claude-sonnet-5',            label: 'Claude Sonnet 5',            tier: 'balanced' },
@@ -108,6 +123,17 @@ export const LLM_MODELS = {
 // per underlying model) fall back to 0 in llm_model_pricing until an admin adds
 // rows; that under-reports cost rather than over-reporting it.
 export const LLM_MODEL_PRICING = {
+    // ai.google.dev/gemini-api/docs/pricing, 2026-09-03 — introductory rate,
+    // holds through 2026-12-31 and doubles 2027-01-01 (already the "standard"
+    // 3.1 Pro >200k-token tier below, so that jump isn't a future edit).
+    google: {
+        'gemini-3.1-pro-preview': { in: 0.002,    out: 0.012  }, // ≤200k tokens; 0.004/0.018 above that
+        'gemini-3.6-flash':       { in: 0.00075,  out: 0.00375 },
+        'gemini-3.5-flash-lite':  { in: 0.0003,   out: 0.0025 },
+        'gemini-2.5-pro':         { in: 0.00125,  out: 0.0050 },
+        'gemini-2.5-flash':       { in: 0.000075, out: 0.0003 },
+        default:                  { in: 0.00075,  out: 0.00375 }
+    },
     anthropic: {
         'claude-opus-4-8':            { in: 0.015,  out: 0.075 },
         'claude-sonnet-5':            { in: 0.003,  out: 0.015 },

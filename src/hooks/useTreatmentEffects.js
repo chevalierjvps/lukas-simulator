@@ -2,12 +2,12 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import treatmentEffectsEngine from '../services/TreatmentEffects/TreatmentEffectsEngine';
 import { ApiError, apiFetch } from '../services/apiClient';
 
-// The six numeric channels the engine aggregates. Kept as one list so the
+// The eight numeric channels the engine aggregates. Kept as one list so the
 // zero-effect constant, the identity check and the reset path can never
 // drift apart.
-const AGGREGATE_KEYS = ['hr', 'bp_sys', 'bp_dia', 'rr', 'spo2', 'temp'];
+const AGGREGATE_KEYS = ['hr', 'bp_sys', 'bp_dia', 'rr', 'spo2', 'temp', 'pain', 'anxiety'];
 const ZERO_AGGREGATE = Object.freeze({
-    hr: 0, bp_sys: 0, bp_dia: 0, rr: 0, spo2: 0, temp: 0
+    hr: 0, bp_sys: 0, bp_dia: 0, rr: 0, spo2: 0, temp: 0, pain: 0, anxiety: 0
 });
 const EMPTY_TREATMENTS = Object.freeze([]);
 const IDLE_EFFECTS = Object.freeze({

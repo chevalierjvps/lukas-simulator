@@ -32,24 +32,99 @@ export function formatRadiologyAsMarkdown(studies) {
 // monitor reading instead of guessing. Null/undefined slots are skipped so
 // a partially-populated vital set still produces useful context.
 const VITAL_LABELS = [
-    { key: 'hr',     label: 'Heart rate',       unit: 'bpm' },
-    { key: 'rr',     label: 'Respiratory rate', unit: '/min' },
-    { key: 'spo2',   label: 'SpO₂',             unit: '%' },
-    { key: 'temp',   label: 'Temperature',      unit: '°C' },
-    { key: 'pain',   label: 'Pain',             unit: '/10' },
+    { key: 'hr',      label: 'Heart rate',       unit: 'bpm' },
+    { key: 'rr',      label: 'Respiratory rate', unit: '/min' },
+    { key: 'spo2',    label: 'SpO₂',             unit: '%' },
+    { key: 'temp',    label: 'Temperature',      unit: '°C' },
+    { key: 'pain',    label: 'Pain',             unit: '/10' },
+    { key: 'anxiety', label: 'Anxiety',          unit: '/10' },
 ];
 
-export function formatVitalsAsMarkdown(vitals) {
+export function formatVitalsAsMarkdown(vitals, { lang = 'en' } = {}) {
     if (!vitals || typeof vitals !== 'object') return '';
+    const isPt = lang === 'pt';
     const lines = [];
     // BP gets special formatting (sys/dia from two fields).
     if (Number.isFinite(vitals.bp_sys) && Number.isFinite(vitals.bp_dia)) {
-        lines.push(`- Blood pressure: ${vitals.bp_sys}/${vitals.bp_dia} mmHg`);
+        lines.push(isPt ? `- Pressão Arterial: ${vitals.bp_sys}/${vitals.bp_dia} mmHg` : `- Blood pressure: ${vitals.bp_sys}/${vitals.bp_dia} mmHg`);
     }
-    for (const v of VITAL_LABELS) {
+    const labels = isPt ? [
+        { key: 'hr', label: 'Frequência Cardíaca', unit: 'bpm' },
+        { key: 'rr', label: 'Frequência Respiratória', unit: '/min' },
+        { key: 'spo2', label: 'Saturação de Oxigênio (SpO₂)', unit: '%' },
+        { key: 'temp', label: 'Temperatura Corporal', unit: '°C' },
+        { key: 'pain', label: 'Nível de Dor Atual (Escala 0 a 10)', unit: '/10' },
+        { key: 'anxiety', label: 'Nível de Ansiedade Atual (Escala 0 a 10)', unit: '/10' },
+    ] : VITAL_LABELS;
+
+    for (const v of labels) {
         const value = vitals[v.key];
         if (value == null || !Number.isFinite(value)) continue;
         lines.push(`- ${v.label}: ${value}${v.unit ? ` ${v.unit}` : ''}`);
+    }
+    return lines.join('\n');
+}
+
+// ---------- ECG / rhythm ----------
+// Sprint 3: PatientMonitor now rides the same PatientRecord.vitals channel
+// to publish `rhythm` / `st_elevation_mm` / `t_wave_inverted` every tick, so
+// the patient persona can be told what the monitor is CURRENTLY showing —
+// not just the case's static config.ecg/config.rhythm authored value, which
+// goes stale the moment a scenario progresses the rhythm or an admin
+// overrides it mid-session.
+//
+// Rhythm ids are the server/shared/rhythms.js vocabulary (RHYTHM_IDS) —
+// short English tokens, not prose. They are deliberately NOT looked up
+// through i18next here: as of 2026-09, src/locales/pt/monitor.json carries
+// Spanish strings for most of its rhythm_* keys (a translation-pipeline
+// bug, unrelated to this sprint — flagged separately), and this prompt
+// feeds an LLM, not a rendered UI, so a small local label map keeps it
+// correct regardless of that locale file's state.
+export const RHYTHM_LABELS_PT = {
+    NSR: 'Ritmo sinusal normal',
+    'Sinus Tachycardia': 'Taquicardia sinusal',
+    'Sinus Bradycardia': 'Bradicardia sinusal',
+    AFib: 'Fibrilação atrial',
+    'Atrial Flutter': 'Flutter atrial',
+    SVT: 'Taquicardia supraventricular (TSV)',
+    VTach: 'Taquicardia ventricular',
+    VFib: 'Fibrilação ventricular',
+    Asystole: 'Assistolia',
+    PEA: 'Atividade elétrica sem pulso (AESP)',
+};
+const RHYTHM_LABELS_EN = {
+    NSR: 'Normal sinus rhythm',
+    'Sinus Tachycardia': 'Sinus tachycardia',
+    'Sinus Bradycardia': 'Sinus bradycardia',
+    AFib: 'Atrial fibrillation',
+    'Atrial Flutter': 'Atrial flutter',
+    SVT: 'Supraventricular tachycardia (SVT)',
+    VTach: 'Ventricular tachycardia',
+    VFib: 'Ventricular fibrillation',
+    Asystole: 'Asystole',
+    PEA: 'Pulseless electrical activity (PEA)',
+};
+
+export function formatEcgAsMarkdown({ rhythm, stElevationMm, tWaveInverted, staticFinding } = {}, { lang = 'en' } = {}) {
+    const isPt = lang === 'pt';
+    const rhythmLabel = rhythm ? ((isPt ? RHYTHM_LABELS_PT : RHYTHM_LABELS_EN)[rhythm] || rhythm) : null;
+    const lines = [];
+    if (rhythmLabel) {
+        lines.push(isPt ? `- Ritmo atual no monitor: ${rhythmLabel}` : `- Current monitor rhythm: ${rhythmLabel}`);
+    }
+    if (Number.isFinite(stElevationMm) && stElevationMm >= 1) {
+        lines.push(isPt
+            ? `- Supradesnível do segmento ST: ${stElevationMm.toFixed(1)} mm`
+            : `- ST-segment elevation: ${stElevationMm.toFixed(1)} mm`);
+    }
+    if (tWaveInverted) {
+        lines.push(isPt ? '- Inversão de onda T presente' : '- T-wave inversion present');
+    }
+    // No live reading yet (chat opened before the monitor published a tick)
+    // — fall back to whatever the case was authored with, so the very first
+    // message still has ECG grounding instead of none at all.
+    if (lines.length === 0 && staticFinding) {
+        lines.push(isPt ? `- Traçado/laudo do caso: ${staticFinding}` : `- Case ECG finding: ${staticFinding}`);
     }
     return lines.join('\n');
 }

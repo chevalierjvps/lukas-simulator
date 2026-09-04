@@ -1,0 +1,16 @@
+-- 0055: Spanish display name for the live treatment-ordering catalogue.
+--
+-- `treatment_effects.treatment_name` is what TreatmentPanel.jsx actually
+-- shows students when ordering (GET /sessions/:id/available-treatments) —
+-- the medications._es translations added in 0054 only cover the SEPARATE
+-- authoring-time drug-reference search (ClinicalRecordsEditor/MedicationManager),
+-- not this table, which is the one a student searches live during a session.
+--
+-- `treatment_name` is also a WIRE IDENTIFIER: the client echoes it back
+-- verbatim in POST /sessions/:id/order-treatment, and the server matches it
+-- against both this table and the case_treatments rubric by exact string —
+-- so it can never be localized in place (unlike radiology's read-only
+-- display fields). `treatment_name_es` is a pure additional DISPLAY column;
+-- the identifier column is untouched, dose/route matching and the
+-- UNIQUE(treatment_name, route) constraint are unaffected.
+ALTER TABLE treatment_effects ADD COLUMN treatment_name_es TEXT;

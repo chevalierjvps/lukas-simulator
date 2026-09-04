@@ -214,3 +214,8 @@ server/plugin-content/
 # are hundreds of megabytes and are published as release assets.
 dist-content-release/
 .content-cache/
+
+# Rust / Tauri build artifacts
+src-tauri/target/
+target/
+

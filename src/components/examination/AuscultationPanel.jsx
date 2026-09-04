@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Play, Pause, Volume2, VolumeX, AlertTriangle, CheckCircle, Heart, Wind, Activity } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, AlertTriangle, CheckCircle, Heart, Wind, Activity, Radio } from 'lucide-react';
 import EventLogger from '../../services/eventLogger';
 import { baseUrl } from '../../config/api';
+import { ClinicalAudio } from '../../services/clinicalAudioSynthesizer';
+import { usePatientRecord } from '../../services/PatientRecord';
 
 /**
  * Auscultation Panel - zoomed body view with audio playback.
@@ -34,7 +36,12 @@ const DEFAULT_SOUNDS = {
 // EventLogger payloads; `labelKey`/`descKey` are the explicit i18n keys
 // (namespace 'examination') used at every display site — the en values
 // are byte-identical to label/description.
-const CARDIO_POINTS = {
+// Exported so PhysicalExamEditor can build its per-focus sound pickers
+// against the SAME point set this panel renders/plays — the alternative
+// (a second, hand-maintained point list in the editor) is exactly the kind
+// of drift that leaves an admin configuring a focus that doesn't exist, or
+// missing one that does.
+export const CARDIO_POINTS = {
     aortic: { x: 54, y: 22, label: 'Aortic', description: '2nd ICS, right sternal border', labelKey: 'point_aortic', descKey: 'point_aortic_desc', type: 'heart' },
     pulmonic: { x: 46, y: 22, label: 'Pulmonic', description: '2nd ICS, left sternal border', labelKey: 'point_pulmonic', descKey: 'point_pulmonic_desc', type: 'heart' },
     erb: { x: 46, y: 30, label: "Erb's Point", description: '3rd ICS, left sternal border', labelKey: 'point_erb', descKey: 'point_erb_desc', type: 'heart' },
@@ -138,6 +145,7 @@ export default function AuscultationPanel({
     audioUrls = {},    // Multiple audio files for different points { pointId: url }
     heartAudio,        // Custom heart sound (overrides default for all heart points)
     lungAudio,         // Custom lung sound (overrides default for all lung points)
+    points: pointTypes = {},  // Per-point synth type override { pointId: 'normal'|'murmur'|'vesicular'|'wheeze'|'crackles'|'diminished' } — case-authored, see PhysicalExamEditor's per-focus pickers. Falls back to the flat isAbnormal behaviour for any point not listed, so an old case with no points map still works exactly as before.
     selectedRegion,        // Region key — fallback profile heuristic
     auscultationProfile,   // Explicit profile id from examRegions.js (preferred)
     regionName = 'Chest'
@@ -146,11 +154,24 @@ export default function AuscultationPanel({
     const profile = getProfile(auscultationProfile, selectedRegion, regionName);
     const POINTS = profile.points;
 
+    // Sprint 4: heart/lung points with no case-authored audio (the common
+    // case — most cases never upload a clip) used to fall back to one
+    // canned "normal" mp3, or to nothing at all when the finding was
+    // abnormal. They now play the live Web Audio DSP synth instead
+    // (clinicalAudioSynthesizer.js) — it covers both normal AND abnormal
+    // findings, and the heart tempo tracks the monitor's actual current HR
+    // (PatientRecord, the same live channel PatientMonitor/TacticalClinicalHud
+    // already publish to) instead of playing at a fixed recorded tempo.
+    const { record } = usePatientRecord();
+    const liveHr = record?.current_state?.vitals?.hr;
+    const canUseSynth = typeof window !== 'undefined' && !!(window.AudioContext || window.webkitAudioContext);
+
     const [selectedPoint, setSelectedPoint] = useState(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
     const audioRef = useRef(null);
+    const synthTimeoutRef = useRef(null);
 
     // Normalise any audio URL to the SPA's deploy base. Uploaded audio
     // arrives as either `./uploads/foo.mp3` (legacy relative) or
@@ -166,23 +187,64 @@ export default function AuscultationPanel({
         return baseUrl(trimmed.startsWith('/') ? trimmed : '/' + trimmed);
     };
 
-    // Get the appropriate audio URL for a point
+    // Get the configured audio FILE url for a point, if any. Does NOT
+    // consider the live synth — that's not a seekable/pausable <audio> src,
+    // so it's handled separately (isPointSynthCapable / playPointSynth).
     const getAudioForPoint = (pointId) => {
-        // Priority: specific point audio > type-specific audio > general audio > default
+        // Priority: specific point audio > type-specific audio > general audio.
         if (audioUrls[pointId]) return resolveAudio(audioUrls[pointId]);
 
         const point = POINTS[pointId];
         if (point) {
             if (point.type === 'heart' && heartAudio) return resolveAudio(heartAudio);
             if (point.type === 'lung' && lungAudio) return resolveAudio(lungAudio);
-            // Use canned defaults for normal findings where one exists
-            // (heart/lung only — bowel/bruit have no default asset).
-            if (!isAbnormal && DEFAULT_SOUNDS[point.type]) {
+            // The canned "normal" clip is now only reached when Web Audio
+            // truly isn't available — the synth covers this case otherwise.
+            if (!canUseSynth && !isAbnormal && DEFAULT_SOUNDS[point.type]) {
                 return DEFAULT_SOUNDS[point.type];
             }
         }
 
         return resolveAudio(audioUrl);
+    };
+
+    // Whether this point can fall back to the live DSP synth (heart/lung
+    // only — there's no bowel/bruit synth model).
+    const isPointSynthCapable = (point) => canUseSynth && (point?.type === 'heart' || point?.type === 'lung');
+
+    // Roughly how long the synth call takes to finish, so the "playing"
+    // pulse in the UI tracks it even though there's no HTMLMediaElement to
+    // read a real duration from.
+    const synthDurationMs = (point) =>
+        point?.type === 'heart' ? (60 / (liveHr || 75)) * 4 * 1000 + 400 : 2200;
+
+    // Sprint 5: "foco estéreo ativo" — each point's own x coordinate (a
+    // percentage across the 280px chest/lung diagram, ~35-65 with 50 as
+    // the sternal midline) becomes a stereo pan (-1 hard left .. 1 hard
+    // right), so listening at the left lung base audibly comes from the
+    // left channel and the right lung base from the right, matching where
+    // the student actually placed the stethoscope.
+    const panForPoint = (point) => Math.max(-1, Math.min(1, ((point?.x ?? 50) - 50) / 15));
+
+    const playPointSynth = (point, pointId) => {
+        const pan = panForPoint(point);
+        // A case-authored override for THIS specific point wins — the whole
+        // reason points exists is so "the case is abnormal" doesn't blanket
+        // every focus with the same finding (dengue: normal heart sounds,
+        // decreased breath sounds at exactly the effusion's base, nowhere
+        // else). No override falls back to the old flat isAbnormal behaviour
+        // so a case that never configured per-point sounds is unaffected.
+        const override = pointId ? pointTypes[pointId] : null;
+        if (point.type === 'heart') {
+            const type = override || (isAbnormal ? 'murmur' : 'normal');
+            ClinicalAudio.playHeartSound({ rate: liveHr || 75, type, pan });
+        } else if (point.type === 'lung') {
+            const type = override || (isAbnormal ? 'crackles' : 'vesicular');
+            ClinicalAudio.playLungSound(type, { pan });
+        }
+        if (synthTimeoutRef.current) clearTimeout(synthTimeoutRef.current);
+        setIsPlaying(true);
+        synthTimeoutRef.current = setTimeout(() => setIsPlaying(false), synthDurationMs(point));
     };
 
     const handlePointClick = (pointId) => {
@@ -191,13 +253,15 @@ export default function AuscultationPanel({
             audioRef.current.pause();
             audioRef.current.currentTime = 0;
         }
+        if (synthTimeoutRef.current) clearTimeout(synthTimeoutRef.current);
         setSelectedPoint(pointId);
         setIsPlaying(false);
 
         // Get point info for logging
         const point = POINTS[pointId];
         const audioSrc = getAudioForPoint(pointId);
-        const hasAudio = !!audioSrc;
+        const synthCapable = isPointSynthCapable(point);
+        const hasAudio = !!audioSrc || synthCapable;
 
         // Log auscultation event with audio URL
         EventLogger.auscultationPerformed(
@@ -205,10 +269,9 @@ export default function AuscultationPanel({
             point?.type || 'unknown',
             finding || 'No finding',
             hasAudio,
-            audioSrc
+            audioSrc || (synthCapable ? 'synth:clinicalAudioSynthesizer' : null)
         );
 
-        // Auto-play the new point's audio
         if (audioSrc && audioRef.current) {
             audioRef.current.src = audioSrc;
             audioRef.current.load();
@@ -217,6 +280,8 @@ export default function AuscultationPanel({
             }).catch(err => {
                 console.log('Autoplay prevented:', err);
             });
+        } else if (synthCapable) {
+            playPointSynth(point, pointId);
         }
     };
 
@@ -227,7 +292,9 @@ export default function AuscultationPanel({
             setSelectedPoint(defaultPoint);
             setHasAutoPlayed(true);
 
+            const point = POINTS[defaultPoint];
             const audioSrc = getAudioForPoint(defaultPoint);
+            const synthCapable = isPointSynthCapable(point);
             if (audioSrc) {
                 audioRef.current.src = audioSrc;
                 audioRef.current.load();
@@ -236,19 +303,26 @@ export default function AuscultationPanel({
                 }).catch(err => {
                     console.log('Autoplay prevented:', err);
                 });
+            } else if (synthCapable) {
+                playPointSynth(point, defaultPoint);
             }
 
             // Log the auto-played auscultation with audio URL
-            const point = POINTS[defaultPoint];
             EventLogger.auscultationPerformed(
                 point?.label || defaultPoint,
                 point?.type || 'unknown',
                 finding || 'No finding',
-                !!audioSrc,
-                audioSrc
+                !!audioSrc || synthCapable,
+                audioSrc || (synthCapable ? 'synth:clinicalAudioSynthesizer' : null)
             );
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasAutoPlayed, finding]);
+
+    // Clear any pending synth "playing" pulse timeout on unmount.
+    useEffect(() => () => {
+        if (synthTimeoutRef.current) clearTimeout(synthTimeoutRef.current);
+    }, []);
 
     // Update audio source when point changes (for prop changes)
     useEffect(() => {
@@ -262,13 +336,20 @@ export default function AuscultationPanel({
     }, [audioUrls, heartAudio, lungAudio]);
 
     const togglePlay = () => {
-        if (audioRef.current) {
+        const currentPoint = selectedPoint ? POINTS[selectedPoint] : null;
+        const audioSrc = selectedPoint ? getAudioForPoint(selectedPoint) : null;
+        if (audioSrc && audioRef.current) {
             if (isPlaying) {
                 audioRef.current.pause();
             } else {
                 audioRef.current.play();
             }
             setIsPlaying(!isPlaying);
+        } else if (currentPoint && isPointSynthCapable(currentPoint)) {
+            // The synth is a fire-and-forget Web Audio burst, not a
+            // seekable/pausable element — "play" replays it; there's
+            // nothing meaningful to pause mid-way through.
+            playPointSynth(currentPoint, selectedPoint);
         }
     };
 
@@ -311,7 +392,7 @@ export default function AuscultationPanel({
 
                     {/* Auscultation points */}
                     {Object.entries(POINTS).map(([id, point]) => {
-                        const pointHasAudio = !!getAudioForPoint(id);
+                        const pointHasAudio = !!getAudioForPoint(id) || isPointSynthCapable(point);
                         const isSelected = selectedPoint === id;
                         const meta = POINT_TYPE[point.type] || POINT_TYPE.heart;
                         const PointIcon = meta.Icon;
@@ -365,40 +446,73 @@ export default function AuscultationPanel({
                     />
 
                     {/* Audio Player */}
-                    {currentAudioUrl ? (
-                        <div className="bg-slate-900 rounded-lg p-3">
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={togglePlay}
-                                    className="w-10 h-10 rounded-full bg-cyan-600 hover:bg-cyan-500 flex items-center justify-center transition-colors"
-                                >
-                                    {isPlaying ? (
-                                        <Pause className="w-5 h-5 text-white" />
-                                    ) : (
-                                        <Play className="w-5 h-5 text-white ml-0.5" />
-                                    )}
-                                </button>
-                                <div className="flex-1">
-                                    <div className="text-xs text-slate-400 mb-1">
-                                        {currentPoint ? t('point_sounds', { point: t(currentPoint.labelKey) }) : t(profile.playerLabelKey)}
-                                    </div>
-                                    <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
-                                        <div className={`h-full bg-cyan-500 transition-all ${isPlaying ? 'animate-pulse' : ''}`} style={{ width: isPlaying ? '60%' : '0%' }} />
-                                    </div>
+                    {(() => {
+                        const usingSynth = !currentAudioUrl && currentPoint && isPointSynthCapable(currentPoint);
+                        if (!currentAudioUrl && !usingSynth) {
+                            return (
+                                <div className="bg-slate-900/50 rounded-lg p-3 text-center text-slate-500 text-xs">
+                                    {t('no_audio')}
                                 </div>
-                                <button
-                                    onClick={toggleMute}
-                                    className="p-2 text-slate-400 hover:text-white"
-                                >
-                                    {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                                </button>
+                            );
+                        }
+                        return (
+                            <div className="bg-slate-900 rounded-lg p-3">
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={togglePlay}
+                                        className="w-10 h-10 rounded-full bg-cyan-600 hover:bg-cyan-500 flex items-center justify-center transition-colors"
+                                        title={usingSynth ? t('replay_live_sound', { defaultValue: 'Repetir som ao vivo' }) : undefined}
+                                    >
+                                        {isPlaying ? (
+                                            <Pause className="w-5 h-5 text-white" />
+                                        ) : (
+                                            <Play className="w-5 h-5 text-white ml-0.5" />
+                                        )}
+                                    </button>
+                                    <div className="flex-1">
+                                        <div className="text-xs text-slate-400 mb-1 flex items-center gap-1.5">
+                                            {currentPoint ? t('point_sounds', { point: t(currentPoint.labelKey) }) : t(profile.playerLabelKey)}
+                                            {usingSynth && (
+                                                <span className="inline-flex items-center gap-1 text-[10px] text-cyan-400" title={t('live_synth_hint', { defaultValue: 'Sintetizado ao vivo, sincronizado com a FC atual' })}>
+                                                    <Radio className="w-3 h-3" />
+                                                    {t('live_synth_label', { defaultValue: 'ao vivo' })}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                                            <div className={`h-full bg-cyan-500 transition-all ${isPlaying ? 'animate-pulse' : ''}`} style={{ width: isPlaying ? '60%' : '0%' }} />
+                                        </div>
+                                        {/* Stereo focus indicator: the dot sits at the point's
+                                            actual L/R pan so the player visually confirms which
+                                            ear should hear it loudest — "foco estéreo ativo". */}
+                                        {usingSynth && currentPoint && (
+                                            <div className="flex items-center gap-1.5 mt-1.5" title={t('stereo_focus_hint', { defaultValue: 'Panorâmica estéreo de acordo com a posição do foco' })}>
+                                                <span className="text-[9px] text-slate-500">L</span>
+                                                <div className="relative flex-1 h-1 bg-slate-700 rounded-full">
+                                                    <div
+                                                        className="absolute top-1/2 w-1.5 h-1.5 rounded-full bg-cyan-400 -translate-y-1/2 -translate-x-1/2"
+                                                        style={{ left: `${((panForPoint(currentPoint) + 1) / 2) * 100}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-[9px] text-slate-500">R</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Mute only applies to real <audio> playback — the synth
+                                        writes straight to the AudioContext destination, so
+                                        there's no element-level volume to toggle. */}
+                                    {!usingSynth && (
+                                        <button
+                                            onClick={toggleMute}
+                                            className="p-2 text-slate-400 hover:text-white"
+                                        >
+                                            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                                        </button>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ) : (
-                        <div className="bg-slate-900/50 rounded-lg p-3 text-center text-slate-500 text-xs">
-                            {t('no_audio')}
-                        </div>
-                    )}
+                        );
+                    })()}
                 </div>
             </div>
 

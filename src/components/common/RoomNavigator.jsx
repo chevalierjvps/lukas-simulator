@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlaskConical, GraduationCap, HeartPulse, MessageCircle, Microscope, Scan, Stethoscope, BookOpen } from 'lucide-react';
+import { FlaskConical, GraduationCap, HeartPulse, MessageCircle, Microscope, Scan, Stethoscope, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
 import { PLUGIN_MANIFESTS } from '../../../server/shared/plugins/manifests.generated.js';
 
@@ -22,6 +22,12 @@ const PLUGIN_ACCENTS = {
     indigo: {
         iconText: 'text-indigo-300', activeText: 'text-indigo-200',
         activeBg: 'bg-indigo-500/15', activeRing: 'ring-indigo-500/30', activeBar: 'bg-indigo-400',
+    },
+    // Deliberately neutral — reference material, never a live clinical
+    // reading a case's own findings could be confused for.
+    slate: {
+        iconText: 'text-slate-300', activeText: 'text-slate-200',
+        activeBg: 'bg-slate-500/15', activeRing: 'ring-slate-500/30', activeBar: 'bg-slate-400',
     },
 };
 
@@ -117,7 +123,17 @@ const CORE_ROOM_DEFS = [
 // the point of the standard is that adding the next room is a manifest, not an
 // edit to a shared component. A manifest asking for an icon or accent that is
 // not allowlisted is skipped rather than rendered broken.
+// 'pacs' is deliberately excluded from its own tab: its imaging viewer is now
+// the "Imágenes" tab inside the core 'radiology' room (App.jsx renders it via
+// the generic PluginRoom mount, keyed off a local tab state, never a room
+// switch) rather than a second, unsynchronized room students had to discover
+// on their own. `enabledPlugins` still includes 'pacs' when a case has real
+// imaging — that's what gates whether the in-room "Imágenes" tab is offered
+// at all — this filter only hides the now-redundant standalone nav entry.
+const HIDDEN_PLUGIN_ROOMS = new Set(['pacs']);
+
 const PLUGIN_ROOM_DEFS = PLUGIN_MANIFESTS
+    .filter((m) => !HIDDEN_PLUGIN_ROOMS.has(m.room.key))
     .map((m) => {
         const icon = PLUGIN_ICONS[m.room.icon];
         const accent = PLUGIN_ACCENTS[m.room.accent];
@@ -186,36 +202,73 @@ export default function RoomNavigator({
 }) {
     const { t } = useTranslation('common');
     const counts = useReadyCounts(sessionId);
+    const [isCollapsed, setIsCollapsed] = useState(false);
+
+    // Active room label for the minimized toggle pill
+    const activeDef = ROOM_DEFS.find((r) => r.key === currentRoom);
+    const activeLabel = activeDef ? t(activeDef.labelKey) : t('room_navigation');
+
     return (
-        <nav
-            className="flex items-stretch gap-1 px-3 py-2 bg-slate-950/95 backdrop-blur border-t border-slate-800 shadow-[0_-8px_24px_-12px_rgba(0,0,0,0.6)]"
-            aria-label={t('room_navigation')}
-        >
-            {ROOM_DEFS
-                .filter((room) => !room.isPlugin || enabledPlugins === null || enabledPlugins.includes(room.key))
-                .map((room) => (
-                <RoomButton
-                    key={room.key}
-                    room={room}
-                    active={currentRoom === room.key}
-                    badge={room.key === 'lab' ? counts.lab : room.key === 'radiology' ? counts.radiology : 0}
-                    onClick={() => onSelectRoom(room.key)}
-                />
-            ))}
-            {/* Course — a peer of the rooms but visually smaller and in black,
-                opening this case's course content (lessons + surveys). */}
-            {onOpenCourse && (
+        <div className="w-full px-4 pb-2 pt-1 pointer-events-none flex flex-col items-center select-none">
+            {/* Sliding Container with smooth transition */}
+            <div className={`pointer-events-auto flex flex-col items-center transition-all duration-300 ease-out ${
+                isCollapsed ? 'translate-y-[calc(100%-24px)] opacity-90 hover:opacity-100 hover:translate-y-0' : 'translate-y-0'
+            }`}>
+                {/* Pull handle / toggle bar */}
                 <button
                     type="button"
-                    onClick={onOpenCourse}
-                    aria-label={t('room_course', { defaultValue: 'Course' })}
-                    className="shrink-0 self-stretch px-3 rounded-lg flex items-center gap-2 bg-black text-white/85 ring-1 ring-white/10 hover:bg-neutral-900 hover:text-white transition-colors"
+                    onClick={() => setIsCollapsed((v) => !v)}
+                    aria-label={isCollapsed ? t('expand_navigation', { defaultValue: 'Expand navigation' }) : t('collapse_navigation', { defaultValue: 'Hide navigation' })}
+                    title={isCollapsed ? 'Expandir barra de navegação' : 'Recolher barra de navegação'}
+                    className="group -mb-1 px-4 py-0.5 rounded-t-xl bg-[rgba(5,9,10,0.85)] hover:bg-[rgba(14,22,24,0.9)] border-t border-x border-white/15 backdrop-blur-md flex items-center gap-1.5 text-[11px] font-medium text-slate-300 hover:text-white transition-all shadow-md cursor-pointer"
                 >
-                    <BookOpen className="w-4 h-4" />
-                    <span className="text-xs font-semibold">{t('room_course', { defaultValue: 'Course' })}</span>
+                    {isCollapsed ? (
+                        <>
+                            <ChevronUp className="w-3.5 h-3.5 text-teal-300 animate-bounce" />
+                            <span className="tracking-tight">{activeLabel}</span>
+                        </>
+                    ) : (
+                        <>
+                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-300 transition-colors" />
+                            <span className="text-[10px] uppercase tracking-wider text-slate-400 group-hover:text-slate-200">
+                                {t('hide_nav', { defaultValue: 'Recolher' })}
+                            </span>
+                        </>
+                    )}
                 </button>
-            )}
-        </nav>
+
+                {/* Dock Nav */}
+                <nav
+                    className="flex items-stretch gap-1.5 px-3 py-1.5 w-full max-w-5xl console-glass-dock shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.2)]"
+                    aria-label={t('room_navigation')}
+                >
+                    {ROOM_DEFS
+                        .filter((room) => !room.isPlugin || enabledPlugins === null || enabledPlugins.includes(room.key))
+                        .map((room) => (
+                        <RoomButton
+                            key={room.key}
+                            room={room}
+                            active={currentRoom === room.key}
+                            badge={room.key === 'lab' ? counts.lab : room.key === 'radiology' ? counts.radiology : 0}
+                            onClick={() => onSelectRoom(room.key)}
+                        />
+                    ))}
+                    {/* Course — a peer of the rooms but visually smaller and in black,
+                        opening this case's course content (lessons + surveys). */}
+                    {onOpenCourse && (
+                        <button
+                            type="button"
+                            onClick={onOpenCourse}
+                            aria-label={t('room_course', { defaultValue: 'Course' })}
+                            className="shrink-0 self-stretch px-3.5 rounded-xl flex items-center gap-2 bg-white/5 text-white/90 ring-1 ring-white/10 hover:bg-white/10 hover:text-white hover:ring-white/20 transition-all active:scale-[0.98]"
+                        >
+                            <BookOpen className="w-4 h-4 text-teal-300" />
+                            <span className="text-xs font-semibold">{t('room_course', { defaultValue: 'Course' })}</span>
+                        </button>
+                    )}
+                </nav>
+            </div>
+        </div>
     );
 }
 
@@ -234,38 +287,38 @@ function RoomButton({ room, active, badge, onClick }) {
             onClick={onClick}
             aria-pressed={active}
             aria-label={showBadge ? t('room_ready_results', { label, count: badge }) : label}
-            className={`relative flex-1 px-4 py-2.5 rounded-lg flex items-center justify-center gap-2.5 transition-colors group ${
+            className={`relative flex-1 px-3.5 py-2 rounded-xl flex items-center justify-center gap-2.5 transition-all duration-200 group active:scale-[0.98] ${
                 active
-                    ? `${room.activeBg} ring-1 ${room.activeRing}`
-                    : 'hover:bg-slate-900/60'
+                    ? `${room.activeBg} ring-1 ${room.activeRing} shadow-[0_4px_16px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)]`
+                    : 'hover:bg-white/5 hover:shadow-[0_2px_8px_rgba(0,0,0,0.2)]'
             }`}
         >
             <div className="relative">
-                <Icon className={`w-5 h-5 transition-colors ${
-                    active ? room.iconText : `${room.iconText} opacity-60 group-hover:opacity-100`
+                <Icon className={`w-5 h-5 transition-transform duration-200 group-hover:scale-110 ${
+                    active ? `${room.iconText} drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]` : `${room.iconText} opacity-70 group-hover:opacity-100`
                 }`} />
                 {showBadge && (
                     <span
-                        className={`absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold leading-4 text-center ring-2 ring-slate-950 ${room.badgeAccent}`}
+                        className={`absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold leading-4 text-center ring-2 ring-slate-950 shadow-md ${room.badgeAccent}`}
                     >
                         {badge > 9 ? '9+' : badge}
                     </span>
                 )}
             </div>
             <div className="flex flex-col items-start leading-tight">
-                <span className={`text-sm font-semibold ${
-                    active ? 'text-white' : 'text-slate-300 group-hover:text-white'
+                <span className={`text-sm font-semibold tracking-tight transition-colors ${
+                    active ? 'text-white font-bold' : 'text-slate-300 group-hover:text-white'
                 }`}>
                     {label}
                 </span>
-                <span className={`text-[10px] uppercase tracking-wider ${
-                    active ? room.activeText : 'text-slate-500'
+                <span className={`text-[10px] uppercase tracking-wider font-medium transition-colors ${
+                    active ? room.activeText : 'text-slate-400/80 group-hover:text-slate-300'
                 }`}>
                     {t(room.subKey)}
                 </span>
             </div>
             {active && (
-                <span className={`absolute left-3 right-3 -bottom-px h-0.5 rounded-full ${room.activeBar}`} />
+                <span className={`absolute left-4 right-4 -bottom-px h-0.5 rounded-full ${room.activeBar} shadow-[0_0_8px_currentColor]`} />
             )}
         </button>
     );

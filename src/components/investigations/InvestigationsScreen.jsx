@@ -87,7 +87,12 @@ export default function InvestigationsScreen({
     // Used for exactly one thing: offering the crossing from a radiology REPORT
     // to the images it describes.
     enabledPlugins = null,
-    onSelectRoom = null,
+    // Switches to the "Imágenes" tab within this same room (App.jsx owns
+    // that tab state — see radiologyTab there). Radiology and PACS used to
+    // be two separate rooms crossed via a room-switch callback; PACS no
+    // longer has its own room (RoomNavigator.jsx's HIDDEN_PLUGIN_ROOMS), so
+    // this is now an in-room tab switch instead.
+    onOpenImagesTab = null,
 }) {
     const { t } = useTranslation('investigations');
     const [showNotes, setShowNotes] = useState(false);
@@ -140,15 +145,17 @@ export default function InvestigationsScreen({
         toast,
     });
 
-    // The images for an ordered study open in the PACS room. Named as a STRING
-    // and never imported: a core room that imported a plugin would turn deleting
-    // that plugin's directory into a build failure, which is precisely what
-    // RPS-1's peaceful exclusion rule forbids. A deployment without the room —
-    // or a case that offers no imaging at all — simply gets no button.
+    // The images for an ordered study open in the "Imágenes" tab of this same
+    // room (onOpenImagesTab, owned by App.jsx). 'pacs' is named as a STRING
+    // and never imported here either way: a core room that imported a plugin
+    // would turn deleting that plugin's directory into a build failure, which
+    // is precisely what RPS-1's peaceful exclusion rule forbids. A deployment
+    // without the plugin — or a case that offers no imaging at all — simply
+    // gets no button.
     const IMAGING_ROOM = 'pacs';
-    const onOpenImages = activeKind === 'radiology' && typeof onSelectRoom === 'function'
+    const onOpenImages = activeKind === 'radiology' && typeof onOpenImagesTab === 'function'
         && Array.isArray(enabledPlugins) && enabledPlugins.includes(IMAGING_ROOM)
-        ? () => onSelectRoom(IMAGING_ROOM)
+        ? onOpenImagesTab
         : null;
 
     const active = activeKind === 'radiology' ? radiology : lab;
@@ -175,7 +182,12 @@ export default function InvestigationsScreen({
     }), [lab.openOrders, radiology.openOrders]);
 
     return (
-        <div className="h-screen w-screen bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-slate-100 flex flex-col overflow-hidden">
+        // h-full/w-full, not h-screen/w-screen: in radiology mode this now
+        // mounts under App.jsx's Pedidos/Imágenes tablist, which needs its
+        // own height back — h-screen would overflow past it. Lab mode has no
+        // tablist above it, so filling 100% of that h-screen wrapper renders
+        // identically to before.
+        <div className="h-full w-full bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-slate-100 flex flex-col overflow-hidden">
             <header className="flex items-center justify-between px-6 py-3 bg-slate-950/80 backdrop-blur border-b border-slate-800/80 shadow-lg shadow-black/20">
                 {/* The Oyon capture pill is a `fixed` overlay centred at the
                     top of the viewport. On a desktop it floats over empty
@@ -240,16 +252,6 @@ export default function InvestigationsScreen({
                 </aside>
 
                 <main className="relative bg-slate-900/30 overflow-hidden flex flex-col max-lg:min-h-[60vh]">
-                    {/* Ghost watermark fills the middle column behind the
-                        scrolling content. Sits outside the scroller so it
-                        stays put as the student scrolls pills + expanded
-                        reports. */}
-                    <h1
-                        aria-hidden="true"
-                        className={`pointer-events-none absolute inset-0 flex items-center justify-center text-[18vw] font-black tracking-tighter select-none ${theme.ghostText}`}
-                    >
-                        {activeKind === 'radiology' ? t('watermark_radiology') : t('watermark_lab')}
-                    </h1>
                     <div className="relative flex-1 min-h-0 p-8 overflow-y-auto">
                         {expandedOrder ? (
                             /* Pill clicked → report takes the whole middle

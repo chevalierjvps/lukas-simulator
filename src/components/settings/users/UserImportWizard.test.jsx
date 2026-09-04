@@ -66,7 +66,7 @@ describe('UserImportWizard', () => {
             cohortId: undefined,
             dryRun: true,
         }));
-        expect(screen.getByText('Server preview')).toBeTruthy();
+        await waitFor(() => expect(screen.getByText('Server preview')).toBeTruthy());
         expect(screen.getByText(/Username already exists/i)).toBeTruthy();
 
         fireEvent.click(screen.getByRole('button', { name: /Import 1 rows/i }));

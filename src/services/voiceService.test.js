@@ -530,3 +530,199 @@ describe('voiceService — wire entries are literal and carry the language (2.0)
         expect(entry.requestedVoice).toBeUndefined();
     });
 });
+
+// ---------------------------------------------------------------------------
+// getAudioInputDevices — permission-probe regression
+// ---------------------------------------------------------------------------
+//
+// enumerateDevices() only returns real labels (device.label) once the origin
+// has been granted mic permission at least once; before that every entry
+// comes back as `label: ''`, and on some engines the device list itself is
+// only a single generic entry. The mic picker showed "Microfone 1/2/3" even
+// when a real, distinguishable device list was one prompt away because
+// getAudioInputDevices() never actually requested that permission.
+describe('voiceService — getAudioInputDevices probes permission when labels are empty', () => {
+    let originalMediaDevices;
+
+    beforeEach(() => {
+        originalMediaDevices = navigator.mediaDevices;
+    });
+
+    afterEach(() => {
+        Object.defineProperty(navigator, 'mediaDevices', {
+            value: originalMediaDevices,
+            configurable: true,
+        });
+    });
+
+    function stubMediaDevices(overrides) {
+        Object.defineProperty(navigator, 'mediaDevices', {
+            value: overrides,
+            configurable: true,
+        });
+    }
+
+    it('requests getUserMedia once when every enumerated label is empty, then re-enumerates', async () => {
+        const stoppedTracks = [];
+        const enumerateDevices = vi.fn()
+            .mockResolvedValueOnce([
+                { kind: 'audioinput', deviceId: 'd1', label: '' },
+                { kind: 'audioinput', deviceId: 'd2', label: '' },
+            ])
+            .mockResolvedValueOnce([
+                { kind: 'audioinput', deviceId: 'd1', label: 'Headset Microphone' },
+                { kind: 'audioinput', deviceId: 'd2', label: 'Built-in Microphone' },
+            ]);
+        const getUserMedia = vi.fn().mockResolvedValue({
+            getTracks: () => [{ stop: () => stoppedTracks.push('d') }],
+        });
+        stubMediaDevices({ enumerateDevices, getUserMedia });
+
+        const devices = await VoiceService.getAudioInputDevices();
+
+        expect(getUserMedia).toHaveBeenCalledTimes(1);
+        expect(getUserMedia).toHaveBeenCalledWith({ audio: true });
+        expect(enumerateDevices).toHaveBeenCalledTimes(2);
+        expect(stoppedTracks).toHaveLength(1); // the probe stream is stopped, not left open
+        expect(devices).toEqual([
+            { deviceId: 'd1', label: 'Headset Microphone' },
+            { deviceId: 'd2', label: 'Built-in Microphone' },
+        ]);
+    });
+
+    it('does not probe when labels are already populated', async () => {
+        const enumerateDevices = vi.fn().mockResolvedValue([
+            { kind: 'audioinput', deviceId: 'd1', label: 'Already Known Mic' },
+        ]);
+        const getUserMedia = vi.fn();
+        stubMediaDevices({ enumerateDevices, getUserMedia });
+
+        const devices = await VoiceService.getAudioInputDevices();
+
+        expect(getUserMedia).not.toHaveBeenCalled();
+        expect(devices).toEqual([{ deviceId: 'd1', label: 'Already Known Mic' }]);
+    });
+
+    it('falls back to generic labels (not a throw) when the permission probe is denied', async () => {
+        const enumerateDevices = vi.fn().mockResolvedValue([
+            { kind: 'audioinput', deviceId: 'd1', label: '' },
+        ]);
+        const getUserMedia = vi.fn().mockRejectedValue(new DOMException('Permission denied', 'NotAllowedError'));
+        stubMediaDevices({ enumerateDevices, getUserMedia });
+
+        const devices = await VoiceService.getAudioInputDevices();
+
+        expect(devices).toEqual([{ deviceId: 'd1', label: 'Microfone 1' }]);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// MediaRecorder path — empty-capture regression
+// ---------------------------------------------------------------------------
+//
+// getUserMedia can succeed (no permission/security error at any point) while
+// the capture pipeline behind it never delivers real audio samples — seen on
+// this stack as a WebKitGTK+PipeWire capture-path issue, confirmed to be
+// unrelated to HTTPS/origin or device selection. Before this fix that state
+// surfaced as onEnd({final: ''}) with no error, which the UI read as the
+// generic "no speech heard, maybe host over HTTPS" message — actively
+// misleading for a native app with no HTTP origin at all. It must instead be
+// a distinguishable error so the UI can say what's actually true.
+describe('voiceService — MediaRecorder path distinguishes an empty capture from "no speech"', () => {
+    let originalMediaDevices;
+    let originalMediaRecorder;
+
+    beforeEach(() => {
+        originalMediaDevices = navigator.mediaDevices;
+        originalMediaRecorder = globalThis.MediaRecorder;
+    });
+
+    afterEach(() => {
+        Object.defineProperty(navigator, 'mediaDevices', {
+            value: originalMediaDevices,
+            configurable: true,
+        });
+        globalThis.MediaRecorder = originalMediaRecorder;
+    });
+
+    class FakeMediaRecorder {
+        constructor() {
+            FakeMediaRecorder.instances.push(this);
+        }
+        start() {}
+        stop() {
+            this.onstop?.();
+        }
+        static isTypeSupported() { return true; }
+    }
+    FakeMediaRecorder.instances = [];
+
+    function stubGetUserMedia(track = { stop: () => {} }) {
+        Object.defineProperty(navigator, 'mediaDevices', {
+            value: {
+                getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [track] }),
+                enumerateDevices: vi.fn().mockResolvedValue([]),
+            },
+            configurable: true,
+        });
+    }
+
+    it('reports "empty-capture" (not silent success/no-speech) when the recorded blob is essentially empty', async () => {
+        FakeMediaRecorder.instances.length = 0;
+        globalThis.MediaRecorder = FakeMediaRecorder;
+        stubGetUserMedia();
+
+        const onError = vi.fn();
+        const onEnd = vi.fn();
+        await VoiceService.startListening({ lang: 'pt-BR', deviceId: 'd1', onError, onEnd, onResult: vi.fn() });
+
+        // No ondataavailable ever fired — the empty-capture case in the wild.
+        FakeMediaRecorder.instances[0].stop();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'empty-capture' }));
+        expect(onEnd).not.toHaveBeenCalled();
+    });
+
+    it('proceeds to /api/stt normally when real audio data was captured', async () => {
+        FakeMediaRecorder.instances.length = 0;
+        globalThis.MediaRecorder = FakeMediaRecorder;
+        stubGetUserMedia();
+        // jsdom's Blob has no arrayBuffer() implementation.
+        if (!Blob.prototype.arrayBuffer) {
+            Blob.prototype.arrayBuffer = function () {
+                return Promise.resolve(new ArrayBuffer(this.size));
+            };
+        }
+        // The STT call now goes through apiFetch (see voiceService.js — it
+        // used to be a raw fetch() with a hand-rolled Authorization header
+        // that silently dropped the CSRF header on a cookie-restored
+        // session), which reads response.headers itself; a bare {ok, json}
+        // stub answers that with undefined safely, but a real Headers
+        // instance keeps this mock honest.
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+            ok: true,
+            headers: new Headers(),
+            json: async () => ({ transcript: 'ola doutor' }),
+        });
+
+        const onError = vi.fn();
+        const onEnd = vi.fn();
+        await VoiceService.startListening({ lang: 'pt-BR', deviceId: 'd1', onError, onEnd, onResult: vi.fn() });
+
+        const recorder = FakeMediaRecorder.instances[0];
+        recorder.ondataavailable?.({ data: new Blob([new Uint8Array(200)]) });
+        recorder.stop();
+        // apiFetch adds a few microtask hops (URL/header prep, the fetch
+        // itself, then the JSON parse below) beyond the raw fetch() this
+        // used to be — flush the microtask queue rather than guessing a
+        // fixed tick count.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        expect(onError).not.toHaveBeenCalled();
+        expect(onEnd).toHaveBeenCalledWith({ final: 'ola doutor' });
+        fetchSpy.mockRestore();
+    });
+});

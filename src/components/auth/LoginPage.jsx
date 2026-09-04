@@ -1,27 +1,24 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogIn, User, Lock, AlertCircle, KeyRound, Eye, EyeOff } from 'lucide-react';
+import {
+    LogIn,
+    User,
+    Lock,
+    AlertCircle,
+    KeyRound,
+    Eye,
+    EyeOff,
+    ShieldCheck,
+    GraduationCap,
+    BookOpen,
+    ClipboardCheck,
+    Check,
+    Sparkles
+} from 'lucide-react';
 
 /**
  * Turn a sign-in failure into a sentence in the user's own language.
- *
- * The server speaks English and only English: AuthService.login() throws a
- * plain `new Error(data.error)`, so the status code and the machine-readable
- * `code` are already on the floor by the time we get here. Rendering
- * `err.message` therefore showed English to every Finnish, Swedish, German,
- * Italian and Spanish user — and left the five translated failure strings in
- * the catalogues as dead code.
- *
- * So: match the KNOWN server shapes (they are fixed literals in
- * server/routes/auth-routes.js) back onto catalogue keys. Keys are spelled out
- * literally at every branch — a `t(variable)` is invisible to the extractor.
- * The `code`/`status` branches come first so this keeps working the day login
- * moves onto apiClient's ApiError, which does carry both.
- *
- * Anything genuinely unrecognised still reaches the user, but wrapped in a
- * translated frame rather than dumped raw: an unknown English detail is worth
- * more than a shrug, and the sentence around it is still readable.
  */
 export function translateLoginError(err, t) {
     const code = err?.code || err?.body?.code || '';
@@ -32,8 +29,6 @@ export function translateLoginError(err, t) {
         return t('error_account_disabled');
     }
 
-    // 423 + "Account locked. Try again in N minutes." — the countdown is the
-    // whole point of the message, so carry it through the translation.
     const locked = /^Account locked\. Try again in (\d+) minute/i.exec(raw);
     if (locked) return t('error_account_locked', { minutes: Number(locked[1]) });
 
@@ -51,28 +46,83 @@ export function translateLoginError(err, t) {
 }
 
 /**
- * The sign-in card. Pure card — the split-panel shell around it is AuthLayout,
- * owned by AuthGate.
- *
- * Every way into the platform is on this one card, policy-permitting:
- * password sign-in, "create an account" (open/approval), and "register with an
- * invitation code". The invite button is separate from the create-account link
- * because they are different promises: a code holder was told they have
- * something special, and a generic register link doesn't say "your code goes
- * here".
+ * The 5 platform role profiles with their hierarchy, permissions and quick credentials.
  */
+const ROLES = [
+    {
+        id: 'student',
+        rank: 1,
+        title: 'Student / Trainee',
+        badge: 'Rank 1',
+        icon: GraduationCap,
+        color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-300',
+        badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+        username: 'student',
+        defaultPass: 'student123',
+        description: 'Run sessions, talk to the patient (text or voice), order labs / radiology / treatments, examine, view own session history.',
+        descriptionPt: 'Executa simulações, conversa com o paciente (voz/texto), solicita exames laboratoriais, radiologia/PACS, condutas e exame físico.'
+    },
+    {
+        id: 'reviewer',
+        rank: 2,
+        title: 'Reviewer / QA',
+        badge: 'Rank 2',
+        icon: ClipboardCheck,
+        color: 'from-sky-500/20 to-blue-500/10 border-sky-500/30 text-sky-300',
+        badgeColor: 'bg-sky-500/20 text-sky-300 border-sky-500/30',
+        username: 'reviewer',
+        defaultPass: 'reviewer123',
+        description: 'Read-only analytics + catalog access. Useful for QA reviewers without authoring rights.',
+        descriptionPt: 'Acesso somente-leitura a análises pedagógicas e catálogo de casos. Ideal para revisores de qualidade sem direito de edição.'
+    },
+    {
+        id: 'educator',
+        rank: 3,
+        title: 'Educator / Docente',
+        badge: 'Rank 3',
+        icon: BookOpen,
+        color: 'from-amber-500/20 to-orange-500/10 border-amber-500/30 text-amber-300',
+        badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+        username: 'educator',
+        defaultPass: 'educator123',
+        description: 'Trainee-level + create / edit cases, scenarios, agents, lab catalogs. Cannot touch platform settings, users, or audit logs.',
+        descriptionPt: 'Nível estudante + criar/editar casos clínicos, cenários, agentes e catálogos laboratoriais. Sem acesso a configurações globais.'
+    },
+    {
+        id: 'admin',
+        rank: 4,
+        title: 'Admin / Coordenador',
+        badge: 'Rank 4',
+        icon: ShieldCheck,
+        color: 'from-purple-500/20 to-pink-500/10 border-purple-500/30 text-purple-300',
+        badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
+        username: 'admin',
+        defaultPass: 'admin123',
+        description: 'Full authoring + user management, agent persona editor, platform settings, audit logs + system_audit_log, soft-delete + purge endpoints.',
+        descriptionPt: 'Acesso irrestrito: gestão de turmas e usuários, editor de personas, configurações globais da plataforma, logs de auditoria e purga.'
+    }
+];
+
 export default function LoginPage({ onSwitchToRegister, onSwitchToInvite, policy }) {
-    const { t } = useTranslation('auth');
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
+    const { t, i18n } = useTranslation('auth');
+    const isPt = (i18n?.language || 'pt').startsWith('pt');
+
+    const [selectedRole, setSelectedRole] = useState(ROLES[0]);
+    const [username, setUsername] = useState(ROLES[0].username);
+    const [password, setPassword] = useState(ROLES[0].defaultPass);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
 
-    // In invite-only mode the plain "create an account" link is a lie — the
-    // register form will demand a code anyway — so only the invite button shows.
     const inviteOnly = Boolean(policy?.invite_required);
+
+    const handleSelectRole = (role) => {
+        setSelectedRole(role);
+        setUsername(role.username);
+        setPassword(role.defaultPass);
+        setError('');
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -89,37 +139,103 @@ export default function LoginPage({ onSwitchToRegister, onSwitchToInvite, policy
     };
 
     return (
-        <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-bold text-white mb-1">{t('welcome_back')}</h2>
-            <p className="text-sm text-neutral-400 mb-6">{t('signin_continue')}</p>
+        <div className="osiris-glass-card p-6 lg:p-8 shadow-[0_24px_60px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.2)]">
+            <div className="flex items-center justify-between mb-1.5">
+                <h2 className="text-2xl font-bold text-white tracking-tight">
+                    {t('welcome_back', { defaultValue: 'Entrar no Lukas 1.0' })}
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wider uppercase bg-teal-500/20 text-teal-300 border border-teal-500/30 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> by Jvps
+                </span>
+            </div>
+            <p className="text-xs text-slate-400 mb-5">
+                {isPt
+                    ? 'Selecione um perfil de acesso (Role) ou entre com suas credenciais:'
+                    : 'Select an access profile (Role) or sign in with your credentials:'}
+            </p>
+
+            {/* Role selection ladder */}
+            <div className="mb-5 space-y-2">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                    <span>{isPt ? 'Perfis de Usuário (Roles)' : 'User Roles & Ranks'}</span>
+                    <span className="text-[10px] text-teal-300 font-normal">
+                        {isPt ? 'Clique para preencher' : 'Click to select'}
+                    </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                    {ROLES.map((r) => {
+                        const Icon = r.icon;
+                        const isSelected = selectedRole?.id === r.id;
+                        return (
+                            <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => handleSelectRole(r)}
+                                className={`p-2.5 rounded-xl text-left border transition-all duration-200 relative overflow-hidden flex flex-col justify-between ${
+                                    isSelected
+                                        ? `bg-gradient-to-br ${r.color} shadow-lg ring-1 ring-white/30 scale-[1.02]`
+                                        : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.07] text-slate-300'
+                                }`}
+                            >
+                                <div className="flex items-center justify-between w-full mb-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-white' : 'text-slate-400'}`} />
+                                        <span className="text-xs font-bold text-white truncate">{r.title.split('/')[0]}</span>
+                                    </div>
+                                    <span className={`text-[9px] px-1.5 py-0.2 rounded border font-mono ${r.badgeColor}`}>
+                                        {r.badge}
+                                    </span>
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono">
+                                    user: <span className="text-slate-200 font-semibold">{r.username}</span>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Selected Role Description Box */}
+                {selectedRole && (
+                    <div className="p-3 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-md mt-2">
+                        <div className="flex items-center gap-2 mb-1">
+                            <selectedRole.icon className="w-3.5 h-3.5 text-teal-300 shrink-0" />
+                            <span className="text-xs font-bold text-white">{selectedRole.title} ({selectedRole.badge})</span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                            {isPt ? selectedRole.descriptionPt : selectedRole.description}
+                        </p>
+                    </div>
+                )}
+            </div>
 
             {error && (
                 <div
                     role="alert"
                     aria-live="assertive"
-                    className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded-lg flex items-center gap-2 text-red-200"
+                    className="mb-4 p-3 bg-red-950/40 border border-red-500/40 rounded-xl flex items-center gap-2 text-red-200 text-xs backdrop-blur-md shadow-sm"
                 >
-                    <AlertCircle className="w-5 h-5 shrink-0" aria-hidden="true" />
-                    <span className="text-sm">{error}</span>
+                    <AlertCircle className="w-4 h-4 shrink-0 text-red-400" aria-hidden="true" />
+                    <span>{error}</span>
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
                 {/* Username */}
                 <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                        {t('username')}
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                        {t('username', { defaultValue: 'Usuário' })}
                     </label>
                     <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             disabled={loading}
-                            placeholder={t('enter_username')}
+                            placeholder={t('enter_username', { defaultValue: 'Digite o usuário' })}
                             autoComplete="username"
-                            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all disabled:opacity-50"
+                            className="w-full osiris-glass-input pl-10 pr-4 py-2.5 text-sm placeholder:text-slate-500 disabled:opacity-50"
                             required
                         />
                     </div>
@@ -127,19 +243,19 @@ export default function LoginPage({ onSwitchToRegister, onSwitchToInvite, policy
 
                 {/* Password */}
                 <div>
-                    <label className="block text-sm font-medium text-neutral-300 mb-2">
-                        {t('password')}
+                    <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                        {t('password', { defaultValue: 'Senha' })}
                     </label>
                     <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+                        <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                             type={showPassword ? 'text' : 'password'}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             disabled={loading}
-                            placeholder={t('enter_password')}
+                            placeholder={t('enter_password', { defaultValue: 'Digite a senha' })}
                             autoComplete="current-password"
-                            className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-12 py-3 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all disabled:opacity-50"
+                            className="w-full osiris-glass-input pl-10 pr-12 py-2.5 text-sm placeholder:text-slate-500 disabled:opacity-50"
                             required
                         />
                         <button
@@ -147,9 +263,9 @@ export default function LoginPage({ onSwitchToRegister, onSwitchToInvite, policy
                             onClick={() => setShowPassword((v) => !v)}
                             aria-label={showPassword ? t('hide_password') : t('show_password')}
                             tabIndex={-1}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                         >
-                            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                     </div>
                 </div>
@@ -158,38 +274,34 @@ export default function LoginPage({ onSwitchToRegister, onSwitchToInvite, policy
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full osiris-btn-primary py-3 text-sm font-semibold flex items-center justify-center gap-2 mt-2"
                 >
                     {loading ? (
                         <>
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                            {t('signing_in')}
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>{t('signing_in', { defaultValue: 'Entrando…' })}</span>
                         </>
                     ) : (
                         <>
-                            <LogIn className="w-5 h-5" />
-                            {t('sign_in')}
+                            <LogIn className="w-4 h-4" />
+                            <span>{t('sign_in', { defaultValue: 'Entrar' })}</span>
                         </>
                     )}
                 </button>
             </form>
 
-            {/* The other ways in — or an explanation of their absence.
-                `onSwitchToRegister` is null when the platform does not offer
-                self-registration. Leaving a blank gap there reads as a broken
-                page, and there is no "email us" fallback to lean on: the
-                platform cannot send mail. So say plainly who to ask. */}
-            <div className="mt-6 space-y-3">
+            {/* Other actions */}
+            <div className="mt-5 pt-4 border-t border-white/10 space-y-3">
                 {onSwitchToRegister ? (
                     <>
                         {!inviteOnly && (
-                            <p className="text-neutral-400 text-sm text-center">
-                                {t('no_account_prompt')}{' '}
+                            <p className="text-slate-400 text-xs text-center">
+                                {t('no_account_prompt', { defaultValue: 'Não possui uma conta?' })}{' '}
                                 <button
                                     onClick={onSwitchToRegister}
-                                    className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                                    className="text-teal-300 hover:text-teal-200 font-semibold transition-colors underline-offset-4 hover:underline"
                                 >
-                                    {t('create_account')}
+                                    {t('create_account', { defaultValue: 'Criar conta' })}
                                 </button>
                             </p>
                         )}
@@ -197,16 +309,16 @@ export default function LoginPage({ onSwitchToRegister, onSwitchToInvite, policy
                             <button
                                 type="button"
                                 onClick={onSwitchToInvite}
-                                className="w-full flex items-center justify-center gap-2 border border-neutral-700 hover:border-neutral-500 text-neutral-200 font-medium py-3 rounded-lg transition-colors"
+                                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-slate-200 text-xs font-semibold transition-all active:scale-[0.98]"
                             >
-                                <KeyRound className="w-4 h-4" />
-                                {t('register_with_invite')}
+                                <KeyRound className="w-3.5 h-3.5 text-teal-300" />
+                                {t('register_with_invite', { defaultValue: 'Registrar com código de convite' })}
                             </button>
                         )}
                     </>
                 ) : (
-                    <p className="text-neutral-500 text-sm text-center">
-                        {policy?.message || t('registration_closed_hint')}
+                    <p className="text-slate-500 text-xs text-center font-medium">
+                        {policy?.message || t('registration_closed_hint', { defaultValue: 'Registro gerenciado pelo administrador.' })}
                     </p>
                 )}
             </div>

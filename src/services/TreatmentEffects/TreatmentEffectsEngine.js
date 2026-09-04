@@ -82,6 +82,28 @@ class TreatmentEffectsEngine {
         // Calculate current effects based on strength and dose multiplier
         const doseMultiplier = treatment.dose_multiplier || 1.0;
 
+        const medName = (treatment.treatment_item || treatment.treatment_name || '').toLowerCase();
+        let defaultPainEffect = 0;
+        let defaultAnxietyEffect = 0;
+
+        if (medName.includes('morphine') || medName.includes('morfina') || medName.includes('fentanyl') || medName.includes('fentanil') || medName.includes('tramadol')) {
+            defaultPainEffect = -5.0;
+            defaultAnxietyEffect = -3.0;
+        } else if (medName.includes('nitroglycerin') || medName.includes('nitroglicerina') || medName.includes('isordil') || medName.includes('monocordil')) {
+            defaultPainEffect = -4.0;
+            defaultAnxietyEffect = -2.0;
+        } else if (medName.includes('dipirona') || medName.includes('paracetamol') || medName.includes('acetaminophen') || medName.includes('ketorolac') || medName.includes('cetoprofeno') || medName.includes('ibuprofen')) {
+            defaultPainEffect = -2.5;
+        } else if (medName.includes('midazolam') || medName.includes('diazepam') || medName.includes('lorazepam') || medName.includes('clonazepam')) {
+            defaultAnxietyEffect = -5.0;
+            defaultPainEffect = -1.0;
+        } else if (treatment.treatment_type === 'oxygen') {
+            defaultAnxietyEffect = -2.0;
+        }
+
+        const peakPainEffect = treatment.peak_pain_effect ?? defaultPainEffect;
+        const peakAnxietyEffect = treatment.peak_anxiety_effect ?? defaultAnxietyEffect;
+
         return {
             id: treatment.id,
             treatment_order_id: treatment.treatment_order_id,
@@ -97,14 +119,16 @@ class TreatmentEffectsEngine {
                 bp_dia: Math.round((treatment.peak_bp_dia_effect || 0) * strength * doseMultiplier),
                 rr: Math.round((treatment.peak_rr_effect || 0) * strength * doseMultiplier),
                 spo2: Math.round((treatment.peak_spo2_effect || 0) * strength * doseMultiplier),
-                temp: (treatment.peak_temp_effect || 0) * strength * doseMultiplier
+                temp: (treatment.peak_temp_effect || 0) * strength * doseMultiplier,
+                pain: Math.round(peakPainEffect * strength * doseMultiplier * 10) / 10,
+                anxiety: Math.round(peakAnxietyEffect * strength * doseMultiplier * 10) / 10
             }
         };
     }
 
     /**
      * Calculate aggregate effects from all active treatments
-     * @returns {Object} - { treatments: [], aggregate: {hr, bp_sys, bp_dia, rr, spo2, temp} }
+     * @returns {Object} - { treatments: [], aggregate: {hr, bp_sys, bp_dia, rr, spo2, temp, pain, anxiety} }
      */
     calculateAggregateEffects() {
         const treatments = this.activeTreatments.map(t => this.calculateTreatmentEffect(t));
@@ -120,6 +144,8 @@ class TreatmentEffectsEngine {
             acc.rr += t.effects.rr;
             acc.spo2 += t.effects.spo2;
             acc.temp += t.effects.temp;
+            acc.pain += t.effects.pain || 0;
+            acc.anxiety += t.effects.anxiety || 0;
             return acc;
         }, {
             hr: 0,
@@ -127,7 +153,9 @@ class TreatmentEffectsEngine {
             bp_dia: 0,
             rr: 0,
             spo2: 0,
-            temp: 0
+            temp: 0,
+            pain: 0,
+            anxiety: 0
         });
 
         return {
@@ -139,11 +167,23 @@ class TreatmentEffectsEngine {
 
     /**
      * Apply treatment effects to base vitals
-     * @param {Object} baseVitals - { hr, bp_sys, bp_dia, rr, spo2, temp }
+     * @param {Object} baseVitals - { hr, bp_sys, bp_dia, rr, spo2, temp, pain, anxiety }
      * @returns {Object} - Modified vitals with treatment effects applied
      */
     applyEffectsToVitals(baseVitals) {
         const { aggregate } = this.calculateAggregateEffects();
+
+        const basePain = Number.isFinite(baseVitals.pain) ? baseVitals.pain : 8.0;
+        const baseAnxiety = Number.isFinite(baseVitals.anxiety) ? baseVitals.anxiety : 7.0;
+
+        const effectivePain = Math.max(0, Math.min(10, basePain + aggregate.pain));
+        const effectiveAnxiety = Math.max(0, Math.min(10, baseAnxiety + aggregate.anxiety));
+
+        // Dynamically update global neuro-affect values for the 3D Avatar
+        if (typeof window !== 'undefined') {
+            window.__LUKAS_PATIENT_PAIN = effectivePain;
+            window.__LUKAS_PATIENT_ANXIETY = effectiveAnxiety;
+        }
 
         return {
             hr: Math.max(20, Math.min(250, (baseVitals.hr || 0) + aggregate.hr)),
@@ -151,7 +191,9 @@ class TreatmentEffectsEngine {
             bp_dia: Math.max(20, Math.min(200, (baseVitals.bp_dia || 0) + aggregate.bp_dia)),
             rr: Math.max(4, Math.min(60, (baseVitals.rr || 0) + aggregate.rr)),
             spo2: Math.max(50, Math.min(100, (baseVitals.spo2 || 0) + aggregate.spo2)),
-            temp: Math.max(30, Math.min(45, (baseVitals.temp || 0) + aggregate.temp))
+            temp: Math.max(30, Math.min(45, (baseVitals.temp || 0) + aggregate.temp)),
+            pain: Math.round(effectivePain * 10) / 10,
+            anxiety: Math.round(effectiveAnxiety * 10) / 10
         };
     }
 

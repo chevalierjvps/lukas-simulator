@@ -13,6 +13,7 @@ import {
 
 
 import * as labDb from '../services/labDatabase.js';
+import { getOrCreateSessionLabResult, pinSessionLabResult } from '../services/sessionLabResults.js';
 import { resolvePatientGender } from '../shared/patientDemographics.js';
 import { DEFAULT_TURNAROUND_MINUTES, resolveTurnaroundMinutes } from '../lib/turnaround.js';
 import { VISIBILITY_SQL as TREATMENT_VISIBILITY_SQL } from './treatments-library-routes.js';
@@ -1338,21 +1339,35 @@ router.get('/sessions/:sessionId/lab-results', authenticateToken, async (req, re
         ORDER BY io.available_at DESC
     `;
     
-    dbAdapter.all(sql, [sessionId], (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        
-        // Evaluate each result
-        const processedResults = results.map(result => ({
+    let results;
+    try {
+        results = await dbAdapter.all(sql, [sessionId]);
+    } catch (err) {
+        return res.status(500).json({ error: err.message });
+    }
+
+    // Each lab's DISPLAYED value is a per-session roll around the case's
+    // authored current_value/range (server/services/labResultRandomizer.js),
+    // frozen the first time this session reads it — see migration 0053.
+    const processedResults = await Promise.all(results.map(async (result) => {
+        const rolled = await getOrCreateSessionLabResult(sessionId, {
+            id: result.lab_id,
+            min_value: result.min_value,
+            max_value: result.max_value,
+            current_value: result.current_value,
+            is_abnormal: result.is_abnormal,
+        }, tenantId(req));
+        const current_value = rolled.rolled_value;
+        return {
             ...result,
-            status: labDb.evaluateValue(result.current_value, result.min_value, result.max_value),
-            flag: labDb.getValueFlag(labDb.evaluateValue(result.current_value, result.min_value, result.max_value)),
+            current_value,
+            status: labDb.evaluateValue(current_value, result.min_value, result.max_value),
+            flag: labDb.getValueFlag(labDb.evaluateValue(current_value, result.min_value, result.max_value)),
             is_ready: true
-        }));
-        
-        res.json({ results: processedResults });
-    });
+        };
+    }));
+
+    res.json({ results: processedResults });
 });
 
 // PUT /api/sessions/:sessionId/labs/:labId - Instructor edit lab value during simulation (Admin only)
@@ -1373,6 +1388,15 @@ router.put('/sessions/:sessionId/labs/:labId', authenticateToken, requireEducato
         }
         if (this.changes === 0) {
             return res.status(404).json({ error: 'Lab test not found' });
+        }
+
+        // Pin this exact value for this session so the randomizer (see
+        // server/services/sessionLabResults.js) never resamples over an
+        // instructor's deliberate override.
+        try {
+            await pinSessionLabResult(sessionId, labId, tenantId(req), current_value);
+        } catch (pinErr) {
+            routesOrdersLog.warn('lab override pin failed', { error: pinErr.message, sessionId, labId });
         }
 
         // Log the instructor edit to learning_events (canonical xAPI store).
@@ -1458,6 +1482,25 @@ router.get('/radiology-database', authenticateToken, (req, res) => {
     });
 });
 
+// The master radiology catalogue (`radiologyDatabase`) is English-source-of-
+// truth, with a growing set of studies additionally carrying `name_es`/
+// `normal_findings_es`/`normal_interpretation_es` fields (additive — never
+// overwrites the English original, unlike the destructive prior translation
+// pass). This resolves a study to the CASE's language, falling back to
+// English for any study/field not yet translated so nothing ever renders
+// blank. `lang` is the case's language (case_language), never the student's
+// UI chrome language — see the same distinction fixed for exam findings in
+// examRegions.js.
+function localizeStudy(study, lang) {
+    if (!study || !lang?.startsWith('es')) return study;
+    return {
+        ...study,
+        name: study.name_es || study.name,
+        normal_findings: study.normal_findings_es || study.normal_findings,
+        normal_interpretation: study.normal_interpretation_es || study.normal_interpretation,
+    };
+}
+
 // A configured radiology entry (case config `radiology[]`) refers to a
 // catalogue study by `studyId`, or — for entries authored before ids were
 // stamped — by name (`studyName` / legacy `type`). One matcher, shared by
@@ -1529,7 +1572,7 @@ router.get('/sessions/:sessionId/available-radiology', authenticateToken, async 
             const groups = [...new Set(allStudies.map(s => s.modality))].sort();
 
             res.json({
-                studies: allStudies,
+                studies: allStudies.map(s => localizeStudy(s, config.case_language)),
                 groups: groups,
                 total: allStudies.length,
                 defaultRadiologyEnabled
@@ -1710,10 +1753,16 @@ router.post('/sessions/:sessionId/order-radiology', authenticateToken, (req, res
                 return;
             }
 
+            // Localized AFTER the name-based configuredRadiologyFor match above
+            // (which must compare against the catalogue's English study.name,
+            // the same string case authors' legacy studyName entries were
+            // written against) — display content follows the case's language.
+            const localizedStudy = localizeStudy(study, caseConfig.case_language);
+
             // Get study details from master database or configured result
-            const testName = study?.name || configuredResult?.studyName || 'Unknown Study';
-            const modality = study?.modality || configuredResult?.modality || 'Other';
-            const bodyRegion = study?.body_region || configuredResult?.bodyRegion || '';
+            const testName = localizedStudy?.name || configuredResult?.studyName || 'Unknown Study';
+            const modality = localizedStudy?.modality || configuredResult?.modality || 'Other';
+            const bodyRegion = localizedStudy?.body_region || configuredResult?.bodyRegion || '';
             // Turnaround through the single resolver. Per-test default is
             // either the case author's configured turnaround (if they pinned
             // one on this study) or the radiology master DB value.
@@ -1724,8 +1773,8 @@ router.post('/sessions/:sessionId/order-radiology', authenticateToken, (req, res
             });
 
             // Use configured findings/interpretation if available, otherwise use normal defaults from master database
-            const findings = configuredResult?.findings || study?.normal_findings || '';
-            const interpretation = configuredResult?.interpretation || study?.normal_interpretation || '';
+            const findings = configuredResult?.findings || localizedStudy?.normal_findings || '';
+            const interpretation = configuredResult?.interpretation || localizedStudy?.normal_interpretation || '';
             const imageUrl = configuredResult?.imageUrl || null;
             const videoUrl = configuredResult?.videoUrl || null;
 
@@ -1880,6 +1929,13 @@ router.get('/sessions/:sessionId/available-treatments', authenticateToken, (req,
 
                     return {
                         ...effect,
+                        // Display-only, locale-aware name. `treatment_name`
+                        // itself is a wire identifier (echoed back verbatim
+                        // in POST order-treatment, matched by exact string
+                        // against this table and the rubric) — never
+                        // localize it in place, only add an extra field.
+                        display_name: (caseConfig.case_language?.startsWith('es') && effect.treatment_name_es)
+                            || effect.treatment_name,
                         is_available: caseOverride?.is_available ?? true,
                         is_expected: caseOverride?.is_expected ?? false,
                         is_contraindicated: caseOverride?.is_contraindicated ?? false,

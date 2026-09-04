@@ -19,6 +19,11 @@ import {
     voiceLanguage,
     voiceMatchesLanguage,
 } from './voiceResolver.js';
+// DEFAULT_LANGUAGE is 'pt' (the rebrand made the platform pt-first) — tests
+// that exercise the "nothing configured, fall through to the platform
+// default" path must key their fixture off this constant instead of
+// hardcoding 'en', or they silently test the wrong language row.
+import { DEFAULT_LANGUAGE } from '../i18n/languages.js';
 
 // Settings payload builder mirroring GET /platform-settings/voice.
 function mkSettings({ usable = ['kokoro', 'google', 'openai', 'piper'], defaults = {}, rate, pitch } = {}) {
@@ -132,7 +137,7 @@ describe('tier: default — ONLY for speakers with nothing configured', () => {
     it('nothing configured + en default → default plays, announced as not_configured', () => {
         const r = resolveVoice({
             voice: {},
-            voiceSettings: mkSettings({ defaults: { en: 'af_bella' } })
+            voiceSettings: mkSettings({ defaults: { [DEFAULT_LANGUAGE]: 'af_bella' } })
         });
         expect(r.file).toBe('af_bella');
         expect(r.tier).toBe('default');
@@ -160,10 +165,10 @@ describe('tier: default — ONLY for speakers with nothing configured', () => {
         expect(r.tier).toBeNull();
     });
 
-    it('an unknown language code falls back to the en default row', () => {
+    it('an unknown language code falls back to the platform default row', () => {
         const r = resolveVoice({
             voice: {},
-            voiceSettings: mkSettings({ defaults: { en: 'af_bella' } }),
+            voiceSettings: mkSettings({ defaults: { [DEFAULT_LANGUAGE]: 'af_bella' } }),
             language: 'xx'
         });
         expect(r.file).toBe('af_bella');

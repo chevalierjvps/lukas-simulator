@@ -12,7 +12,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HelpCircle, X, ExternalLink, Copy } from 'lucide-react';
+import { HelpCircle, X, ExternalLink, Copy, Sparkles, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useNotifications, SOURCES, SEVERITY } from '../notifications';
 import { apiGet } from '../services/apiClient.js';
@@ -26,7 +26,7 @@ const TABS = [
   { id: 'support', labelKey: 'tab_support' },
 ];
 
-export default function HelpCenter({ open, onClose }) {
+export default function HelpCenter({ open, onClose, onOpenTutorial }) {
   const { t } = useTranslation('help');
   const { user } = useAuth();
   const { notify } = useNotifications();
@@ -144,9 +144,32 @@ export default function HelpCenter({ open, onClose }) {
             </p>
           )}
 
-          {tab === 'help' &&
-            groups.map((g) => (
-              <section key={g.groupKey} className="mb-6">
+          {tab === 'help' && (
+            <>
+              {onOpenTutorial && (
+                <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-teal-500/20 to-emerald-500/20 border border-teal-500/30">
+                  <div className="flex items-center gap-2 text-teal-300 font-bold text-sm mb-1">
+                    <Sparkles className="w-4 h-4" />
+                    Tutorial Interativo do Lukas 1.0
+                  </div>
+                  <p className="text-xs text-slate-300 mb-3">
+                    Aprenda a navegar pelas 5 salas clínicas, monitorar sinais vitais dinâmicos, prescrever e solicitar exames.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenTutorial();
+                    }}
+                    className="w-full py-2 px-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-md cursor-pointer"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Abrir Guia do Simulador
+                  </button>
+                </div>
+              )}
+              {groups.map((g) => (
+                <section key={g.groupKey} className="mb-6">
                 <h3 className="text-xs uppercase tracking-wide text-neutral-500 mb-2">
                   {t(g.groupKey)}
                 </h3>
@@ -166,7 +189,9 @@ export default function HelpCenter({ open, onClose }) {
                   ))}
                 </ul>
               </section>
-            ))}
+              ))}
+            </>
+          )}
 
           {tab === 'whatsnew' && (
             <div>

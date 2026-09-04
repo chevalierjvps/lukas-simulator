@@ -68,4 +68,34 @@ describe('TreatmentEffectsEngine', () => {
 
     vi.useRealTimers();
   });
+
+  it('reduces pain and anxiety dynamically when analgesic medications are administered', () => {
+    vi.setSystemTime(new Date('2026-05-06T12:00:00Z'));
+    const engine = new TreatmentEffectsEngine();
+    engine.setActiveTreatments([
+      {
+        id: 1,
+        treatment_order_id: 101,
+        treatment_name: 'Morfina',
+        treatment_type: 'medication',
+        started_at: '2026-05-06T11:55:00Z',
+        onset_minutes: 2,
+        peak_minutes: 5,
+        duration_minutes: 180,
+        peak_hr_effect: -10,
+        peak_bp_sys_effect: -15,
+        dose_multiplier: 1.0,
+      },
+    ]);
+
+    const vitals = engine.applyEffectsToVitals({ hr: 110, bp_sys: 160, bp_dia: 95, pain: 9.0, anxiety: 8.0 });
+
+    expect(vitals.pain).toBeLessThan(9.0);
+    expect(vitals.pain).toBeCloseTo(4.0, 1);
+    expect(vitals.anxiety).toBeLessThan(8.0);
+    expect(vitals.hr).toBe(100);
+    expect(vitals.bp_sys).toBe(145);
+
+    vi.useRealTimers();
+  });
 });

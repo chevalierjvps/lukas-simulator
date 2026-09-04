@@ -74,6 +74,72 @@ When asked about symptoms, describe them vividly in everyday language. Show appr
             difficulty_level: 'intermediate',
             category: 'Cardiology',
             specialty: 'Cardiology',
+            pathology: {
+                title: 'Cardiac Histopathology Study',
+                description: 'Biópsia miocárdica e análise histopatológica de lesão coronária isquêmica.',
+                slides: [
+                    {
+                        id: 'slide-1',
+                        label: 'Miocárdio Infartado (H&E)',
+                        dzi: 'remote:tiles/cardiac-infarct-he.dzi',
+                        stain: 'H&E',
+                        tissue: 'Myocardium',
+                        nativeObjective: 40,
+                        nativeMpp: 0.25,
+                        downsample: 1,
+                        slideWidthPx: 2048,
+                        slideHeightPx: 2048
+                    },
+                    {
+                        id: 'slide-2',
+                        label: 'Miocárdio Normal de Controle (H&E)',
+                        dzi: 'remote:tiles/cardiac-normal-he.dzi',
+                        stain: 'H&E',
+                        tissue: 'Myocardium',
+                        nativeObjective: 40,
+                        nativeMpp: 0.25,
+                        downsample: 1,
+                        slideWidthPx: 2048,
+                        slideHeightPx: 2048
+                    },
+                    {
+                        id: 'slide-3',
+                        label: 'Placa Aterosclerótica Coronária (Tricrômico de Masson)',
+                        dzi: 'remote:tiles/coronary-atheroma.dzi',
+                        stain: 'Masson Trichrome',
+                        tissue: 'Coronary Artery',
+                        nativeObjective: 40,
+                        nativeMpp: 0.25,
+                        downsample: 1,
+                        slideWidthPx: 2048,
+                        slideHeightPx: 2048
+                    },
+                    {
+                        id: 'slide-4',
+                        label: 'Consolidação Pulmonar / Pneumonia Aguda (H&E)',
+                        dzi: 'remote:tiles/pulmonary-consolidation-he.dzi',
+                        stain: 'H&E',
+                        tissue: 'Lung',
+                        nativeObjective: 40,
+                        nativeMpp: 0.25,
+                        downsample: 1,
+                        slideWidthPx: 2048,
+                        slideHeightPx: 2048
+                    },
+                    {
+                        id: 'slide-5',
+                        label: 'Microangiopatia Trombótica & Lesão Renal (H&E)',
+                        dzi: 'remote:tiles/renal-microangiopathy-he.dzi',
+                        stain: 'H&E',
+                        tissue: 'Kidney',
+                        nativeObjective: 40,
+                        nativeMpp: 0.25,
+                        downsample: 1,
+                        slideWidthPx: 2048,
+                        slideHeightPx: 2048
+                    }
+                ]
+            },
             persona_type: 'Anxious Patient',
             greeting: "Doctor... my chest. It is like something heavy is sitting on it. It started about three quarters of an hour ago and it will not let go. My arm aches, my jaw aches. I am soaked through. Please... my father died of this.",
             constraints: "Stay in the patient role at all times. Speak in short sentences because of the pain and breathlessness. Do not volunteer a diagnosis and do not name your own ECG changes. NEVER quote a number from the case record - not a laboratory value, not your blood pressure, heart rate, oxygen saturation or temperature, and not an examination finding such as a crackle, a gallop or a capillary refill time. Those are in the record for the clinician to discover, not for you to recite; you have never been told any of them. Describe only what you can feel and see: the pain, the sweating, the breathlessness, the nausea, the fear. If a clinician uses a medical term, ask what it means. Reveal the three weeks of exertional chest tightness only if asked directly about previous episodes. If given nitroglycerin, say the pain eased from 9/10 to about 7/10 but never disappeared. If given morphine, say it took the edge off. Do not invent new symptoms or treatments.",

@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory"]
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/jagermeister/Projects/Osiris/rohySimulator",
+        "/home/jagermeister/Documents/Obsidian Vault/Lukas-Simulator"
+      ]
+    }
+  }
+}

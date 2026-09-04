@@ -25,6 +25,11 @@ import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
 import { renderWithProviders } from '../../../tests/utils/renderWithProviders.jsx';
+// DEFAULT_LANGUAGE is 'pt' (the rebrand made the platform pt-first) — the
+// one test below that relies on the IMPLICIT platform default (no
+// case_language, no session-language override) must key its fixture off
+// this constant instead of hardcoding 'en'.
+import { DEFAULT_LANGUAGE } from '../../i18n/languages.js';
 
 const testVoiceProps = vi.fn();
 vi.mock('./TestVoiceButton.jsx', () => ({
@@ -366,7 +371,7 @@ describe('CaseAvatarVoicePicker — TestVoiceButton wiring (derived engine)', ()
     it('auditions the language default when nothing is configured but a default exists (the truth)', async () => {
         server.use(
             http.get('*/api/platform-settings/voice', () =>
-                HttpResponse.json(voiceSettingsPayload({ tts_default_voice_en: 'af_bella' }))
+                HttpResponse.json(voiceSettingsPayload({ [`tts_default_voice_${DEFAULT_LANGUAGE}`]: 'af_bella' }))
             )
         );
         mount();

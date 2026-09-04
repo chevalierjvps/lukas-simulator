@@ -97,8 +97,10 @@ export default function TreatmentPanel({ sessionId, _caseId, onEffectsUpdate }) 
     const filteredTreatments = (treatments[activeCategory] || []).filter(t => {
         if (t.is_available === 0 || t.is_available === false) return false;
         if (!searchQuery) return true;
-        return t.treatment_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-               t.description?.toLowerCase().includes(searchQuery.toLowerCase());
+        const q = searchQuery.toLowerCase();
+        return t.treatment_name.toLowerCase().includes(q) ||
+               t.display_name?.toLowerCase().includes(q) ||
+               t.description?.toLowerCase().includes(q);
     });
 
     // Order a treatment
@@ -150,12 +152,13 @@ export default function TreatmentPanel({ sessionId, _caseId, onEffectsUpdate }) 
                 urgency: orderData.urgency
             });
 
+            const orderedDisplayName = selectedTreatment.display_name || selectedTreatment.treatment_name;
             if (result.is_contraindicated) {
                 toast.warning(t('warning_prefix', { message: result.contraindication_feedback || t('contraindication_default') }));
             } else if (result.is_expected) {
-                toast.success(t('ordered_with_points', { name: selectedTreatment.treatment_name, points: result.points_awarded }));
+                toast.success(t('ordered_with_points', { name: orderedDisplayName, points: result.points_awarded }));
             } else {
-                toast.success(t('ordered_treatment', { name: selectedTreatment.treatment_name }));
+                toast.success(t('ordered_treatment', { name: orderedDisplayName }));
             }
 
             if (result.is_high_alert) {
@@ -230,13 +233,13 @@ export default function TreatmentPanel({ sessionId, _caseId, onEffectsUpdate }) 
     const renderOrderForm = () => {
         if (!selectedTreatment) return null;
 
-        const { treatment_type, treatment_name, route, base_dose, base_dose_unit, description, is_contraindicated } = selectedTreatment;
+        const { treatment_type, treatment_name, display_name, route, base_dose, base_dose_unit, description, is_contraindicated } = selectedTreatment;
 
         return (
             <div className="p-4 bg-neutral-800 rounded-lg border border-neutral-700 space-y-4">
                 <div className="flex items-start justify-between">
                     <div>
-                        <h4 className="font-bold text-white">{treatment_name}</h4>
+                        <h4 className="font-bold text-white">{display_name || treatment_name}</h4>
                         {description && <p className="text-xs text-neutral-400 mt-1">{description}</p>}
                     </div>
                     <button onClick={() => setSelectedTreatment(null)} className="text-neutral-400 hover:text-white">
@@ -422,7 +425,7 @@ export default function TreatmentPanel({ sessionId, _caseId, onEffectsUpdate }) 
                     {orderingInProgress ? (
                         <><Loader2 className="w-4 h-4 animate-spin" /> {t('ordering')}</>
                     ) : (
-                        <>{t('order_treatment', { name: treatment_name })}</>
+                        <>{t('order_treatment', { name: display_name || treatment_name })}</>
                     )}
                 </button>
             </div>
@@ -565,7 +568,7 @@ export default function TreatmentPanel({ sessionId, _caseId, onEffectsUpdate }) 
                                     <div className="flex items-start justify-between">
                                         <div>
                                             <div className="font-medium text-white flex items-center gap-2">
-                                                {treatment.treatment_name}
+                                                {treatment.display_name || treatment.treatment_name}
                                             </div>
                                             {treatment.description && (
                                                 <p className="text-xs text-neutral-400 mt-1">{treatment.description}</p>

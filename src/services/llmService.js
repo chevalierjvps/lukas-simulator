@@ -249,13 +249,14 @@ export const LLMService = {
                             if (dataStr === '[DONE]') continue;
                             let evt;
                             try { evt = JSON.parse(dataStr); } catch { continue; }
-                            if (evt.delta) {
+                            const delta = evt.delta ?? evt.choices?.[0]?.delta?.content ?? evt.choices?.[0]?.text ?? evt.text ?? '';
+                            if (delta) {
                                 if (firstTokenAt == null) {
                                     firstTokenAt = performance.now();
                                     console.log(`[LLMService] first token in ${Math.round(firstTokenAt - t0)}ms`);
                                 }
-                                acc += evt.delta;
-                                onDelta?.(evt.delta);
+                                acc += delta;
+                                onDelta?.(delta);
                             }
                         }
                     }

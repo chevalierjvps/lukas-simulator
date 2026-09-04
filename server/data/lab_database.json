@@ -1,7 +1,7 @@
 [
   {
-    "test_name": "Hemoglobin",
-    "group": "Hematology (CBC)",
+    "test_name": "Hemoglobina",
+    "group": "Hematologia (Hemograma)",
     "category": "Female",
     "min_value": 12,
     "max_value": 16,
@@ -11,11 +11,12 @@
       14.5,
       13.8
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Hemoglobin"
   },
   {
-    "test_name": "Hemoglobin",
-    "group": "Hematology (CBC)",
+    "test_name": "Hemoglobina",
+    "group": "Hematologia (Hemograma)",
     "category": "Male",
     "min_value": 14,
     "max_value": 18,
@@ -25,11 +26,12 @@
       16.5,
       15.5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Hemoglobin"
   },
   {
-    "test_name": "Hematocrit",
-    "group": "Hematology (CBC)",
+    "test_name": "Hematócrito",
+    "group": "Hematologia (Hemograma)",
     "category": "Female",
     "min_value": 36,
     "max_value": 44,
@@ -39,11 +41,12 @@
       42,
       40
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Hematocrit"
   },
   {
-    "test_name": "Hematocrit",
-    "group": "Hematology (CBC)",
+    "test_name": "Hematócrito",
+    "group": "Hematologia (Hemograma)",
     "category": "Male",
     "min_value": 40,
     "max_value": 54,
@@ -53,11 +56,12 @@
       50,
       46
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Hematocrit"
   },
   {
-    "test_name": "Red Blood Cell Count (RBC)",
-    "group": "Hematology (CBC)",
+    "test_name": "Hemácias (Eritrócitos)",
+    "group": "Hematologia (Hemograma)",
     "category": "Female",
     "min_value": 4,
     "max_value": 5.5,
@@ -67,11 +71,12 @@
       5,
       4.6
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Red Blood Cell Count (RBC)"
   },
   {
-    "test_name": "Red Blood Cell Count (RBC)",
-    "group": "Hematology (CBC)",
+    "test_name": "Hemácias (Eritrócitos)",
+    "group": "Hematologia (Hemograma)",
     "category": "Male",
     "min_value": 4.5,
     "max_value": 6,
@@ -81,11 +86,12 @@
       5.5,
       5.2
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Red Blood Cell Count (RBC)"
   },
   {
-    "test_name": "White Blood Cell Count (WBC)",
-    "group": "Hematology (CBC)",
+    "test_name": "Leucócitos Totais",
+    "group": "Hematologia (Hemograma)",
     "category": "General",
     "min_value": 4000,
     "max_value": 11000,
@@ -95,11 +101,12 @@
       9000,
       7200
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "White Blood Cell Count (WBC)"
   },
   {
-    "test_name": "Platelet Count",
-    "group": "Hematology (CBC)",
+    "test_name": "Plaquetas",
+    "group": "Hematologia (Hemograma)",
     "category": "General",
     "min_value": 150000,
     "max_value": 400000,
@@ -109,11 +116,12 @@
       350000,
       250000
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Platelet Count"
   },
   {
-    "test_name": "Mean Corpuscular Volume (MCV)",
-    "group": "Hematology (CBC)",
+    "test_name": "Volume Corpuscular Médio (VCM)",
+    "group": "Hematologia (Hemograma)",
     "category": "General",
     "min_value": 80,
     "max_value": 100,
@@ -123,11 +131,12 @@
       95,
       90
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Mean Corpuscular Volume (MCV)"
   },
   {
-    "test_name": "Mean Corpuscular Hemoglobin (MCH)",
-    "group": "Hematology (CBC)",
+    "test_name": "Hemoglobina Corpuscular Média (HCM)",
+    "group": "Hematologia (Hemograma)",
     "category": "General",
     "min_value": 27,
     "max_value": 33,
@@ -137,11 +146,12 @@
       32,
       30
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Mean Corpuscular Hemoglobin (MCH)"
   },
   {
-    "test_name": "Mean Corpuscular Hemoglobin Concentration (MCHC)",
-    "group": "Hematology (CBC)",
+    "test_name": "Concentração de Hemoglobina Corpuscular Média (CHCM)",
+    "group": "Hematologia (Hemograma)",
     "category": "General",
     "min_value": 32,
     "max_value": 36,
@@ -151,11 +161,12 @@
       35,
       34
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Mean Corpuscular Hemoglobin Concentration (MCHC)"
   },
   {
-    "test_name": "Red Cell Distribution Width (RDW)",
-    "group": "Hematology (CBC)",
+    "test_name": "RDW (Índice de Anisocitose)",
+    "group": "Hematologia (Hemograma)",
     "category": "General",
     "min_value": 11.5,
     "max_value": 14.5,
@@ -165,11 +176,12 @@
       14,
       13
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Red Cell Distribution Width (RDW)"
   },
   {
     "test_name": "Neutrophils, Absolute",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 1500,
     "max_value": 8000,
@@ -179,11 +191,12 @@
       6500,
       4500
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Neutrophils, Absolute"
   },
   {
     "test_name": "Neutrophils, Percentage",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 40,
     "max_value": 70,
@@ -193,11 +206,12 @@
       65,
       58
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Neutrophils, Percentage"
   },
   {
     "test_name": "Lymphocytes, Absolute",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 1000,
     "max_value": 4800,
@@ -207,11 +221,12 @@
       3500,
       2500
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Lymphocytes, Absolute"
   },
   {
     "test_name": "Lymphocytes, Percentage",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 20,
     "max_value": 40,
@@ -221,11 +236,12 @@
       35,
       30
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Lymphocytes, Percentage"
   },
   {
     "test_name": "Monocytes, Absolute",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 200,
     "max_value": 800,
@@ -235,11 +251,12 @@
       600,
       450
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Monocytes, Absolute"
   },
   {
     "test_name": "Monocytes, Percentage",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 2,
     "max_value": 8,
@@ -249,11 +266,12 @@
       7,
       5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Monocytes, Percentage"
   },
   {
     "test_name": "Eosinophils, Absolute",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 0,
     "max_value": 500,
@@ -263,11 +281,12 @@
       350,
       200
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Eosinophils, Absolute"
   },
   {
     "test_name": "Eosinophils, Percentage",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 1,
     "max_value": 4,
@@ -277,11 +296,12 @@
       3,
       2
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Eosinophils, Percentage"
   },
   {
     "test_name": "Basophils, Absolute",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 0,
     "max_value": 200,
@@ -291,11 +311,12 @@
       100,
       50
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Basophils, Absolute"
   },
   {
     "test_name": "Basophils, Percentage",
-    "group": "Hematology (Differential)",
+    "group": "Hematologia (Leucograma / Diferencial)",
     "category": "General",
     "min_value": 0,
     "max_value": 1,
@@ -305,11 +326,12 @@
       0.8,
       0.5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Basophils, Percentage"
   },
   {
     "test_name": "Reticulocyte Count",
-    "group": "Hematology (CBC)",
+    "group": "Hematologia (Hemograma)",
     "category": "General",
     "min_value": 0.5,
     "max_value": 2.5,
@@ -319,11 +341,12 @@
       2,
       1.2
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Reticulocyte Count"
   },
   {
-    "test_name": "Sodium, serum",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Sódio Sérico (Na+)",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 136,
     "max_value": 145,
@@ -333,11 +356,12 @@
       143,
       140
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Sodium, serum"
   },
   {
-    "test_name": "Potassium, serum",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Potássio Sérico (K+)",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 3.5,
     "max_value": 5,
@@ -347,11 +371,12 @@
       4.6,
       4.2
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Potassium, serum"
   },
   {
-    "test_name": "Chloride, serum",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Cloreto Sérico (Cl-)",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 98,
     "max_value": 106,
@@ -361,11 +386,12 @@
       104,
       102
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Chloride, serum"
   },
   {
-    "test_name": "Bicarbonate (CO2), serum",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Bicarbonato Sérico (HCO3-)",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 22,
     "max_value": 29,
@@ -375,11 +401,12 @@
       27,
       25
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Bicarbonate (CO2), serum"
   },
   {
-    "test_name": "Blood Urea Nitrogen (BUN)",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Ureia Sérica",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 7,
     "max_value": 20,
@@ -389,11 +416,12 @@
       18,
       14
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Blood Urea Nitrogen (BUN)"
   },
   {
-    "test_name": "Creatinine, serum",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Creatinina Sérica",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "Female",
     "min_value": 0.5,
     "max_value": 1.1,
@@ -403,11 +431,12 @@
       1,
       0.8
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Creatinine, serum"
   },
   {
-    "test_name": "Creatinine, serum",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Creatinina Sérica",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "Male",
     "min_value": 0.7,
     "max_value": 1.3,
@@ -417,11 +446,12 @@
       1.2,
       1
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Creatinine, serum"
   },
   {
-    "test_name": "Glucose, fasting",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Glicemia de Jejum",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 70,
     "max_value": 100,
@@ -431,11 +461,12 @@
       95,
       85
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Glucose, fasting"
   },
   {
-    "test_name": "Glucose, random",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Glicemia Aleatória",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 70,
     "max_value": 140,
@@ -445,11 +476,12 @@
       120,
       100
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Glucose, random"
   },
   {
     "test_name": "Calcium, serum",
-    "group": "Basic Metabolic Panel",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 8.5,
     "max_value": 10.5,
@@ -459,11 +491,12 @@
       10,
       9.5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Calcium, serum"
   },
   {
-    "test_name": "Calcium, ionized",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Cálcio Iônico",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 4.5,
     "max_value": 5.3,
@@ -473,11 +506,12 @@
       5.1,
       4.9
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Calcium, ionized"
   },
   {
-    "test_name": "Magnesium, serum",
-    "group": "Basic Metabolic Panel",
+    "test_name": "Magnésio Sérico",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 1.7,
     "max_value": 2.2,
@@ -487,11 +521,12 @@
       2.1,
       1.95
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Magnesium, serum"
   },
   {
     "test_name": "Phosphorus, serum",
-    "group": "Basic Metabolic Panel",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 2.5,
     "max_value": 4.5,
@@ -501,11 +536,12 @@
       4,
       3.5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Phosphorus, serum"
   },
   {
     "test_name": "Anion Gap",
-    "group": "Basic Metabolic Panel",
+    "group": "Painel Metabólico Básico (Eletrólitos e Renal)",
     "category": "General",
     "min_value": 8,
     "max_value": 12,
@@ -515,11 +551,12 @@
       11,
       10
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Anion Gap"
   },
   {
     "test_name": "eGFR (Estimated GFR)",
-    "group": "Renal Function",
+    "group": "Função Renal",
     "category": "General",
     "min_value": 90,
     "max_value": 120,
@@ -529,11 +566,12 @@
       115,
       105
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "eGFR (Estimated GFR)"
   },
   {
     "test_name": "GFR (estimated)",
-    "group": "Renal Function",
+    "group": "Função Renal",
     "category": "General",
     "min_value": 90,
     "max_value": 120,
@@ -543,11 +581,12 @@
       115,
       105
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "GFR (estimated)"
   },
   {
     "test_name": "BUN/Creatinine Ratio",
-    "group": "Renal Function",
+    "group": "Função Renal",
     "category": "General",
     "min_value": 10,
     "max_value": 20,
@@ -557,11 +596,12 @@
       18,
       15
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "BUN/Creatinine Ratio"
   },
   {
-    "test_name": "Uric Acid, serum",
-    "group": "Renal Function",
+    "test_name": "Ácido Úrico Sérico",
+    "group": "Função Renal",
     "category": "Female",
     "min_value": 2.5,
     "max_value": 7,
@@ -571,11 +611,12 @@
       6,
       4.8
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Uric Acid, serum"
   },
   {
-    "test_name": "Uric Acid, serum",
-    "group": "Renal Function",
+    "test_name": "Ácido Úrico Sérico",
+    "group": "Função Renal",
     "category": "Male",
     "min_value": 3.5,
     "max_value": 8,
@@ -585,11 +626,12 @@
       7,
       5.8
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Uric Acid, serum"
   },
   {
     "test_name": "Total Protein, serum",
-    "group": "Liver Function",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 6,
     "max_value": 8.3,
@@ -599,11 +641,12 @@
       7.8,
       7.2
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Total Protein, serum"
   },
   {
-    "test_name": "Albumin, serum",
-    "group": "Liver Function",
+    "test_name": "Albumina Sérica",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 3.5,
     "max_value": 5,
@@ -613,11 +656,12 @@
       4.8,
       4.3
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Albumin, serum"
   },
   {
-    "test_name": "Globulin, serum",
-    "group": "Liver Function",
+    "test_name": "Globulina Sérica",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 2,
     "max_value": 3.5,
@@ -627,11 +671,12 @@
       3.2,
       2.8
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Globulin, serum"
   },
   {
     "test_name": "Albumin/Globulin Ratio",
-    "group": "Liver Function",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 1,
     "max_value": 2.5,
@@ -641,11 +686,12 @@
       2,
       1.5
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Albumin/Globulin Ratio"
   },
   {
     "test_name": "Bilirubin, Total",
-    "group": "Liver Function",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 0.1,
     "max_value": 1.2,
@@ -655,11 +701,12 @@
       1,
       0.6
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Bilirubin, Total"
   },
   {
     "test_name": "Bilirubin, Direct",
-    "group": "Liver Function",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 0,
     "max_value": 0.3,
@@ -669,11 +716,12 @@
       0.2,
       0.1
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Bilirubin, Direct"
   },
   {
     "test_name": "Bilirubin, Indirect",
-    "group": "Liver Function",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 0.1,
     "max_value": 0.9,
@@ -683,11 +731,12 @@
       0.7,
       0.5
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Bilirubin, Indirect"
   },
   {
     "test_name": "AST (SGOT)",
-    "group": "Liver Function",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 10,
     "max_value": 40,
@@ -697,11 +746,12 @@
       35,
       25
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "AST (SGOT)"
   },
   {
     "test_name": "ALT (SGPT)",
-    "group": "Liver Function",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 7,
     "max_value": 56,
@@ -711,11 +761,12 @@
       45,
       30
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "ALT (SGPT)"
   },
   {
-    "test_name": "Alkaline Phosphatase (ALP)",
-    "group": "Liver Function",
+    "test_name": "Fosfatase Alcalina (FA)",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 44,
     "max_value": 147,
@@ -725,11 +776,12 @@
       120,
       90
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Alkaline Phosphatase (ALP)"
   },
   {
-    "test_name": "Gamma-Glutamyl Transferase (GGT)",
-    "group": "Liver Function",
+    "test_name": "Gama-Glutamil Transferase (GGT)",
+    "group": "Função Hepática (Hepatograma)",
     "category": "Female",
     "min_value": 9,
     "max_value": 36,
@@ -739,11 +791,12 @@
       30,
       22
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Gamma-Glutamyl Transferase (GGT)"
   },
   {
-    "test_name": "Gamma-Glutamyl Transferase (GGT)",
-    "group": "Liver Function",
+    "test_name": "Gama-Glutamil Transferase (GGT)",
+    "group": "Função Hepática (Hepatograma)",
     "category": "Male",
     "min_value": 12,
     "max_value": 64,
@@ -753,11 +806,12 @@
       50,
       35
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Gamma-Glutamyl Transferase (GGT)"
   },
   {
     "test_name": "Lactate Dehydrogenase (LDH)",
-    "group": "Liver Function",
+    "group": "Função Hepática (Hepatograma)",
     "category": "General",
     "min_value": 140,
     "max_value": 280,
@@ -767,11 +821,12 @@
       250,
       200
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Lactate Dehydrogenase (LDH)"
   },
   {
-    "test_name": "Prothrombin Time (PT)",
-    "group": "Coagulation",
+    "test_name": "Tempo de Protrombina (TP)",
+    "group": "Coagulograma",
     "category": "General",
     "min_value": 11,
     "max_value": 13.5,
@@ -781,11 +836,12 @@
       13,
       12.2
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Prothrombin Time (PT)"
   },
   {
     "test_name": "INR",
-    "group": "Coagulation",
+    "group": "Coagulograma",
     "category": "General",
     "min_value": 0.8,
     "max_value": 1.1,
@@ -795,11 +851,12 @@
       1.05,
       1
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "INR"
   },
   {
     "test_name": "Partial Thromboplastin Time (PTT)",
-    "group": "Coagulation",
+    "group": "Coagulograma",
     "category": "General",
     "min_value": 25,
     "max_value": 35,
@@ -809,11 +866,12 @@
       33,
       30
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Partial Thromboplastin Time (PTT)"
   },
   {
     "test_name": "Activated PTT (aPTT)",
-    "group": "Coagulation",
+    "group": "Coagulograma",
     "category": "General",
     "min_value": 30,
     "max_value": 40,
@@ -823,11 +881,12 @@
       38,
       35
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Activated PTT (aPTT)"
   },
   {
-    "test_name": "Fibrinogen",
-    "group": "Coagulation",
+    "test_name": "Fibrinogênio",
+    "group": "Coagulograma",
     "category": "General",
     "min_value": 200,
     "max_value": 400,
@@ -837,11 +896,12 @@
       350,
       300
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Fibrinogen"
   },
   {
     "test_name": "D-dimer, plasma",
-    "group": "Coagulation",
+    "group": "Coagulograma",
     "category": "General",
     "min_value": 0,
     "max_value": 500,
@@ -851,11 +911,12 @@
       350,
       220
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "D-dimer, plasma"
   },
   {
     "test_name": "Bleeding Time",
-    "group": "Coagulation",
+    "group": "Coagulograma",
     "category": "General",
     "min_value": 2,
     "max_value": 7,
@@ -865,11 +926,12 @@
       6,
       4.5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Bleeding Time"
   },
   {
     "test_name": "Thrombin Time",
-    "group": "Coagulation",
+    "group": "Coagulograma",
     "category": "General",
     "min_value": 14,
     "max_value": 19,
@@ -879,11 +941,12 @@
       18,
       16.5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Thrombin Time"
   },
   {
     "test_name": "TSH",
-    "group": "Thyroid Function",
+    "group": "Função Tireoidiana",
     "category": "General",
     "min_value": 0.4,
     "max_value": 4,
@@ -893,11 +956,12 @@
       3.5,
       2.2
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "TSH"
   },
   {
     "test_name": "Free T4, serum",
-    "group": "Thyroid Function",
+    "group": "Função Tireoidiana",
     "category": "General",
     "min_value": 0.8,
     "max_value": 1.8,
@@ -907,11 +971,12 @@
       1.6,
       1.2
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Free T4, serum"
   },
   {
     "test_name": "Free T3, serum",
-    "group": "Thyroid Function",
+    "group": "Função Tireoidiana",
     "category": "General",
     "min_value": 2.3,
     "max_value": 4.2,
@@ -921,11 +986,12 @@
       3.9,
       3.1
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Free T3, serum"
   },
   {
-    "test_name": "Total T4",
-    "group": "Thyroid Function",
+    "test_name": "T4 Total",
+    "group": "Função Tireoidiana",
     "category": "General",
     "min_value": 5,
     "max_value": 12,
@@ -935,11 +1001,12 @@
       10,
       8
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Total T4"
   },
   {
-    "test_name": "Total T3",
-    "group": "Thyroid Function",
+    "test_name": "T3 Total",
+    "group": "Função Tireoidiana",
     "category": "General",
     "min_value": 80,
     "max_value": 200,
@@ -949,11 +1016,12 @@
       180,
       140
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Total T3"
   },
   {
     "test_name": "Thyroglobulin",
-    "group": "Thyroid Function",
+    "group": "Função Tireoidiana",
     "category": "General",
     "min_value": 0,
     "max_value": 55,
@@ -963,11 +1031,12 @@
       40,
       25
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Thyroglobulin"
   },
   {
     "test_name": "Anti-TPO Antibodies",
-    "group": "Thyroid Function",
+    "group": "Função Tireoidiana",
     "category": "General",
     "min_value": 0,
     "max_value": 35,
@@ -977,11 +1046,12 @@
       25,
       15
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Anti-TPO Antibodies"
   },
   {
-    "test_name": "pO2, arterial blood",
-    "group": "Blood Gases",
+    "test_name": "pO2 Arterial",
+    "group": "Gasometria Arterial e Venosa",
     "category": "General",
     "min_value": 80,
     "max_value": 100,
@@ -991,11 +1061,12 @@
       95,
       92
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "pO2, arterial blood"
   },
   {
-    "test_name": "pCO2, arterial blood",
-    "group": "Blood Gases",
+    "test_name": "pCO2 Arterial",
+    "group": "Gasometria Arterial e Venosa",
     "category": "General",
     "min_value": 35,
     "max_value": 45,
@@ -1005,11 +1076,12 @@
       42,
       40
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "pCO2, arterial blood"
   },
   {
-    "test_name": "pH, arterial blood",
-    "group": "Blood Gases",
+    "test_name": "pH Gasometria Arterial",
+    "group": "Gasometria Arterial e Venosa",
     "category": "General",
     "min_value": 7.35,
     "max_value": 7.45,
@@ -1019,11 +1091,12 @@
       7.42,
       7.4
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "pH, arterial blood"
   },
   {
     "test_name": "Bicarbonate (HCO3), arterial",
-    "group": "Blood Gases",
+    "group": "Gasometria Arterial e Venosa",
     "category": "General",
     "min_value": 22,
     "max_value": 26,
@@ -1033,11 +1106,12 @@
       25,
       24
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Bicarbonate (HCO3), arterial"
   },
   {
     "test_name": "Oxygen Saturation (SaO2)",
-    "group": "Blood Gases",
+    "group": "Gasometria Arterial e Venosa",
     "category": "General",
     "min_value": 95,
     "max_value": 100,
@@ -1047,11 +1121,12 @@
       99,
       98
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Oxygen Saturation (SaO2)"
   },
   {
     "test_name": "Base Excess",
-    "group": "Blood Gases",
+    "group": "Gasometria Arterial e Venosa",
     "category": "General",
     "min_value": -2,
     "max_value": 2,
@@ -1061,11 +1136,12 @@
       1,
       0
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Base Excess"
   },
   {
     "test_name": "Lactate, plasma",
-    "group": "Blood Gases",
+    "group": "Gasometria Arterial e Venosa",
     "category": "General",
     "min_value": 0.5,
     "max_value": 2.2,
@@ -1075,11 +1151,12 @@
       1.8,
       1.2
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Lactate, plasma"
   },
   {
-    "test_name": "Troponin I, cardiac",
-    "group": "Cardiac Markers",
+    "test_name": "Troponina I Cardíaca",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "General",
     "min_value": 0,
     "max_value": 0.04,
@@ -1089,11 +1166,12 @@
       0.03,
       0.02
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Troponin I, cardiac"
   },
   {
-    "test_name": "Troponin T, cardiac",
-    "group": "Cardiac Markers",
+    "test_name": "Troponina T Cardíaca",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "General",
     "min_value": 0,
     "max_value": 0.01,
@@ -1103,11 +1181,12 @@
       0.008,
       0.005
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Troponin T, cardiac"
   },
   {
-    "test_name": "High-Sensitivity Troponin I",
-    "group": "Cardiac Markers",
+    "test_name": "Troponina I Ultrassensível (hs-cTnI)",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "Female",
     "min_value": 0,
     "max_value": 15,
@@ -1117,11 +1196,12 @@
       12,
       8
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "High-Sensitivity Troponin I"
   },
   {
-    "test_name": "High-Sensitivity Troponin I",
-    "group": "Cardiac Markers",
+    "test_name": "Troponina I Ultrassensível (hs-cTnI)",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "Male",
     "min_value": 0,
     "max_value": 20,
@@ -1131,11 +1211,12 @@
       18,
       12
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "High-Sensitivity Troponin I"
   },
   {
-    "test_name": "High-Sensitivity Troponin T",
-    "group": "Cardiac Markers",
+    "test_name": "Troponina T Ultrassensível (hs-cTnT)",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "General",
     "min_value": 0,
     "max_value": 14,
@@ -1145,11 +1226,12 @@
       12,
       8
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "High-Sensitivity Troponin T"
   },
   {
-    "test_name": "Creatine Kinase (CK), Total",
-    "group": "Cardiac Markers",
+    "test_name": "CK Total (Creatinoquinase)",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "Female",
     "min_value": 30,
     "max_value": 135,
@@ -1159,11 +1241,12 @@
       110,
       80
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Creatine Kinase (CK), Total"
   },
   {
-    "test_name": "Creatine Kinase (CK), Total",
-    "group": "Cardiac Markers",
+    "test_name": "CK Total (Creatinoquinase)",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "Male",
     "min_value": 55,
     "max_value": 170,
@@ -1173,11 +1256,12 @@
       150,
       110
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Creatine Kinase (CK), Total"
   },
   {
-    "test_name": "Creatine Kinase-MB (CK-MB)",
-    "group": "Cardiac Markers",
+    "test_name": "CK-MB Massa",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "General",
     "min_value": 0,
     "max_value": 5,
@@ -1187,11 +1271,12 @@
       3.5,
       2
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Creatine Kinase-MB (CK-MB)"
   },
   {
     "test_name": "CK-MB Index",
-    "group": "Cardiac Markers",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "General",
     "min_value": 0,
     "max_value": 3,
@@ -1201,11 +1286,12 @@
       2,
       1.5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "CK-MB Index"
   },
   {
-    "test_name": "Myoglobin, serum",
-    "group": "Cardiac Markers",
+    "test_name": "Mioglobina Sérica",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "General",
     "min_value": 0,
     "max_value": 90,
@@ -1215,11 +1301,12 @@
       65,
       45
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Myoglobin, serum"
   },
   {
-    "test_name": "BNP (B-type Natriuretic Peptide)",
-    "group": "Cardiac Markers",
+    "test_name": "BNP (Peptídeo Natriurético Tipo B)",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "General",
     "min_value": 0,
     "max_value": 100,
@@ -1229,11 +1316,12 @@
       70,
       45
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "BNP (B-type Natriuretic Peptide)"
   },
   {
     "test_name": "NT-proBNP",
-    "group": "Cardiac Markers",
+    "group": "Marcadores de Necrose Miocárdica",
     "category": "General",
     "min_value": 0,
     "max_value": 300,
@@ -1243,11 +1331,12 @@
       200,
       125
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "NT-proBNP"
   },
   {
     "test_name": "CRP, serum",
-    "group": "Inflammatory Markers",
+    "group": "Provas de Atividade Inflamatória",
     "category": "General",
     "min_value": 0,
     "max_value": 10,
@@ -1257,11 +1346,12 @@
       5,
       3
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "CRP, serum"
   },
   {
     "test_name": "High-Sensitivity CRP (hs-CRP)",
-    "group": "Inflammatory Markers",
+    "group": "Provas de Atividade Inflamatória",
     "category": "General",
     "min_value": 0,
     "max_value": 3,
@@ -1271,11 +1361,12 @@
       2,
       1.2
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "High-Sensitivity CRP (hs-CRP)"
   },
   {
     "test_name": "ESR, blood",
-    "group": "Inflammatory Markers",
+    "group": "Provas de Atividade Inflamatória",
     "category": "Female",
     "min_value": 0,
     "max_value": 20,
@@ -1285,11 +1376,12 @@
       15,
       10
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "ESR, blood"
   },
   {
     "test_name": "ESR, blood",
-    "group": "Inflammatory Markers",
+    "group": "Provas de Atividade Inflamatória",
     "category": "Male",
     "min_value": 0,
     "max_value": 15,
@@ -1299,11 +1391,12 @@
       12,
       7
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "ESR, blood"
   },
   {
     "test_name": "Procalcitonin, serum",
-    "group": "Inflammatory Markers",
+    "group": "Provas de Atividade Inflamatória",
     "category": "General",
     "min_value": 0,
     "max_value": 0.5,
@@ -1313,11 +1406,12 @@
       0.3,
       0.1
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Procalcitonin, serum"
   },
   {
     "test_name": "Interleukin-6 (IL-6)",
-    "group": "Inflammatory Markers",
+    "group": "Provas de Atividade Inflamatória",
     "category": "General",
     "min_value": 0,
     "max_value": 7,
@@ -1327,11 +1421,12 @@
       5,
       3
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Interleukin-6 (IL-6)"
   },
   {
-    "test_name": "Ferritin, serum",
-    "group": "Iron Studies",
+    "test_name": "Ferritina Sérica",
+    "group": "Perfil de Ferro e Cinética",
     "category": "Female",
     "min_value": 12,
     "max_value": 150,
@@ -1341,11 +1436,12 @@
       120,
       65
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Ferritin, serum"
   },
   {
-    "test_name": "Ferritin, serum",
-    "group": "Iron Studies",
+    "test_name": "Ferritina Sérica",
+    "group": "Perfil de Ferro e Cinética",
     "category": "Male",
     "min_value": 12,
     "max_value": 300,
@@ -1355,11 +1451,12 @@
       250,
       140
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Ferritin, serum"
   },
   {
     "test_name": "Iron, serum",
-    "group": "Iron Studies",
+    "group": "Perfil de Ferro e Cinética",
     "category": "General",
     "min_value": 60,
     "max_value": 170,
@@ -1369,11 +1466,12 @@
       150,
       110
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Iron, serum"
   },
   {
     "test_name": "TIBC (Total Iron Binding Capacity)",
-    "group": "Iron Studies",
+    "group": "Perfil de Ferro e Cinética",
     "category": "General",
     "min_value": 250,
     "max_value": 370,
@@ -1383,11 +1481,12 @@
       350,
       310
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "TIBC (Total Iron Binding Capacity)"
   },
   {
-    "test_name": "Transferrin Saturation",
-    "group": "Iron Studies",
+    "test_name": "Saturação de Transferrina",
+    "group": "Perfil de Ferro e Cinética",
     "category": "General",
     "min_value": 20,
     "max_value": 50,
@@ -1397,11 +1496,12 @@
       45,
       35
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Transferrin Saturation"
   },
   {
     "test_name": "Transferrin, serum",
-    "group": "Iron Studies",
+    "group": "Perfil de Ferro e Cinética",
     "category": "General",
     "min_value": 200,
     "max_value": 360,
@@ -1411,11 +1511,12 @@
       330,
       280
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Transferrin, serum"
   },
   {
     "test_name": "Vitamin B12, serum",
-    "group": "Vitamins",
+    "group": "Vitaminas e Coenzimas",
     "category": "General",
     "min_value": 200,
     "max_value": 900,
@@ -1425,11 +1526,12 @@
       700,
       500
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Vitamin B12, serum"
   },
   {
     "test_name": "Folate, serum",
-    "group": "Vitamins",
+    "group": "Vitaminas e Coenzimas",
     "category": "General",
     "min_value": 3,
     "max_value": 17,
@@ -1439,11 +1541,12 @@
       14,
       9
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Folate, serum"
   },
   {
     "test_name": "Folate, RBC",
-    "group": "Vitamins",
+    "group": "Vitaminas e Coenzimas",
     "category": "General",
     "min_value": 140,
     "max_value": 628,
@@ -1453,11 +1556,12 @@
       550,
       380
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Folate, RBC"
   },
   {
     "test_name": "Vitamin D, 25-Hydroxy",
-    "group": "Vitamins",
+    "group": "Vitaminas e Coenzimas",
     "category": "General",
     "min_value": 30,
     "max_value": 100,
@@ -1467,11 +1571,12 @@
       70,
       55
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Vitamin D, 25-Hydroxy"
   },
   {
     "test_name": "Vitamin D, 1,25-Dihydroxy",
-    "group": "Vitamins",
+    "group": "Vitaminas e Coenzimas",
     "category": "General",
     "min_value": 18,
     "max_value": 72,
@@ -1481,11 +1586,12 @@
       60,
       45
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Vitamin D, 1,25-Dihydroxy"
   },
   {
-    "test_name": "Total Cholesterol",
-    "group": "Lipid Panel",
+    "test_name": "Colesterol Total",
+    "group": "Perfil Lipídico Completo",
     "category": "General",
     "min_value": 0,
     "max_value": 200,
@@ -1495,11 +1601,12 @@
       190,
       170
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Total Cholesterol"
   },
   {
     "test_name": "LDL Cholesterol",
-    "group": "Lipid Panel",
+    "group": "Perfil Lipídico Completo",
     "category": "General",
     "min_value": 0,
     "max_value": 100,
@@ -1509,11 +1616,12 @@
       95,
       85
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "LDL Cholesterol"
   },
   {
-    "test_name": "HDL Cholesterol",
-    "group": "Lipid Panel",
+    "test_name": "Colesterol HDL (Bom)",
+    "group": "Perfil Lipídico Completo",
     "category": "Female",
     "min_value": 50,
     "max_value": 100,
@@ -1523,11 +1631,12 @@
       80,
       65
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "HDL Cholesterol"
   },
   {
-    "test_name": "HDL Cholesterol",
-    "group": "Lipid Panel",
+    "test_name": "Colesterol HDL (Bom)",
+    "group": "Perfil Lipídico Completo",
     "category": "Male",
     "min_value": 40,
     "max_value": 100,
@@ -1537,11 +1646,12 @@
       70,
       55
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "HDL Cholesterol"
   },
   {
-    "test_name": "Triglycerides",
-    "group": "Lipid Panel",
+    "test_name": "Triglicerídeos",
+    "group": "Perfil Lipídico Completo",
     "category": "General",
     "min_value": 0,
     "max_value": 150,
@@ -1551,11 +1661,12 @@
       130,
       100
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Triglycerides"
   },
   {
     "test_name": "VLDL Cholesterol",
-    "group": "Lipid Panel",
+    "group": "Perfil Lipídico Completo",
     "category": "General",
     "min_value": 5,
     "max_value": 40,
@@ -1565,11 +1676,12 @@
       30,
       20
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "VLDL Cholesterol"
   },
   {
     "test_name": "Non-HDL Cholesterol",
-    "group": "Lipid Panel",
+    "group": "Perfil Lipídico Completo",
     "category": "General",
     "min_value": 0,
     "max_value": 130,
@@ -1579,11 +1691,12 @@
       120,
       105
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Non-HDL Cholesterol"
   },
   {
-    "test_name": "HbA1c (Glycated Hemoglobin)",
-    "group": "Diabetes",
+    "test_name": "Hemoglobina Glicada (HbA1c)",
+    "group": "Glicemia e Marcadores Diabéticos",
     "category": "General",
     "min_value": 4,
     "max_value": 5.6,
@@ -1593,11 +1706,12 @@
       5.4,
       5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "HbA1c (Glycated Hemoglobin)"
   },
   {
     "test_name": "Fasting Insulin",
-    "group": "Diabetes",
+    "group": "Glicemia e Marcadores Diabéticos",
     "category": "General",
     "min_value": 2.6,
     "max_value": 24.9,
@@ -1607,11 +1721,12 @@
       18,
       10
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Fasting Insulin"
   },
   {
     "test_name": "C-Peptide",
-    "group": "Diabetes",
+    "group": "Glicemia e Marcadores Diabéticos",
     "category": "General",
     "min_value": 0.8,
     "max_value": 3.9,
@@ -1621,11 +1736,12 @@
       3,
       2
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "C-Peptide"
   },
   {
     "test_name": "HOMA-IR",
-    "group": "Diabetes",
+    "group": "Glicemia e Marcadores Diabéticos",
     "category": "General",
     "min_value": 0,
     "max_value": 2.5,
@@ -1635,11 +1751,12 @@
       2,
       1.4
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "HOMA-IR"
   },
   {
     "test_name": "Fructosamine",
-    "group": "Diabetes",
+    "group": "Glicemia e Marcadores Diabéticos",
     "category": "General",
     "min_value": 200,
     "max_value": 285,
@@ -1649,11 +1766,12 @@
       270,
       245
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Fructosamine"
   },
   {
     "test_name": "Ammonia, plasma",
-    "group": "Metabolic",
+    "group": "Marcadores Metabólicos e Ácido Úrico",
     "category": "General",
     "min_value": 15,
     "max_value": 45,
@@ -1663,11 +1781,12 @@
       40,
       30
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Ammonia, plasma"
   },
   {
     "test_name": "Osmolality, serum",
-    "group": "Metabolic",
+    "group": "Marcadores Metabólicos e Ácido Úrico",
     "category": "General",
     "min_value": 275,
     "max_value": 295,
@@ -1677,11 +1796,12 @@
       292,
       286
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Osmolality, serum"
   },
   {
     "test_name": "Osmolality, urine",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "General",
     "min_value": 300,
     "max_value": 900,
@@ -1691,11 +1811,12 @@
       800,
       600
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Osmolality, urine"
   },
   {
     "test_name": "Specific Gravity, urine",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "General",
     "min_value": 1.005,
     "max_value": 1.03,
@@ -1705,11 +1826,12 @@
       1.025,
       1.018
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Specific Gravity, urine"
   },
   {
     "test_name": "pH, urine",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "General",
     "min_value": 4.5,
     "max_value": 8,
@@ -1719,11 +1841,12 @@
       7,
       6
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "pH, urine"
   },
   {
     "test_name": "Protein, urine (qualitative)",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "General",
     "min_value": 0,
     "max_value": 0,
@@ -1733,11 +1856,12 @@
       0,
       0
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Protein, urine (qualitative)"
   },
   {
     "test_name": "Protein, urine (24-hour)",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "General",
     "min_value": 0,
     "max_value": 150,
@@ -1747,11 +1871,12 @@
       100,
       75
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Protein, urine (24-hour)"
   },
   {
     "test_name": "Microalbumin, urine",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "General",
     "min_value": 0,
     "max_value": 30,
@@ -1761,11 +1886,12 @@
       20,
       12
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Microalbumin, urine"
   },
   {
     "test_name": "Albumin/Creatinine Ratio, urine",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "General",
     "min_value": 0,
     "max_value": 30,
@@ -1775,11 +1901,12 @@
       20,
       12
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Albumin/Creatinine Ratio, urine"
   },
   {
     "test_name": "Creatinine, urine (24-hour)",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "Female",
     "min_value": 600,
     "max_value": 1800,
@@ -1789,11 +1916,12 @@
       1500,
       1100
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Creatinine, urine (24-hour)"
   },
   {
     "test_name": "Creatinine, urine (24-hour)",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "Male",
     "min_value": 800,
     "max_value": 2000,
@@ -1803,11 +1931,12 @@
       1800,
       1400
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Creatinine, urine (24-hour)"
   },
   {
     "test_name": "Creatinine Clearance",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "Female",
     "min_value": 80,
     "max_value": 125,
@@ -1817,11 +1946,12 @@
       115,
       100
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Creatinine Clearance"
   },
   {
     "test_name": "Creatinine Clearance",
-    "group": "Urinalysis",
+    "group": "Urina Tipo 1 (EAS) e Sedimento",
     "category": "Male",
     "min_value": 90,
     "max_value": 140,
@@ -1831,11 +1961,12 @@
       130,
       115
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Creatinine Clearance"
   },
   {
-    "test_name": "Amylase, serum",
-    "group": "Pancreatic",
+    "test_name": "Amilase Sérica",
+    "group": "Enzimas Pancreáticas",
     "category": "General",
     "min_value": 28,
     "max_value": 100,
@@ -1845,11 +1976,12 @@
       85,
       60
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Amylase, serum"
   },
   {
-    "test_name": "Lipase, serum",
-    "group": "Pancreatic",
+    "test_name": "Lipase Sérica",
+    "group": "Enzimas Pancreáticas",
     "category": "General",
     "min_value": 0,
     "max_value": 160,
@@ -1859,11 +1991,12 @@
       120,
       75
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Lipase, serum"
   },
   {
     "test_name": "Cortisol, AM",
-    "group": "Adrenal Function",
+    "group": "Função Adrenal e Cortisol",
     "category": "General",
     "min_value": 6,
     "max_value": 23,
@@ -1873,11 +2006,12 @@
       20,
       15
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Cortisol, AM"
   },
   {
     "test_name": "Cortisol, PM",
-    "group": "Adrenal Function",
+    "group": "Função Adrenal e Cortisol",
     "category": "General",
     "min_value": 3,
     "max_value": 16,
@@ -1887,11 +2021,12 @@
       12,
       8
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Cortisol, PM"
   },
   {
     "test_name": "ACTH",
-    "group": "Adrenal Function",
+    "group": "Função Adrenal e Cortisol",
     "category": "General",
     "min_value": 7,
     "max_value": 63,
@@ -1901,11 +2036,12 @@
       50,
       30
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "ACTH"
   },
   {
     "test_name": "Aldosterone, serum",
-    "group": "Adrenal Function",
+    "group": "Função Adrenal e Cortisol",
     "category": "General",
     "min_value": 3,
     "max_value": 16,
@@ -1915,11 +2051,12 @@
       12,
       8
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Aldosterone, serum"
   },
   {
     "test_name": "Renin Activity, plasma",
-    "group": "Adrenal Function",
+    "group": "Função Adrenal e Cortisol",
     "category": "General",
     "min_value": 0.5,
     "max_value": 4,
@@ -1929,11 +2066,12 @@
       3,
       2
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Renin Activity, plasma"
   },
   {
     "test_name": "DHEA-S",
-    "group": "Adrenal Function",
+    "group": "Função Adrenal e Cortisol",
     "category": "Female",
     "min_value": 35,
     "max_value": 430,
@@ -1943,11 +2081,12 @@
       350,
       200
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "DHEA-S"
   },
   {
     "test_name": "DHEA-S",
-    "group": "Adrenal Function",
+    "group": "Função Adrenal e Cortisol",
     "category": "Male",
     "min_value": 80,
     "max_value": 560,
@@ -1957,11 +2096,12 @@
       450,
       300
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "DHEA-S"
   },
   {
     "test_name": "Testosterone, Total",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Female",
     "min_value": 15,
     "max_value": 70,
@@ -1971,11 +2111,12 @@
       55,
       40
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Testosterone, Total"
   },
   {
     "test_name": "Testosterone, Total",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Male",
     "min_value": 270,
     "max_value": 1070,
@@ -1985,11 +2126,12 @@
       850,
       600
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Testosterone, Total"
   },
   {
     "test_name": "Testosterone, Free",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Male",
     "min_value": 50,
     "max_value": 210,
@@ -1999,11 +2141,12 @@
       180,
       130
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Testosterone, Free"
   },
   {
     "test_name": "Estradiol",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Female",
     "min_value": 15,
     "max_value": 350,
@@ -2013,11 +2156,12 @@
       250,
       150
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Estradiol"
   },
   {
     "test_name": "Estradiol",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Male",
     "min_value": 10,
     "max_value": 40,
@@ -2027,11 +2171,12 @@
       35,
       25
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Estradiol"
   },
   {
     "test_name": "Progesterone",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Female",
     "min_value": 0.1,
     "max_value": 25,
@@ -2041,11 +2186,12 @@
       15,
       5
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Progesterone"
   },
   {
     "test_name": "FSH",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Female",
     "min_value": 1.5,
     "max_value": 12,
@@ -2055,11 +2201,12 @@
       10,
       6
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "FSH"
   },
   {
     "test_name": "FSH",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Male",
     "min_value": 1.5,
     "max_value": 12,
@@ -2069,11 +2216,12 @@
       8,
       5
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "FSH"
   },
   {
     "test_name": "LH",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Female",
     "min_value": 1,
     "max_value": 18,
@@ -2083,11 +2231,12 @@
       12,
       6
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "LH"
   },
   {
     "test_name": "LH",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Male",
     "min_value": 1.5,
     "max_value": 9,
@@ -2097,11 +2246,12 @@
       7,
       4
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "LH"
   },
   {
     "test_name": "Prolactin",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Female",
     "min_value": 4,
     "max_value": 23,
@@ -2111,11 +2261,12 @@
       20,
       14
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Prolactin"
   },
   {
     "test_name": "Prolactin",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Male",
     "min_value": 4,
     "max_value": 15,
@@ -2125,11 +2276,12 @@
       12,
       9
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Prolactin"
   },
   {
     "test_name": "Beta-hCG",
-    "group": "Reproductive Hormones",
+    "group": "Hormônios Reprodutivos",
     "category": "Female",
     "min_value": 0,
     "max_value": 5,
@@ -2139,11 +2291,12 @@
       2,
       1
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Beta-hCG"
   },
   {
     "test_name": "PSA, Total",
-    "group": "Tumor Markers",
+    "group": "Marcadores Tumorais",
     "category": "Male",
     "min_value": 0,
     "max_value": 4,
@@ -2153,11 +2306,12 @@
       3,
       1.5
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "PSA, Total"
   },
   {
     "test_name": "PSA, Free",
-    "group": "Tumor Markers",
+    "group": "Marcadores Tumorais",
     "category": "Male",
     "min_value": 0,
     "max_value": 1,
@@ -2167,11 +2321,12 @@
       0.8,
       0.5
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "PSA, Free"
   },
   {
     "test_name": "CA-125",
-    "group": "Tumor Markers",
+    "group": "Marcadores Tumorais",
     "category": "Female",
     "min_value": 0,
     "max_value": 35,
@@ -2181,11 +2336,12 @@
       25,
       15
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "CA-125"
   },
   {
     "test_name": "CA 19-9",
-    "group": "Tumor Markers",
+    "group": "Marcadores Tumorais",
     "category": "General",
     "min_value": 0,
     "max_value": 37,
@@ -2195,11 +2351,12 @@
       30,
       18
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "CA 19-9"
   },
   {
     "test_name": "CEA (Carcinoembryonic Antigen)",
-    "group": "Tumor Markers",
+    "group": "Marcadores Tumorais",
     "category": "General",
     "min_value": 0,
     "max_value": 3,
@@ -2209,11 +2366,12 @@
       2.5,
       1.5
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "CEA (Carcinoembryonic Antigen)"
   },
   {
     "test_name": "AFP (Alpha-Fetoprotein)",
-    "group": "Tumor Markers",
+    "group": "Marcadores Tumorais",
     "category": "General",
     "min_value": 0,
     "max_value": 10,
@@ -2223,11 +2381,12 @@
       8,
       5
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "AFP (Alpha-Fetoprotein)"
   },
   {
     "test_name": "PTH (Parathyroid Hormone)",
-    "group": "Parathyroid",
+    "group": "Paratireoide e Metabolismo Ósseo",
     "category": "General",
     "min_value": 15,
     "max_value": 65,
@@ -2237,11 +2396,12 @@
       55,
       40
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "PTH (Parathyroid Hormone)"
   },
   {
     "test_name": "Calcitonin",
-    "group": "Parathyroid",
+    "group": "Paratireoide e Metabolismo Ósseo",
     "category": "General",
     "min_value": 0,
     "max_value": 10,
@@ -2251,11 +2411,12 @@
       8,
       5
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Calcitonin"
   },
   {
     "test_name": "IgA",
-    "group": "Immunoglobulins",
+    "group": "Imunoglobulinas e Sorologia",
     "category": "General",
     "min_value": 70,
     "max_value": 400,
@@ -2265,11 +2426,12 @@
       350,
       220
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "IgA"
   },
   {
     "test_name": "IgG",
-    "group": "Immunoglobulins",
+    "group": "Imunoglobulinas e Sorologia",
     "category": "General",
     "min_value": 700,
     "max_value": 1600,
@@ -2279,11 +2441,12 @@
       1400,
       1150
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "IgG"
   },
   {
     "test_name": "IgM",
-    "group": "Immunoglobulins",
+    "group": "Imunoglobulinas e Sorologia",
     "category": "General",
     "min_value": 40,
     "max_value": 230,
@@ -2293,11 +2456,12 @@
       180,
       120
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "IgM"
   },
   {
     "test_name": "IgE, Total",
-    "group": "Immunoglobulins",
+    "group": "Imunoglobulinas e Sorologia",
     "category": "General",
     "min_value": 0,
     "max_value": 100,
@@ -2307,11 +2471,12 @@
       70,
       45
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "IgE, Total"
   },
   {
     "test_name": "Complement C3",
-    "group": "Immunoglobulins",
+    "group": "Imunoglobulinas e Sorologia",
     "category": "General",
     "min_value": 90,
     "max_value": 180,
@@ -2321,11 +2486,12 @@
       160,
       135
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Complement C3"
   },
   {
     "test_name": "Complement C4",
-    "group": "Immunoglobulins",
+    "group": "Imunoglobulinas e Sorologia",
     "category": "General",
     "min_value": 10,
     "max_value": 40,
@@ -2335,11 +2501,12 @@
       35,
       25
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Complement C4"
   },
   {
     "test_name": "ANA (Antinuclear Antibodies)",
-    "group": "Autoimmune",
+    "group": "Autoimunidade e Reumatologia",
     "category": "General",
     "min_value": 0,
     "max_value": 1,
@@ -2349,11 +2516,12 @@
       0,
       0
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "ANA (Antinuclear Antibodies)"
   },
   {
     "test_name": "Rheumatoid Factor",
-    "group": "Autoimmune",
+    "group": "Autoimunidade e Reumatologia",
     "category": "General",
     "min_value": 0,
     "max_value": 14,
@@ -2363,11 +2531,12 @@
       10,
       6
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Rheumatoid Factor"
   },
   {
     "test_name": "Anti-CCP Antibodies",
-    "group": "Autoimmune",
+    "group": "Autoimunidade e Reumatologia",
     "category": "General",
     "min_value": 0,
     "max_value": 20,
@@ -2377,11 +2546,12 @@
       15,
       8
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Anti-CCP Antibodies"
   },
   {
     "test_name": "Anti-dsDNA",
-    "group": "Autoimmune",
+    "group": "Autoimunidade e Reumatologia",
     "category": "General",
     "min_value": 0,
     "max_value": 25,
@@ -2391,11 +2561,12 @@
       20,
       12
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Anti-dsDNA"
   },
   {
     "test_name": "Homocysteine",
-    "group": "Cardiovascular Risk",
+    "group": "Risco Cardiovascular",
     "category": "General",
     "min_value": 5,
     "max_value": 15,
@@ -2405,11 +2576,12 @@
       12,
       9
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Homocysteine"
   },
   {
     "test_name": "Lipoprotein(a)",
-    "group": "Cardiovascular Risk",
+    "group": "Risco Cardiovascular",
     "category": "General",
     "min_value": 0,
     "max_value": 30,
@@ -2419,11 +2591,12 @@
       25,
       15
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Lipoprotein(a)"
   },
   {
     "test_name": "Apolipoprotein A1",
-    "group": "Cardiovascular Risk",
+    "group": "Risco Cardiovascular",
     "category": "General",
     "min_value": 120,
     "max_value": 180,
@@ -2433,11 +2606,12 @@
       170,
       150
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Apolipoprotein A1"
   },
   {
     "test_name": "Apolipoprotein B",
-    "group": "Cardiovascular Risk",
+    "group": "Risco Cardiovascular",
     "category": "General",
     "min_value": 50,
     "max_value": 130,
@@ -2447,11 +2621,12 @@
       110,
       90
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Apolipoprotein B"
   },
   {
     "test_name": "Copper, serum",
-    "group": "Trace Elements",
+    "group": "Oligoelementos e Minerais",
     "category": "General",
     "min_value": 70,
     "max_value": 140,
@@ -2461,11 +2636,12 @@
       125,
       105
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Copper, serum"
   },
   {
     "test_name": "Zinc, serum",
-    "group": "Trace Elements",
+    "group": "Oligoelementos e Minerais",
     "category": "General",
     "min_value": 60,
     "max_value": 120,
@@ -2475,11 +2651,12 @@
       110,
       90
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Zinc, serum"
   },
   {
     "test_name": "Ceruloplasmin",
-    "group": "Trace Elements",
+    "group": "Oligoelementos e Minerais",
     "category": "General",
     "min_value": 20,
     "max_value": 60,
@@ -2489,11 +2666,12 @@
       50,
       40
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Ceruloplasmin"
   },
   {
     "test_name": "Lead, blood",
-    "group": "Toxicology",
+    "group": "Toxicologia e Triagem",
     "category": "General",
     "min_value": 0,
     "max_value": 5,
@@ -2503,11 +2681,12 @@
       3,
       2
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Lead, blood"
   },
   {
     "test_name": "Mercury, blood",
-    "group": "Toxicology",
+    "group": "Toxicologia e Triagem",
     "category": "General",
     "min_value": 0,
     "max_value": 10,
@@ -2517,11 +2696,12 @@
       6,
       4
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Mercury, blood"
   },
   {
     "test_name": "Arsenic, urine",
-    "group": "Toxicology",
+    "group": "Toxicologia e Triagem",
     "category": "General",
     "min_value": 0,
     "max_value": 50,
@@ -2531,11 +2711,12 @@
       35,
       22
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Arsenic, urine"
   },
   {
     "test_name": "Ethanol, blood",
-    "group": "Toxicology",
+    "group": "Toxicologia e Triagem",
     "category": "General",
     "min_value": 0,
     "max_value": 0,
@@ -2545,11 +2726,12 @@
       0,
       0
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Ethanol, blood"
   },
   {
     "test_name": "Acetaminophen, serum",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 10,
     "max_value": 30,
@@ -2559,11 +2741,12 @@
       25,
       20
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Acetaminophen, serum"
   },
   {
     "test_name": "Digoxin, serum",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 0.8,
     "max_value": 2,
@@ -2573,11 +2756,12 @@
       1.8,
       1.4
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Digoxin, serum"
   },
   {
     "test_name": "Lithium, serum",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 0.6,
     "max_value": 1.2,
@@ -2587,11 +2771,12 @@
       1.1,
       0.9
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Lithium, serum"
   },
   {
     "test_name": "Phenytoin, serum",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 10,
     "max_value": 20,
@@ -2601,11 +2786,12 @@
       18,
       15
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Phenytoin, serum"
   },
   {
     "test_name": "Valproic Acid, serum",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 50,
     "max_value": 100,
@@ -2615,11 +2801,12 @@
       90,
       75
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Valproic Acid, serum"
   },
   {
     "test_name": "Vancomycin, trough",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 10,
     "max_value": 20,
@@ -2629,11 +2816,12 @@
       18,
       15
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Vancomycin, trough"
   },
   {
     "test_name": "Gentamicin, peak",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 5,
     "max_value": 10,
@@ -2643,11 +2831,12 @@
       9,
       7.5
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Gentamicin, peak"
   },
   {
     "test_name": "Gentamicin, trough",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 0,
     "max_value": 2,
@@ -2657,11 +2846,12 @@
       1.5,
       1
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Gentamicin, trough"
   },
   {
     "test_name": "Theophylline, serum",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 10,
     "max_value": 20,
@@ -2671,11 +2861,12 @@
       18,
       15
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Theophylline, serum"
   },
   {
     "test_name": "Salicylate, serum",
-    "group": "Drug Levels",
+    "group": "Monitorização Terapêutica de Drogas",
     "category": "General",
     "min_value": 15,
     "max_value": 30,
@@ -2685,11 +2876,12 @@
       28,
       22
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Salicylate, serum"
   },
   {
     "test_name": "CSF Glucose",
-    "group": "Cerebrospinal Fluid",
+    "group": "Líquido Cefalorraquidiano (Líquor)",
     "category": "General",
     "min_value": 40,
     "max_value": 70,
@@ -2699,11 +2891,12 @@
       65,
       58
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "CSF Glucose"
   },
   {
     "test_name": "CSF Protein",
-    "group": "Cerebrospinal Fluid",
+    "group": "Líquido Cefalorraquidiano (Líquor)",
     "category": "General",
     "min_value": 15,
     "max_value": 45,
@@ -2713,11 +2906,12 @@
       40,
       32
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "CSF Protein"
   },
   {
     "test_name": "CSF WBC Count",
-    "group": "Cerebrospinal Fluid",
+    "group": "Líquido Cefalorraquidiano (Líquor)",
     "category": "General",
     "min_value": 0,
     "max_value": 5,
@@ -2727,11 +2921,12 @@
       3,
       2
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "CSF WBC Count"
   },
   {
     "test_name": "CSF RBC Count",
-    "group": "Cerebrospinal Fluid",
+    "group": "Líquido Cefalorraquidiano (Líquor)",
     "category": "General",
     "min_value": 0,
     "max_value": 0,
@@ -2741,11 +2936,12 @@
       0,
       0
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "CSF RBC Count"
   },
   {
     "test_name": "Pleural Fluid pH",
-    "group": "Body Fluids",
+    "group": "Líquidos Cavitários",
     "category": "General",
     "min_value": 7.4,
     "max_value": 7.6,
@@ -2755,11 +2951,12 @@
       7.55,
       7.5
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Pleural Fluid pH"
   },
   {
     "test_name": "Pleural Fluid LDH",
-    "group": "Body Fluids",
+    "group": "Líquidos Cavitários",
     "category": "General",
     "min_value": 0,
     "max_value": 200,
@@ -2769,11 +2966,12 @@
       150,
       100
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Pleural Fluid LDH"
   },
   {
     "test_name": "Pleural Fluid Protein",
-    "group": "Body Fluids",
+    "group": "Líquidos Cavitários",
     "category": "General",
     "min_value": 0,
     "max_value": 3,
@@ -2783,11 +2981,12 @@
       2.5,
       1.8
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Pleural Fluid Protein"
   },
   {
     "test_name": "Ascitic Fluid Albumin",
-    "group": "Body Fluids",
+    "group": "Líquidos Cavitários",
     "category": "General",
     "min_value": 0,
     "max_value": 1.5,
@@ -2797,11 +2996,12 @@
       1.2,
       0.8
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Ascitic Fluid Albumin"
   },
   {
     "test_name": "SAAG (Serum-Ascites Albumin Gradient)",
-    "group": "Body Fluids",
+    "group": "Líquidos Cavitários",
     "category": "General",
     "min_value": 0,
     "max_value": 1.1,
@@ -2811,11 +3011,12 @@
       0.9,
       0.7
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "SAAG (Serum-Ascites Albumin Gradient)"
   },
   {
     "test_name": "Growth Hormone",
-    "group": "Pituitary",
+    "group": "Eixo Hipofisário",
     "category": "General",
     "min_value": 0,
     "max_value": 5,
@@ -2825,11 +3026,12 @@
       3,
       1.5
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Growth Hormone"
   },
   {
     "test_name": "IGF-1 (Insulin-like Growth Factor)",
-    "group": "Pituitary",
+    "group": "Eixo Hipofisário",
     "category": "General",
     "min_value": 100,
     "max_value": 300,
@@ -2839,11 +3041,12 @@
       260,
       200
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "IGF-1 (Insulin-like Growth Factor)"
   },
   {
     "test_name": "ADH (Antidiuretic Hormone)",
-    "group": "Pituitary",
+    "group": "Eixo Hipofisário",
     "category": "General",
     "min_value": 1,
     "max_value": 5,
@@ -2853,11 +3056,12 @@
       4,
       3
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "ADH (Antidiuretic Hormone)"
   },
   {
     "test_name": "Cystatin C",
-    "group": "Renal Function",
+    "group": "Função Renal",
     "category": "General",
     "min_value": 0.6,
     "max_value": 1,
@@ -2867,11 +3071,12 @@
       0.95,
       0.82
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Cystatin C"
   },
   {
     "test_name": "Beta-2 Microglobulin",
-    "group": "Renal Function",
+    "group": "Função Renal",
     "category": "General",
     "min_value": 0.8,
     "max_value": 2.2,
@@ -2881,11 +3086,12 @@
       2,
       1.5
     ],
-    "turnaround_minutes": 1
+    "turnaround_minutes": 1,
+    "original_test_name": "Beta-2 Microglobulin"
   },
   {
     "test_name": "Haptoglobin",
-    "group": "Hemolysis Markers",
+    "group": "Marcadores de Hemólise",
     "category": "General",
     "min_value": 30,
     "max_value": 200,
@@ -2895,11 +3101,12 @@
       180,
       120
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Haptoglobin"
   },
   {
     "test_name": "Direct Coombs Test",
-    "group": "Hemolysis Markers",
+    "group": "Marcadores de Hemólise",
     "category": "General",
     "min_value": 0,
     "max_value": 0,
@@ -2909,11 +3116,12 @@
       0,
       0
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Direct Coombs Test"
   },
   {
     "test_name": "Indirect Coombs Test",
-    "group": "Hemolysis Markers",
+    "group": "Marcadores de Hemólise",
     "category": "General",
     "min_value": 0,
     "max_value": 0,
@@ -2923,11 +3131,12 @@
       0,
       0
     ],
-    "turnaround_minutes": 3
+    "turnaround_minutes": 3,
+    "original_test_name": "Indirect Coombs Test"
   },
   {
     "test_name": "Protein S Activity",
-    "group": "Thrombophilia",
+    "group": "Pesquisa de Trombofilias",
     "category": "General",
     "min_value": 60,
     "max_value": 150,
@@ -2937,11 +3146,12 @@
       130,
       100
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Protein S Activity"
   },
   {
     "test_name": "Protein C Activity",
-    "group": "Thrombophilia",
+    "group": "Pesquisa de Trombofilias",
     "category": "General",
     "min_value": 70,
     "max_value": 140,
@@ -2951,11 +3161,12 @@
       125,
       105
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Protein C Activity"
   },
   {
     "test_name": "Antithrombin III",
-    "group": "Thrombophilia",
+    "group": "Pesquisa de Trombofilias",
     "category": "General",
     "min_value": 80,
     "max_value": 120,
@@ -2965,11 +3176,12 @@
       115,
       100
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Antithrombin III"
   },
   {
     "test_name": "Factor V Leiden",
-    "group": "Thrombophilia",
+    "group": "Pesquisa de Trombofilias",
     "category": "General",
     "min_value": 0,
     "max_value": 0,
@@ -2979,11 +3191,12 @@
       0,
       0
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Factor V Leiden"
   },
   {
     "test_name": "Anti-Cardiolipin IgG",
-    "group": "Thrombophilia",
+    "group": "Pesquisa de Trombofilias",
     "category": "General",
     "min_value": 0,
     "max_value": 15,
@@ -2993,11 +3206,12 @@
       12,
       7
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Anti-Cardiolipin IgG"
   },
   {
     "test_name": "Lupus Anticoagulant",
-    "group": "Thrombophilia",
+    "group": "Pesquisa de Trombofilias",
     "category": "General",
     "min_value": 0,
     "max_value": 0,
@@ -3007,6 +3221,7 @@
       0,
       0
     ],
-    "turnaround_minutes": 5
+    "turnaround_minutes": 5,
+    "original_test_name": "Lupus Anticoagulant"
   }
 ]

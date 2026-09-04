@@ -150,18 +150,36 @@ export default function TopBarControls({
             )}
             {showMenu && menuPos && panel(menuPos, 'app-main-menu',
                <>
-                  {/* Cases shortcut — first item, the quick jump students want. */}
+                  {/* Simulação: the two destinations that touch an actual
+                      patient case — picking one and editing its content.
+                      Grouped and labeled so this doesn't read as one flat
+                      list mixing case work with platform administration
+                      (2026-09 UI review: "está tudo misturado"). */}
                   {onOpenCases && (
-                     <button
-                        type="button"
-                        onClick={() => { onOpenCases?.(); closeAll(); }}
-                        role="menuitem"
-                        className="rohy-topbar-menu-item"
-                     >
-                        <Stethoscope className="w-4 h-4" />
-                        {t('menu_cases')}
-                     </button>
+                     <>
+                        <div className="rohy-menu-section-label">{t('menu_section_simulation')}</div>
+                        <button
+                           type="button"
+                           onClick={() => { onOpenCases?.(); closeAll(); }}
+                           role="menuitem"
+                           className="rohy-topbar-menu-item"
+                        >
+                           <Stethoscope className="w-4 h-4" />
+                           {t('menu_cases')}
+                        </button>
+                        <button
+                           type="button"
+                           onClick={() => { onOpenSettings?.(); closeAll(); }}
+                           role="menuitem"
+                           className="rohy-topbar-menu-item"
+                        >
+                           <Settings className="w-4 h-4" />
+                           {t('open_settings')}
+                        </button>
+                     </>
                   )}
+
+                  <div className="rohy-menu-divider" />
                   <button
                      type="button"
                      onClick={() => { onOpenProfile?.(); closeAll(); }}
@@ -173,15 +191,6 @@ export default function TopBarControls({
                   </button>
                   <button
                      type="button"
-                     onClick={() => { onOpenSettings?.(); closeAll(); }}
-                     role="menuitem"
-                     className="rohy-topbar-menu-item"
-                  >
-                     <Settings className="w-4 h-4" />
-                     {t('open_settings')}
-                  </button>
-                  <button
-                     type="button"
                      onClick={() => { onOpenHelp?.(); closeAll(); }}
                      role="menuitem"
                      className="rohy-topbar-menu-item"
@@ -189,17 +198,6 @@ export default function TopBarControls({
                      <HelpCircle className="w-4 h-4" />
                      {t('help_support')}
                   </button>
-                  {onOpenLessons && (
-                     <button
-                        type="button"
-                        onClick={() => { onOpenLessons?.(); closeAll(); }}
-                        role="menuitem"
-                        className="rohy-topbar-menu-item"
-                     >
-                        <BookOpen className="w-4 h-4" />
-                        {t('lessons', { defaultValue: 'Lessons' })}
-                     </button>
-                  )}
 
                   {/* Language section — the old globe menu, folded inline. */}
                   <div className="rohy-menu-divider" />
@@ -218,9 +216,26 @@ export default function TopBarControls({
                      </button>
                   ))}
 
-                  {(canSeeOyonAnalytics || isAdminUser) && (
+                  {/* Plataforma: everything about the multi-tenant platform
+                      shell (course content, instructor reporting, affect
+                      tracking, first-run setup) rather than any single
+                      patient case — kept out of the Simulação group above so
+                      picking a case never sits next to platform reporting. */}
+                  {(onOpenLessons || canSeeOyonAnalytics || isAdminUser) && (
                      <>
                         <div className="rohy-menu-divider" />
+                        <div className="rohy-menu-section-label">{t('menu_section_platform')}</div>
+                        {onOpenLessons && (
+                           <button
+                              type="button"
+                              onClick={() => { onOpenLessons?.(); closeAll(); }}
+                              role="menuitem"
+                              className="rohy-topbar-menu-item"
+                           >
+                              <BookOpen className="w-4 h-4" />
+                              {t('lessons', { defaultValue: 'Lessons' })}
+                           </button>
+                        )}
                         {canSeeOyonAnalytics && (
                            <button
                               type="button"

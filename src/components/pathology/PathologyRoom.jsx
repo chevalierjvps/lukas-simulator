@@ -524,6 +524,21 @@ export function PathologyRoom({
                         <main className="flex min-w-0 flex-1 flex-col">
                             {slide ? (
                                 <SlideCanvas
+                                    // Force a full unmount/remount (fresh DOM
+                                    // node, fresh <canvas>) on every slide
+                                    // switch rather than relying only on
+                                    // SlideCanvas's own effect cleanup.
+                                    // WebKitGTK's compositor can keep a stale
+                                    // backing-store texture tied to a reused
+                                    // DOM element even after OSD's own
+                                    // destroy()+rebuild — reported as a
+                                    // previous slide's tiles "bleeding
+                                    // through" the new one at higher zoom
+                                    // levels, worse the more tiles get
+                                    // repainted. A `key` change is the one
+                                    // thing that guarantees the browser
+                                    // cannot reuse that backing store.
+                                    key={slide.id ?? 'none'}
                                     slide={slide}
                                     onSample={accept}
                                     onViewer={attachViewer}

@@ -27,7 +27,13 @@ export function PacsRoom({ topBarControls = null, caseTitle = null, roomNav = nu
     // dropped both — no room tabs, no End & Debrief — and the only way out
     // was a page reload. Mirrors PathologyScreen's own header + roomNav shell.
     return (
-        <div className="flex h-screen w-screen flex-col overflow-hidden bg-slate-900 text-slate-100">
+        // h-full/w-full, not h-screen/w-screen: this room now also mounts
+        // as the "Imágenes" tab inside the radiology room (App.jsx), under a
+        // tablist header it doesn't own — h-screen would ignore that header's
+        // height and overflow the viewport. Filling 100% of a parent that
+        // itself IS h-screen (the standalone PluginRoom mount, every other
+        // plugin) renders identically either way.
+        <div className="flex h-full w-full flex-col overflow-hidden bg-slate-900 text-slate-100">
             <header className="flex shrink-0 items-center justify-between border-b border-slate-800/80 bg-slate-950/80 px-6 py-3 shadow-lg shadow-black/20 backdrop-blur">
                 <div className="flex min-w-0 items-center gap-3 max-lg:max-w-[40%]">
                     <ScanLine className="h-6 w-6 shrink-0 text-cyan-300" />

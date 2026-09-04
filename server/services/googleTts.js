@@ -112,6 +112,15 @@ export const GOOGLE_VOICES = [
     { filename: 'es-US-Chirp3-HD-Kore',      displayName: 'Chirp3 HD-Kore (US-ES female)',   gender: 'female', language: 'es-US' },
     { filename: 'es-US-Chirp3-HD-Charon',    displayName: 'Chirp3 HD-Charon (US-ES male)',   gender: 'male',   language: 'es-US' },
     { filename: 'es-US-Chirp3-HD-Puck',      displayName: 'Chirp3 HD-Puck (US-ES male)',     gender: 'male',   language: 'es-US' },
+
+    // Portuguese (Brazil)
+    { filename: 'pt-BR-Chirp3-HD-Aoede',     displayName: 'Chirp3 HD-Aoede (PT female)',     gender: 'female', language: 'pt-BR' },
+    { filename: 'pt-BR-Chirp3-HD-Kore',      displayName: 'Chirp3 HD-Kore (PT female)',      gender: 'female', language: 'pt-BR' },
+    { filename: 'pt-BR-Chirp3-HD-Charon',    displayName: 'Chirp3 HD-Charon (PT male)',      gender: 'male',   language: 'pt-BR' },
+    { filename: 'pt-BR-Chirp3-HD-Puck',      displayName: 'Chirp3 HD-Puck (PT male)',        gender: 'male',   language: 'pt-BR' },
+    { filename: 'pt-BR-Neural2-A',           displayName: 'Neural2-A (PT female)',           gender: 'female', language: 'pt-BR' },
+    { filename: 'pt-BR-Neural2-B',           displayName: 'Neural2-B (PT male)',             gender: 'male',   language: 'pt-BR' },
+    { filename: 'pt-BR-Neural2-C',           displayName: 'Neural2-C (PT female)',           gender: 'female', language: 'pt-BR' },
 ];
 
 const VALID_VOICES = new Set(GOOGLE_VOICES.map(v => v.filename));

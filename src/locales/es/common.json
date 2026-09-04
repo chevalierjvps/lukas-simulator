@@ -1,5 +1,5 @@
 {
-  "app_title": "Rohy AI Simulador de Paciente",
+  "app_title": "Lukas 1.0 AI Simulador de Pacientes",
   "back": "Atrás",
   "cancel": "Cancelar",
   "case_studio": "Estudio de casos",
@@ -283,6 +283,8 @@
   "room_radiology": "Radiología y diagnóstico",
   "room_radiology_sub": "imágenes y pruebas",
   "room_ready_results": "{label} — {count, plural, one {# resultado listo} other {# resultados listos}}",
+  "room_reference_library": "Biblioteca de Referencia",
+  "room_reference_library_sub": "archivo de imagen y patología",
   "save": "Guardar",
   "saving": "Guardando…",
   "search": "Buscar",

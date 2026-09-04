@@ -4,6 +4,7 @@ import { User, Loader2 } from 'lucide-react';
 import { useVoice } from '../../contexts/VoiceContext';
 import { PATIENT_AOI_ID, FACE_BOX } from '../oyon/screenAois';
 import { useAoiPublisher } from '../oyon/useAoiPublisher';
+import { usePatientRecord } from '../../services/PatientRecord';
 
 // Lazy-load the 3D head — pulls in three.js / r3f / drei (~250 KB gzip).
 const PatientAvatar = lazy(() => import('../chat/PatientAvatar'));
@@ -50,6 +51,25 @@ export default function PatientVisual({ caseData, participant }) {
 
     const p = participant || activeParticipant || caseFallback;
 
+    // Live-vitals ring around the avatar stage: a heartbeat pulse (cadence
+    // = 60/hr seconds, so it visibly speeds up with tachycardia and stops
+    // with asystole — a real clinical signal, not decoration) tinted by how
+    // distressed the patient currently is (pain/anxiety), using the same
+    // calm->amber->critical palette TacticalClinicalHud already uses
+    // elsewhere so the whole app reads as one consistent visual language.
+    // Reads the same PatientRecord channel PatientMonitor publishes to
+    // every tick (Sprint 2+) — no new plumbing.
+    const { record } = usePatientRecord();
+    const liveVitals = record?.current_state?.vitals;
+    const liveHr = liveVitals?.hr;
+    const distress = Math.max(liveVitals?.pain || 0, liveVitals?.anxiety || 0);
+    const ringTone = distress >= 7
+        ? { ring: 'ring-rose-500/70', glow: 'rgba(244,63,94,0.55)' }
+        : distress >= 4
+        ? { ring: 'ring-amber-500/60', glow: 'rgba(245,158,11,0.45)' }
+        : { ring: 'ring-emerald-500/50', glow: 'rgba(16,185,129,0.4)' };
+    const heartbeatActive = Number.isFinite(liveHr) && liveHr > 0;
+
     // Always render the avatar when the manifest is loaded — every case now
     // resolves to a GLB (explicit, platform-default, or demographic auto-pick).
     // The `avatar_type === 'none'` global toggle still wins as a kill switch.
@@ -74,23 +94,40 @@ export default function PatientVisual({ caseData, participant }) {
                        must exist from the FIRST render (the effect above runs
                        once per showLiveHead flip), not only after the lazy 3D
                        head resolves. */
-                    <div ref={stageRef} className="aspect-square h-full max-h-full max-w-full">
-                        <Suspense fallback={
-                            <div className="w-full h-full rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center">
-                                <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />
-                            </div>
-                        }>
-                            <PatientAvatar
-                                patient={p}
-                                speaking={speaking}
-                                listening={listening}
-                                visemes={visemes}
-                                headManifest={headManifest}
-                                avatarId={p.avatar_id}
-                                cameraOverride={p.avatar_camera}
-                                platformAvatars={platformAvatars}
-                            />
-                        </Suspense>
+                    <div className="relative aspect-square h-full max-h-full max-w-full">
+                        {/* Heartbeat ring — purely decorative, sits in its own
+                            layer so it never perturbs stageRef's measured box
+                            (the AOI gaze publisher below reads that rect).
+                            Pulses at 60/hr seconds/cycle (stops entirely at
+                            hr<=0 — asystole reads as asystole, not decoration)
+                            and tints calm/amber/critical off live pain &
+                            anxiety, the same palette TacticalClinicalHud uses. */}
+                        <div
+                            aria-hidden="true"
+                            className={`absolute -inset-1.5 rounded-full ring-4 pointer-events-none transition-colors duration-700 ${ringTone.ring} ${heartbeatActive ? 'animate-pulse' : ''}`}
+                            style={{
+                                boxShadow: `0 0 ${heartbeatActive ? 24 : 10}px ${heartbeatActive ? 4 : 1}px ${ringTone.glow}`,
+                                ...(heartbeatActive ? { animationDuration: `${(60 / liveHr).toFixed(3)}s` } : {}),
+                            }}
+                        />
+                        <div ref={stageRef} className="absolute inset-0">
+                            <Suspense fallback={
+                                <div className="w-full h-full rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center">
+                                    <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />
+                                </div>
+                            }>
+                                <PatientAvatar
+                                    patient={p}
+                                    speaking={speaking}
+                                    listening={listening}
+                                    visemes={visemes}
+                                    headManifest={headManifest}
+                                    avatarId={p.avatar_id}
+                                    cameraOverride={p.avatar_camera}
+                                    platformAvatars={platformAvatars}
+                                />
+                            </Suspense>
+                        </div>
                     </div>
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-neutral-700">

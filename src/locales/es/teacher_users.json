@@ -117,7 +117,7 @@
   "invite_copy_failed": "No se pudo copiar: el navegador lo bloqueó. Selecciona el texto y cópialo manualmente.",
   "invite_copy_link": "Copiar enlace",
   "invite_create": "Crear invitación",
-  "invite_created_help": "Envía el enlace o dicta el código. Rohy no envía correos: compartirlo depende de ti.",
+  "invite_created_help": "Envía el enlace o dicta el código. Lukas no envía correos: compartirlo depende de ti.",
   "invite_created_title": "Invitación lista para compartir",
   "invite_creating": "Creando…",
   "invite_done": "Listo",

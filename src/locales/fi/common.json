@@ -283,6 +283,8 @@
   "room_radiology": "Radiologia ja diagnostiikka",
   "room_radiology_sub": "kuvantaminen ja tutkimukset",
   "room_ready_results": "{label} — {count, plural, one {# valmis tulos} other {# valmista tulosta}}",
+  "room_reference_library": "Viitekirjasto",
+  "room_reference_library_sub": "kuvantamis- ja patologia-arkisto",
   "save": "Tallenna",
   "saving": "Tallennetaan…",
   "search": "Hae",

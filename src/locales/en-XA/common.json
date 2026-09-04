@@ -1,5 +1,5 @@
 {
-  "app_title": "[Ŕóĥý ÁÍ Þáţíéñţ Šíɱúĺáţóŕ·····]",
+  "app_title": "[Ĺúķáš 1.0 ÁÍ Þáţíéñţ Šíɱúĺáţóŕ·····]",
   "back": "[Ɓáçķ·]",
   "cancel": "[Çáñçéĺ··]",
   "case_studio": "[Çášé Šţúðíó··]",
@@ -283,6 +283,8 @@
   "room_radiology": "[Ŕáðíóĺóğý & ðíáğñóšţíçš····]",
   "room_radiology_sub": "[íɱáğíñğ & ţéšţš···]",
   "room_ready_results": "{label} — {count, plural, one {# ready result} other {# ready results}}",
+  "room_reference_library": "[Ŕéƒéŕéñçé Ĺíƀŕáŕý····]",
+  "room_reference_library_sub": "[íɱáğíñğ & þáţĥóĺóğý áŕçĥíṽé·····]",
   "save": "[Šáṽé·]",
   "saving": "[Šáṽíñğ…··]",
   "search": "[Šéáŕçĥ··]",

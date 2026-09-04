@@ -7,10 +7,11 @@
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
-// Initialize the i18next default instance (eager English resources) so
-// components calling useTranslation render real English strings in tests —
-// mirrors the src/main.jsx import order in the app.
-import '../src/i18n/index.js';
+import i18n from '../src/i18n/index.js';
+
+beforeEach(() => {
+    i18n.changeLanguage('en');
+});
 
 // Reset RTL DOM after every test so renders don't leak between tests.
 afterEach(() => {

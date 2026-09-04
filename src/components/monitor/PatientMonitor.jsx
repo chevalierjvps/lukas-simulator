@@ -354,7 +354,7 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
    const toast = useToast();
    const { isAdmin: isAdminAuth } = useAuth();
    const isAdmin = isAdminProp || isAdminAuth();
-   const { noted, changed } = usePatientRecord();
+   const { noted, changed, updateVitals } = usePatientRecord();
    // --- Refs for Canvas & Buffers ---
    const ecgCanvasRef = useRef(null);
    const plethCanvasRef = useRef(null);
@@ -423,7 +423,10 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
 
    // Treatment Effects Hook - Real-time pharmacokinetic effects
    const treatmentEffects = useTreatmentEffects(sessionId, {
-      pollInterval: 5000,
+      // Shortened from 5000ms — this is the floor on how fast an ordered
+      // drug/fluid/O2 shows up as a vitals change, and the HUD's stability
+      // bar (P1: must respond instantly to treatment) is gated on it.
+      pollInterval: 2000,
       updateInterval: 1000,
       enabled: !!sessionId
    });
@@ -514,7 +517,35 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
    useEffect(() => {
       EventLogger.setCurrentVitals?.(displayVitals);
       prevVitalsRef.current = displayVitals;
-   }, [displayVitals]);
+      if (updateVitals && displayVitals) {
+         const currentPain = Math.max(0, Math.min(10, (params.pain ?? 8) + (treatmentEffects.aggregate?.pain || 0)));
+         const currentAnxiety = Math.max(0, Math.min(10, (params.anxiety ?? 7) + (treatmentEffects.aggregate?.anxiety || 0)));
+         updateVitals({
+            hr: displayVitals.hr,
+            bp_sys: displayVitals.bpSys,
+            bp_dia: displayVitals.bpDia,
+            rr: displayVitals.rr,
+            spo2: displayVitals.spo2,
+            temp: displayVitals.temp,
+            pain: Math.round(currentPain * 10) / 10,
+            anxiety: Math.round(currentAnxiety * 10) / 10,
+            // Sprint 3: the chat AI's "## ECG" grounding block used to read
+            // only the case's static config.ecg/config.rhythm, so a rhythm
+            // change mid-session (scenario progression, an admin override,
+            // a shock) never reached the patient persona — he'd keep
+            // describing symptoms for whatever rhythm the case started on.
+            // Riding the same PatientRecord channel the vitals already use
+            // closes that gap for ChatInterface without a new plumbing path.
+            rhythm,
+            st_elevation_mm: conditions.stElev || 0,
+            t_wave_inverted: !!conditions.tInv,
+         });
+         if (typeof window !== 'undefined') {
+            window.__LUKAS_PATIENT_PAIN = currentPain;
+            window.__LUKAS_PATIENT_ANXIETY = currentAnxiety;
+         }
+      }
+   }, [displayVitals, updateVitals, params.pain, params.anxiety, treatmentEffects.aggregate?.pain, treatmentEffects.aggregate?.anxiety, rhythm, conditions.stElev, conditions.tInv]);
 
    // Session timer — recomputes from the anchor each second (never
    // increments), so a remount or refresh resumes at the true elapsed time.
@@ -1374,9 +1405,40 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
 
    // --- Drawing ---
    const drawWaveforms = () => {
-      drawCanvas(ecgCanvasRef.current, ecgBuffer.current, '#00ff00', 2, 1);
-      drawCanvas(plethCanvasRef.current, plethBuffer.current, '#0ea5e9', 1.5, 0.5); // Cyan
-      drawCanvas(respCanvasRef.current, respBuffer.current, '#f59e0b', 1.5, 0); // Amber/Yellow
+      // Console do Leito palette (2026-09): the IEC 60601-1-8 clinical
+      // alarm colors a real bedside monitor uses — green ECG, cyan SpO2,
+      // amber respiration — replacing the flat #00ff00/generic-dashboard
+      // set. Color here is still pure clinical signal, only the exact
+      // hues moved to match the rest of the redesigned console.
+      drawCanvas(ecgCanvasRef.current, ecgBuffer.current, '#34ffa0', 2, 1);
+      drawCanvas(plethCanvasRef.current, plethBuffer.current, '#2dd4f5', 1.5, 0.5); // Cyan
+      drawCanvas(respCanvasRef.current, respBuffer.current, '#ffb238', 1.5, 0); // Amber
+   };
+
+   // The grid is identical every frame (only w/h change it), but was being
+   // re-stroked from scratch on 3 canvases at 60fps. Rendered once per
+   // (w,h) onto an offscreen canvas and blitted with drawImage instead —
+   // same pixels, far less per-frame CPU on the WebKitGTK compositor.
+   const gridLayerCache = useRef(new Map());
+   const getGridLayer = (w, h) => {
+      const key = `${w}x${h}`;
+      const cache = gridLayerCache.current;
+      let layer = cache.get(key);
+      if (!layer) {
+         layer = document.createElement('canvas');
+         layer.width = w;
+         layer.height = h;
+         const gctx = layer.getContext('2d');
+         gctx.strokeStyle = '#333';
+         gctx.lineWidth = 0.5;
+         gctx.beginPath();
+         for (let x = 0; x < w; x += 50) { gctx.moveTo(x, 0); gctx.lineTo(x, h); }
+         gctx.stroke();
+         cache.set(key, layer);
+         // Resize churn shouldn't grow this unboundedly.
+         if (cache.size > 6) cache.delete(cache.keys().next().value);
+      }
+      return layer;
    };
 
    const drawCanvas = (canvas, data, color, lineWidth, gain) => {
@@ -1387,15 +1449,15 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
 
       ctx.clearRect(0, 0, w, h);
 
-      // Grid (faint)
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 0.5;
-      ctx.beginPath();
-      // Vertical lines every 50px
-      for (let x = 0; x < w; x += 50) { ctx.moveTo(x, 0); ctx.lineTo(x, h); }
-      ctx.stroke();
+      // Grid (faint, cached — see getGridLayer)
+      ctx.drawImage(getGridLayer(w, h), 0, 0);
 
-      // Signal
+      // Signal — a soft glow reading as a real phosphor/CRT trace rather
+      // than a flat vector line. Cheap (one extra canvas property, no
+      // extra draw pass) and reset immediately after stroking so it can
+      // never bleed into the grid layer or a later drawCanvas call.
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 6;
       ctx.strokeStyle = color;
       ctx.lineWidth = lineWidth;
       ctx.lineJoin = 'round';
@@ -1413,6 +1475,7 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
          else ctx.lineTo(x, y);
       }
       ctx.stroke();
+      ctx.shadowBlur = 0; // otherwise leaks onto next frame's grid drawImage()
    };
 
    // --- Resize Handler ---
@@ -1540,182 +1603,20 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
          {/* MAIN LAYOUT */}
          <div className="flex flex-1 relative overflow-hidden">
 
-            {/* WAVEFORMS (LEFT) */}
-            <div className="flex-1 flex flex-col bg-black relative">
+            {/* WAVEFORMS (LEFT) — memoized: its only props are the canvas
+                refs (stable identity, never change), so it never re-renders
+                after mount. The traces themselves are painted imperatively
+                by the rAF loop writing straight into the canvas via those
+                refs, entirely outside React, so freezing this subtree's
+                React render is safe and is exactly what stops the 1-2s
+                vitals/jitter ticks from reconciling it. */}
+            <WaveformPanel ecgCanvasRef={ecgCanvasRef} plethCanvasRef={plethCanvasRef} respCanvasRef={respCanvasRef} />
 
-               {/* Channel 1: ECG — a gaze attention target (AoiRegion), so
-                   analytics can answer "was the trainee watching the trace?"
-                   via aoi_dwell_ms.ecg_trace. Same div, same layout. */}
-               {/* Below `lg` the monitor shares the screen's height with the
-                   chat column instead of owning the full viewport, so the
-                   three traces have to fit in roughly half of it. 96px still
-                   resolves a QRS complex; the 160px floor would push the
-                   third channel off the bottom. */}
-               <AoiRegion id="ecg_trace" className="h-32 min-h-[160px] max-lg:h-24 max-lg:min-h-[96px] border-b border-neutral-800/50 relative group">
-                  <div className="absolute top-2 left-3 z-10 font-mono text-sm font-bold text-green-500 select-none">
-                     II <span className="text-xs font-normal opacity-70 ml-1">1mV</span>
-                  </div>
-                  <canvas ref={ecgCanvasRef} className="w-full h-full block" />
-                  <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-black via-transparent to-transparent pointer-events-none" />
-               </AoiRegion>
-
-               {/* Channel 2: PLETH */}
-               <div className="h-32 max-lg:h-24 border-b border-neutral-800/50 relative">
-                  <div className="absolute top-2 left-3 z-10 font-mono text-sm font-bold text-sky-500 select-none">
-                     PLETH
-                  </div>
-                  <canvas ref={plethCanvasRef} className="w-full h-full block" />
-               </div>
-
-               {/* Channel 3: RESP */}
-               <div className="h-32 max-lg:h-24 border-b border-neutral-800/50 relative">
-                  <div className="absolute top-2 left-3 z-10 font-mono text-sm font-bold text-amber-500 select-none">
-                     RESP <span className="text-xs font-normal opacity-70 ml-1">Imp</span>
-                  </div>
-                  <canvas ref={respCanvasRef} className="w-full h-full block" />
-               </div>
-
-               {/* Active clinical alarms — render directly below RESP. Each
-                   row shows the alarm message with an Acknowledge button. */}
-               <InlineClinicalAlarms />
-
-            </div>
-
-            {/* VITALS (RIGHT SIDEBAR) — a gaze attention target (AoiRegion):
-                dwell on the numeric HR/SpO2/NIBP/RESP/TEMP column lands in
-                aoi_dwell_ms.vitals_values. Same div, same layout. */}
-            {/* Every box below carries `shrink-0`. Without it they are flex
-                children that shrink when the column is shorter than their
-                combined height — and because each box clips its own content,
-                the reading inside silently loses its top half rather than the
-                column scrolling. Measured at 25px instead of 96px on an iPad
-                in portrait; the same squeeze happens on any short window. */}
-            <AoiRegion id="vitals_values" className="w-64 bg-neutral-900/50 backdrop-blur-sm border-l border-neutral-800 flex flex-col shrink-0 overflow-y-auto">
-
-               {/* HR Box */}
-               <div className="h-24 shrink-0 border-b border-neutral-800 p-3 flex flex-col justify-center relative overflow-hidden">
-                  <div className="absolute top-1.5 left-3 text-green-500 font-bold text-xs flex items-center gap-1">
-                     <Heart className="w-3 h-3" /> HR
-                  </div>
-                  <div className="text-right relative z-10">
-                     <div className={`text-5xl font-mono font-bold tracking-tighter leading-none ${rhythm === 'Asystole' ? 'text-red-500' : 'text-green-500'}`}>
-                        {rhythm === 'Asystole' || rhythm === 'VFib' ? '---' : displayVitals.hr}
-                     </div>
-                     <div className="text-neutral-500 text-[10px] mt-0.5">bpm</div>
-                  </div>
-               </div>
-
-               {/* SpO2 Box */}
-               <div className="h-32 max-lg:h-24 max-lg:p-3 shrink-0 border-b border-neutral-800 p-4 flex flex-col justify-center relative">
-                  <div className="absolute top-2 left-3 text-sky-500 font-bold text-sm">SpO2</div>
-                  <div className="text-right">
-                     <div className="text-5xl font-mono font-bold tracking-tighter text-sky-500">
-                        {displayVitals.spo2}<span className="text-2xl opacity-50">%</span>
-                     </div>
-                  </div>
-                  {/* Signal Quality Bar */}
-                  <div className="absolute bottom-3 left-4 right-4 h-1 bg-neutral-800 rounded overflow-hidden">
-                     <div className="h-full bg-sky-600 w-[90%]" />
-                  </div>
-               </div>
-
-               {/* NIBP Box */}
-               <div className="h-32 max-lg:h-24 max-lg:p-3 shrink-0 border-b border-neutral-800 p-4 flex flex-col justify-center relative">
-                  <div className="absolute top-2 left-3 text-red-500 font-bold text-sm">NIBP</div>
-                  <div className="text-right mt-2">
-                     <div className="text-4xl font-mono font-bold tracking-tighter text-red-100 leading-none">
-                        {displayVitals.bpSys}/{displayVitals.bpDia}
-                     </div>
-                     <div className="text-red-400 text-sm mt-1 font-mono">
-                        ({Math.round((displayVitals.bpSys + 2 * displayVitals.bpDia) / 3)})
-                     </div>
-                  </div>
-                  <div className="absolute bottom-2 left-3 text-[10px] text-neutral-500">
-                     {/* UI test review 2.9.108 #24: this line used to end
-                         in a hardcoded clock time — a fake wall clock that
-                         never moved and contradicted every other readout on
-                         the panel. There is no
-                         per-cuff measurement timestamp in the model to put
-                         here (the NIBP numbers come from the same
-                         continuous simulation as the rest), and echoing the
-                         session clock would just print the timer that
-                         already sits in the header. So the cycle mode
-                         stands alone and nothing is invented. */}
-                     {t('nibp_cycle_auto', { minutes: 15 })}
-                  </div>
-               </div>
-
-               {/* RESP Box */}
-               <div className="h-32 max-lg:h-24 max-lg:p-3 shrink-0 border-b border-neutral-800 p-4 flex flex-col justify-center relative">
-                  <div className="absolute top-2 left-3 text-amber-500 font-bold text-sm">RESP</div>
-                  <div className="text-right">
-                     <div className="text-5xl font-mono font-bold tracking-tighter text-amber-500">
-                        {displayVitals.rr}
-                     </div>
-                     <div className="text-neutral-500 text-xs">rpm</div>
-                  </div>
-               </div>
-
-               {/* Temperature Box */}
-               <div className="h-32 max-lg:h-24 max-lg:p-3 shrink-0 border-b border-neutral-800 p-4 flex flex-col justify-center relative">
-                  <div className="absolute top-2 left-3 text-orange-500 font-bold text-sm">TEMP</div>
-                  <div className="text-right">
-                     <div className="text-4xl font-mono font-bold tracking-tighter text-orange-100">
-                        {displayVitals.temp?.toFixed(1) || '37.0'}
-                     </div>
-                     <div className="text-neutral-500 text-xs">°C</div>
-                  </div>
-                  <div className="absolute bottom-2 left-3 text-[10px] text-neutral-500">
-                     {t('temp_site_core')} • <span className="text-neutral-300">{t('temp_site_esophageal')}</span>
-                  </div>
-               </div>
-
-               {/* EtCO2 Box */}
-               <div className="h-24 shrink-0 border-b border-neutral-800 p-3 flex flex-col justify-center relative">
-                  <div className="absolute top-1.5 left-3 text-yellow-500 font-bold text-xs">EtCO<sub className="text-[9px]">2</sub></div>
-                  <div className="text-right">
-                     <div className="text-4xl font-mono font-bold tracking-tighter leading-none text-yellow-500">
-                        {displayVitals.etco2 || 38}
-                     </div>
-                     <div className="text-neutral-500 text-[10px] mt-0.5">mmHg</div>
-                  </div>
-               </div>
-
-               {/* Treatment Effects Indicator */}
-               {treatmentEffects.count > 0 && (
-                  <div className="p-3 bg-pink-900/20 border-t border-pink-800/50">
-                     <div className="flex items-center gap-2 mb-2">
-                        <Pill className="w-4 h-4 text-pink-400" />
-                        <span className="text-xs font-bold text-pink-300">
-                           {t('active_treatments', { count: treatmentEffects.count })}
-                        </span>
-                     </div>
-                     <div className="grid grid-cols-3 gap-1 text-xs">
-                        {treatmentEffects.aggregate.hr !== 0 && (
-                           <div className={`${treatmentEffects.aggregate.hr > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              HR {treatmentEffects.aggregate.hr > 0 ? '+' : ''}{treatmentEffects.aggregate.hr}
-                           </div>
-                        )}
-                        {treatmentEffects.aggregate.bp_sys !== 0 && (
-                           <div className={`${treatmentEffects.aggregate.bp_sys > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              BP {treatmentEffects.aggregate.bp_sys > 0 ? '+' : ''}{treatmentEffects.aggregate.bp_sys}
-                           </div>
-                        )}
-                        {treatmentEffects.aggregate.spo2 !== 0 && (
-                           <div className={`${treatmentEffects.aggregate.spo2 > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              SpO2 {treatmentEffects.aggregate.spo2 > 0 ? '+' : ''}{treatmentEffects.aggregate.spo2}%
-                           </div>
-                        )}
-                        {treatmentEffects.aggregate.rr !== 0 && (
-                           <div className={`${treatmentEffects.aggregate.rr > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                              RR {treatmentEffects.aggregate.rr > 0 ? '+' : ''}{treatmentEffects.aggregate.rr}
-                           </div>
-                        )}
-                     </div>
-                  </div>
-               )}
-
-            </AoiRegion>
+            {/* VITALS (RIGHT SIDEBAR) — memoized: re-renders only when
+                displayVitals/rhythm/treatmentEffects actually change
+                (every ~1-2s), not on every unrelated PatientMonitor
+                re-render (drawer open/close, alarm ack, tab switch, ...). */}
+            <NumericPanel displayVitals={displayVitals} rhythm={rhythm} treatmentEffects={treatmentEffects} t={t} />
          </div>
 
          {/* CONTROLS OVERLAY (DRAWER) */}
@@ -1746,6 +1647,15 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {/* Tab bodies only mount while the drawer is actually open.
+                  This whole block (~800 lines: rhythm/vitals/scenarios/
+                  alarms/labs tabs) used to render unconditionally behind a
+                  CSS translate-x-full, so every 1-2s vitals/jitter tick
+                  reconciled it too even though students have it closed the
+                  vast majority of a session. The sliding wrapper and header/
+                  tabs above stay always-mounted so the open/close transition
+                  still animates. */}
+              {controlsOpen && (<>
 
                {activeTab === 'scenarios' && (
                   <div className="space-y-6">
@@ -2533,6 +2443,7 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
                   </div>
                )}
 
+              </>)}
             </div>
 
             {/* Footer actions - Admin Only */}
@@ -2647,12 +2558,214 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
    );
 }
 
+// --- Sprint 2 (perf): heavy subpanels sliced out of PatientMonitor and
+// React.memo'd so the monitor's own frequent internal ticks (jitter every
+// 2s, scenario tick every 1s, session-timer every 1s) stop forcing a
+// reconciliation pass over the whole ~2700-line render tree. Each only
+// re-renders when the specific data it displays actually changes. ---
+
+// ECG/PLETH/RESP canvases + the clinical alarm strip beneath them. Props
+// are just the canvas ref objects, which never change identity — so this
+// never re-renders after mount. The waveforms are painted by PatientMonitor's
+// rAF loop writing straight into the canvases via those same refs, entirely
+// outside React, so a frozen React subtree here doesn't affect the drawing.
+const WaveformPanel = React.memo(function WaveformPanel({ ecgCanvasRef, plethCanvasRef, respCanvasRef }) {
+   return (
+      <div className="flex-1 flex flex-col bg-black relative">
+
+         {/* Channel 1: ECG — a gaze attention target (AoiRegion), so
+             analytics can answer "was the trainee watching the trace?"
+             via aoi_dwell_ms.ecg_trace. Same div, same layout. */}
+         {/* Below `lg` the monitor shares the screen's height with the
+             chat column instead of owning the full viewport, so the
+             three traces have to fit in roughly half of it. 96px still
+             resolves a QRS complex; the 160px floor would push the
+             third channel off the bottom. */}
+         <AoiRegion id="ecg_trace" className="h-32 min-h-[160px] max-lg:h-24 max-lg:min-h-[96px] border-b border-neutral-800/50 relative group">
+            <div className="absolute top-2 left-3 z-10 font-mono text-sm font-bold text-green-500 select-none">
+               II <span className="text-xs font-normal opacity-70 ml-1">1mV</span>
+            </div>
+            <canvas ref={ecgCanvasRef} className="w-full h-full block" />
+            <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-black via-transparent to-transparent pointer-events-none" />
+         </AoiRegion>
+
+         {/* Channel 2: PLETH */}
+         <div className="h-32 max-lg:h-24 border-b border-neutral-800/50 relative">
+            <div className="absolute top-2 left-3 z-10 font-mono text-sm font-bold text-sky-500 select-none">
+               PLETH
+            </div>
+            <canvas ref={plethCanvasRef} className="w-full h-full block" />
+         </div>
+
+         {/* Channel 3: RESP */}
+         <div className="h-32 max-lg:h-24 border-b border-neutral-800/50 relative">
+            <div className="absolute top-2 left-3 z-10 font-mono text-sm font-bold text-amber-500 select-none">
+               RESP <span className="text-xs font-normal opacity-70 ml-1">Imp</span>
+            </div>
+            <canvas ref={respCanvasRef} className="w-full h-full block" />
+         </div>
+
+         {/* Active clinical alarms — render directly below RESP. Each
+             row shows the alarm message with an Acknowledge button. */}
+         <InlineClinicalAlarms />
+
+      </div>
+   );
+});
+
+// HR/SpO2/NIBP/RESP/TEMP/EtCO2 numeric readout column + the active-
+// treatments indicator. Re-renders only when displayVitals, rhythm or
+// treatmentEffects actually change (the ~1-2s jitter/treatment cadence) —
+// not on every unrelated PatientMonitor re-render (drawer open/close,
+// alarm ack, tab switch, ...).
+const NumericPanel = React.memo(function NumericPanel({ displayVitals, rhythm, treatmentEffects, t }) {
+   return (
+      // A gaze attention target (AoiRegion): dwell on this column lands in
+      // aoi_dwell_ms.vitals_values. Every box below carries `shrink-0`.
+      // Without it they are flex children that shrink when the column is
+      // shorter than their combined height — and because each box clips
+      // its own content, the reading inside silently loses its top half
+      // rather than the column scrolling. Measured at 25px instead of 96px
+      // on an iPad in portrait; the same squeeze happens on any short window.
+      <AoiRegion id="vitals_values" className="w-64 backdrop-blur-sm border-l flex flex-col shrink-0 overflow-y-auto" style={{ background: 'var(--console-machine-panel)', borderColor: 'var(--console-machine-line)' }}>
+
+         {/* HR Box — exact hue matched to the ECG trace's own stroke color
+             (Console do Leito palette) so the number and the waveform it
+             describes read as the same signal. */}
+         <div className="h-24 shrink-0 border-b p-3 flex flex-col justify-center relative overflow-hidden" style={{ borderColor: 'var(--console-machine-line)' }}>
+            <div className="absolute top-1.5 left-3 font-bold text-xs flex items-center gap-1" style={{ color: rhythm === 'Asystole' ? 'var(--console-alarm-red)' : 'var(--console-ecg-green)' }}>
+               <Heart className="w-3 h-3" /> HR
+            </div>
+            <div className="text-right relative z-10">
+               <div className="text-5xl font-mono font-bold tracking-tighter leading-none" style={{ color: rhythm === 'Asystole' ? 'var(--console-alarm-red)' : 'var(--console-ecg-green)', textShadow: rhythm === 'Asystole' ? 'none' : '0 0 18px var(--console-ecg-green-dim)' }}>
+                  {rhythm === 'Asystole' || rhythm === 'VFib' ? '---' : displayVitals.hr}
+               </div>
+               <div className="text-neutral-500 text-[10px] mt-0.5">bpm</div>
+            </div>
+         </div>
+
+         {/* SpO2 Box */}
+         <div className="h-32 max-lg:h-24 max-lg:p-3 shrink-0 border-b p-4 flex flex-col justify-center relative" style={{ borderColor: 'var(--console-machine-line)' }}>
+            <div className="absolute top-2 left-3 font-bold text-sm" style={{ color: 'var(--console-spo2-cyan)' }}>SpO2</div>
+            <div className="text-right">
+               <div className="text-5xl font-mono font-bold tracking-tighter" style={{ color: 'var(--console-spo2-cyan)' }}>
+                  {displayVitals.spo2}<span className="text-2xl opacity-50">%</span>
+               </div>
+            </div>
+            {/* Signal Quality Bar */}
+            <div className="absolute bottom-3 left-4 right-4 h-1 rounded overflow-hidden" style={{ background: 'var(--console-machine-panel-2)' }}>
+               <div className="h-full w-[90%]" style={{ background: 'var(--console-spo2-cyan)' }} />
+            </div>
+         </div>
+
+         {/* NIBP Box */}
+         <div className="h-32 max-lg:h-24 max-lg:p-3 shrink-0 border-b border-neutral-800 p-4 flex flex-col justify-center relative">
+            <div className="absolute top-2 left-3 text-red-500 font-bold text-sm">NIBP</div>
+            <div className="text-right mt-2">
+               <div className="text-4xl font-mono font-bold tracking-tighter text-red-100 leading-none">
+                  {displayVitals.bpSys}/{displayVitals.bpDia}
+               </div>
+               <div className="text-red-400 text-sm mt-1 font-mono">
+                  ({Math.round((displayVitals.bpSys + 2 * displayVitals.bpDia) / 3)})
+               </div>
+            </div>
+            <div className="absolute bottom-2 left-3 text-[10px] text-neutral-500">
+               {/* UI test review 2.9.108 #24: this line used to end
+                   in a hardcoded clock time — a fake wall clock that
+                   never moved and contradicted every other readout on
+                   the panel. There is no
+                   per-cuff measurement timestamp in the model to put
+                   here (the NIBP numbers come from the same
+                   continuous simulation as the rest), and echoing the
+                   session clock would just print the timer that
+                   already sits in the header. So the cycle mode
+                   stands alone and nothing is invented. */}
+               {t('nibp_cycle_auto', { minutes: 15 })}
+            </div>
+         </div>
+
+         {/* RESP Box */}
+         <div className="h-32 max-lg:h-24 max-lg:p-3 shrink-0 border-b border-neutral-800 p-4 flex flex-col justify-center relative">
+            <div className="absolute top-2 left-3 text-amber-500 font-bold text-sm">RESP</div>
+            <div className="text-right">
+               <div className="text-5xl font-mono font-bold tracking-tighter text-amber-500">
+                  {displayVitals.rr}
+               </div>
+               <div className="text-neutral-500 text-xs">rpm</div>
+            </div>
+         </div>
+
+         {/* Temperature Box */}
+         <div className="h-32 max-lg:h-24 max-lg:p-3 shrink-0 border-b border-neutral-800 p-4 flex flex-col justify-center relative">
+            <div className="absolute top-2 left-3 text-orange-500 font-bold text-sm">TEMP</div>
+            <div className="text-right">
+               <div className="text-4xl font-mono font-bold tracking-tighter text-orange-100">
+                  {displayVitals.temp?.toFixed(1) || '37.0'}
+               </div>
+               <div className="text-neutral-500 text-xs">°C</div>
+            </div>
+            <div className="absolute bottom-2 left-3 text-[10px] text-neutral-500">
+               {t('temp_site_core')} • <span className="text-neutral-300">{t('temp_site_esophageal')}</span>
+            </div>
+         </div>
+
+         {/* EtCO2 Box */}
+         <div className="h-24 shrink-0 border-b border-neutral-800 p-3 flex flex-col justify-center relative">
+            <div className="absolute top-1.5 left-3 text-yellow-500 font-bold text-xs">EtCO<sub className="text-[9px]">2</sub></div>
+            <div className="text-right">
+               <div className="text-4xl font-mono font-bold tracking-tighter leading-none text-yellow-500">
+                  {displayVitals.etco2 || 38}
+               </div>
+               <div className="text-neutral-500 text-[10px] mt-0.5">mmHg</div>
+            </div>
+         </div>
+
+         {/* Treatment Effects Indicator */}
+         {treatmentEffects.count > 0 && (
+            <div className="p-3 bg-pink-900/20 border-t border-pink-800/50">
+               <div className="flex items-center gap-2 mb-2">
+                  <Pill className="w-4 h-4 text-pink-400" />
+                  <span className="text-xs font-bold text-pink-300">
+                     {t('active_treatments', { count: treatmentEffects.count })}
+                  </span>
+               </div>
+               <div className="grid grid-cols-3 gap-1 text-xs">
+                  {treatmentEffects.aggregate.hr !== 0 && (
+                     <div className={`${treatmentEffects.aggregate.hr > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        HR {treatmentEffects.aggregate.hr > 0 ? '+' : ''}{treatmentEffects.aggregate.hr}
+                     </div>
+                  )}
+                  {treatmentEffects.aggregate.bp_sys !== 0 && (
+                     <div className={`${treatmentEffects.aggregate.bp_sys > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        BP {treatmentEffects.aggregate.bp_sys > 0 ? '+' : ''}{treatmentEffects.aggregate.bp_sys}
+                     </div>
+                  )}
+                  {treatmentEffects.aggregate.spo2 !== 0 && (
+                     <div className={`${treatmentEffects.aggregate.spo2 > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        SpO2 {treatmentEffects.aggregate.spo2 > 0 ? '+' : ''}{treatmentEffects.aggregate.spo2}%
+                     </div>
+                  )}
+                  {treatmentEffects.aggregate.rr !== 0 && (
+                     <div className={`${treatmentEffects.aggregate.rr > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        RR {treatmentEffects.aggregate.rr > 0 ? '+' : ''}{treatmentEffects.aggregate.rr}
+                     </div>
+                  )}
+               </div>
+            </div>
+         )}
+
+      </AoiRegion>
+   );
+});
+
 // Active-clinical-alarms strip rendered directly below the RESP wave inside
 // the monitor pane. Filtering by source (rather than routedSurfaces) is
 // intentional — clinical alarms always show here regardless of the routing
 // matrix, and routing has BANNER stripped from clinical to avoid duplicate
-// rendering at the top of the screen.
-function InlineClinicalAlarms() {
+// rendering at the top of the screen. Memo'd defensively: it takes no props,
+// so it only needs to re-run when its own useNotifications() subscription
+// actually produces new data, not whenever its parent re-renders.
+const InlineClinicalAlarms = React.memo(function InlineClinicalAlarms() {
    const { t } = useTranslation('monitor');
    const { active, ack, snooze } = useNotifications();
    const alarms = useMemo(
@@ -2696,4 +2809,4 @@ function InlineClinicalAlarms() {
          ))}
       </>
    );
-}
+});

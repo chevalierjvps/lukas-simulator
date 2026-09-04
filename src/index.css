@@ -125,6 +125,43 @@
   --rohy-danger: #b42318;
   --rohy-danger-soft: #fef2f2;
   --rohy-danger-border: #fecaca;
+
+  /* ── Console do Leito — the in-session patient screen ──────────────────
+     Two zones with a reason, not a decoration: MACHINE reads the body
+     (monitor, HUD) in near-black with the real IEC 60601-1-8 clinical
+     alarm colors (green ECG, cyan SpO2, amber resp, red critical) — the
+     same palette a real bedside monitor uses, because here color IS
+     clinical information. HUMAN talks to the person (patient card, chat)
+     in a warmer near-black with bedside-lamp warmth on the avatar. This
+     pair is deliberately dark-only — a real monitor has no "light mode".
+     Approved 2026-09 (Jvps) from the "Console do Leito" prototype. */
+  --console-machine-bg: #05090a;
+  --console-machine-panel: #0b1113;
+  --console-machine-panel-2: #0e1618;
+  --console-machine-line: rgba(160, 220, 210, 0.10);
+  --console-machine-text: #e6f3f0;
+  --console-machine-muted: #6d8a87;
+  --console-machine-faint: #445654;
+
+  --console-ecg-green: #34ffa0;
+  --console-ecg-green-dim: rgba(52, 255, 160, 0.18);
+  --console-spo2-cyan: #2dd4f5;
+  --console-resp-amber: #ffb238;
+  --console-temp-ice: #8fb8ff;
+  --console-alarm-red: #ff3b3b;
+  --console-alarm-yellow: #ffcc33;
+
+  --console-human-bg: #120d0a;
+  --console-human-panel: #1c140f;
+  --console-human-panel-2: #241a13;
+  --console-human-line: rgba(255, 210, 170, 0.10);
+  --console-human-text: #f7ece0;
+  --console-human-muted: #a99b8d;
+  --console-human-faint: #8a7867;
+  --console-human-accent: #ff8a5c;
+  --console-human-accent-soft: rgba(255, 138, 92, 0.16);
+
+  --console-font-display: 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
 }
 
 html,
@@ -162,6 +199,44 @@ body,
   }
 
   .rohy-admin-light {
+    /* Dark "control room" admin, reusing the Console do Leito machine
+       palette (approved 2026-09) rather than inventing new colors: the
+       accent is spo2-cyan, not ecg-green, so admin chrome never reads as
+       "this is a live vital sign" the way the actual monitor does.
+       Every `--rohy-*` token below is scoped to THIS selector — it
+       shadows the light :root values (line ~102) only for elements
+       inside .rohy-admin-light, so the several other components that
+       also read `var(--rohy-*)` (TopBarControls.jsx, VoiceSettingsTab.jsx,
+       etc., used on the patient-facing screen) keep the original light
+       values untouched. The huge `[class*="bg-neutral-"]` etc. cascade
+       below this rule, and every `.rohy-card`/`.rohy-btn-*`/`.rohy-stat-*`
+       rule elsewhere in this file, already reads these same variables —
+       overriding them here is the entire redesign; ConfigPanel.jsx and
+       its ~30 tab components need no className changes. */
+    --rohy-bg: var(--console-machine-bg);
+    --rohy-surface: var(--console-machine-panel);
+    --rohy-surface-muted: var(--console-machine-panel-2);
+    --rohy-surface-strong: #162226;
+    --rohy-sidebar: #080f11;
+    --rohy-bg-hover: #101c1f;
+    --rohy-border: var(--console-machine-line);
+    --rohy-border-strong: rgba(160, 220, 210, 0.28);
+    --rohy-text: var(--console-machine-text);
+    --rohy-muted: var(--console-machine-muted);
+    --rohy-faint: var(--console-machine-faint);
+    --rohy-accent: var(--console-spo2-cyan);
+    --rohy-accent-strong: #1ea9c9;
+    --rohy-accent-hover: #17879f;
+    --rohy-accent-soft: rgba(45, 212, 245, 0.12);
+    --rohy-accent-muted: rgba(45, 212, 245, 0.24);
+    --rohy-accent-border: rgba(45, 212, 245, 0.4);
+    --rohy-ring: rgba(45, 212, 245, 0.45);
+    --rohy-danger: var(--console-alarm-red);
+    --rohy-danger-soft: rgba(255, 59, 59, 0.12);
+    --rohy-danger-border: rgba(255, 59, 59, 0.35);
+    --rohy-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35), 0 1px 3px -1px rgb(0 0 0 / 0.45);
+    --rohy-shadow-md: 0 2px 5px -1px rgb(0 0 0 / 0.35), 0 8px 20px -6px rgb(0 0 0 / 0.55);
+
     background-color: var(--rohy-bg);
     color: var(--rohy-text);
   }
@@ -191,10 +266,10 @@ body,
     width: 2.25rem;
     height: 2.25rem;
     border-radius: var(--rohy-radius-sm);
-    background: linear-gradient(160deg, var(--rohy-accent-soft), #ffffff 82%);
+    background: linear-gradient(160deg, var(--rohy-accent-soft), var(--rohy-surface) 82%);
     border: 1px solid var(--rohy-accent-border);
     color: var(--rohy-accent);
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
     flex: none;
   }
 
@@ -222,7 +297,7 @@ body,
   .rohy-card-active,
   .rohy-card-active:hover {
     border-color: var(--rohy-accent-border);
-    background-color: color-mix(in srgb, var(--rohy-accent-soft) 45%, #ffffff);
+    background-color: color-mix(in srgb, var(--rohy-accent-soft) 45%, var(--rohy-surface));
     box-shadow: inset 3px 0 0 var(--rohy-accent), var(--rohy-shadow-sm);
   }
 
@@ -238,7 +313,7 @@ body,
   .rohy-stat-card-accent {
     background:
       linear-gradient(180deg, var(--rohy-accent) 0 2px, transparent 2px),
-      linear-gradient(180deg, var(--rohy-accent-soft), #ffffff 70%);
+      linear-gradient(180deg, var(--rohy-accent-soft), var(--rohy-surface) 70%);
     border-color: var(--rohy-accent-border);
   }
 
@@ -309,9 +384,9 @@ body,
   }
 
   .rohy-btn-danger:hover:not(:disabled) {
-    background-color: #fee4e2;
-    border-color: #fca5a5;
-    color: #7f1d1d;
+    background-color: color-mix(in srgb, var(--rohy-danger) 22%, var(--rohy-surface));
+    border-color: var(--rohy-danger);
+    color: var(--rohy-danger);
   }
 
   /* Legacy alias — kept a real surface+border chip, now aligned to the button scale. */
@@ -392,7 +467,7 @@ body,
     background-color: var(--rohy-surface) !important;
     border-color: var(--rohy-border) !important;
     color: var(--rohy-text) !important;
-    color-scheme: light;
+    color-scheme: dark;
   }
 
   .rohy-admin-light table {
@@ -664,50 +739,58 @@ body,
   }
 
   .rohy-menu {
-    background-color: var(--rohy-surface);
-    border: 1px solid var(--rohy-border);
-    border-radius: var(--rohy-radius);
-    box-shadow: var(--rohy-shadow-md);
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(24px) saturate(190%);
+    -webkit-backdrop-filter: blur(24px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 1rem;
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.6), 0 16px 36px -4px rgba(15, 23, 42, 0.18), 0 4px 12px -2px rgba(15, 23, 42, 0.08);
   }
 
   .rohy-topbar-menu-trigger {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.45rem 0.85rem;
     border-radius: 9999px;
-    border: 1px solid var(--rohy-border);
+    border: 1px solid rgba(255, 255, 255, 0.35);
     color: var(--rohy-text);
-    background-color: rgb(255 255 255 / 0.94);
-    backdrop-filter: blur(6px);
-    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.5), 0 2px 8px -1px rgba(15, 23, 42, 0.08);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .rohy-topbar-menu-trigger:hover,
   .rohy-topbar-menu-trigger:focus-visible {
-    background-color: rgb(255 255 255 / 1);
+    background: rgba(255, 255, 255, 0.95);
     border-color: var(--rohy-accent-border);
-    box-shadow: 0 2px 10px rgb(15 118 110 / 0.18);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.8), 0 4px 14px -2px rgba(15, 118, 110, 0.25);
+    transform: translateY(-1px);
   }
 
   .rohy-topbar-menu-trigger-open {
     border-color: var(--rohy-accent);
-    box-shadow: 0 0 0 2px rgb(20 184 166 / 0.2);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.9), 0 0 0 3px rgba(20, 184, 166, 0.25);
   }
 
   .rohy-topbar-menu-panel {
-    width: 13rem;
+    width: 14rem;
     overflow: hidden;
-    border-radius: 0.625rem;
+    border-radius: 1rem;
+    padding: 0.375rem;
   }
 
   .rohy-menu-divider {
     border-top: 1px solid var(--rohy-border);
     opacity: 0.75;
+    margin: 0.25rem 0;
   }
 
   .rohy-menu-section-label {
-    padding: 0.5rem 1rem 0.25rem;
+    padding: 0.5rem 0.875rem 0.25rem;
     font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.05em;
@@ -720,18 +803,20 @@ body,
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: 0.625rem;
     text-align: left;
     font-size: 0.875rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--rohy-text);
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .rohy-topbar-menu-item:hover,
   .rohy-topbar-menu-item:focus-visible {
-    background-color: var(--rohy-bg-hover);
-    color: var(--rohy-text);
+    background-color: rgba(15, 118, 110, 0.08);
+    color: var(--rohy-accent-strong);
+    transform: translateX(2px);
   }
 
   .rohy-topbar-menu-item-danger {
@@ -740,8 +825,8 @@ body,
 
   .rohy-topbar-menu-item-danger:hover,
   .rohy-topbar-menu-item-danger:focus-visible {
-    background-color: #fee2e2;
-    color: #7f1d1d;
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #991b1b;
   }
 
   .rohy-settings-nav-item {
@@ -1550,6 +1635,126 @@ body,
   .btn-secondary {
     @apply flex items-center gap-2 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 rounded text-xs font-bold transition-colors;
   }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     OSIRIS 1.0 — APPLE GLASSMORPHISM DESIGN SYSTEM (LIQUID & FROSTED GLASS)
+     ══════════════════════════════════════════════════════════════════════════ */
+
+  .osiris-glass {
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(24px) saturate(190%);
+    -webkit-backdrop-filter: blur(24px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.18), 0 16px 36px -8px rgba(0, 0, 0, 0.45);
+  }
+
+  .osiris-glass-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(15, 23, 42, 0.70);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.20), 0 12px 30px -6px rgba(0, 0, 0, 0.40);
+    border-radius: 1.25rem;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .osiris-glass-card:hover {
+    border-color: rgba(94, 234, 212, 0.40);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), 0 16px 36px -6px rgba(13, 148, 136, 0.25);
+    transform: translateY(-1px);
+  }
+
+  /* Retired: only RoomNavigator.jsx used this, and that dock is the one
+     always-visible surface every room shares — worth its own near-black
+     console-machine tint (was slate-900 glass, an "Osiris" leftover) rather
+     than the generic Apple-glass slate the auth screens still use. Renamed
+     .osiris-glass-dock → .console-glass-dock at the same time; nothing else
+     referenced the old name. */
+  .console-glass-dock {
+    background: rgba(5, 9, 10, 0.82);
+    backdrop-filter: blur(28px) saturate(160%);
+    -webkit-backdrop-filter: blur(28px) saturate(160%);
+    border: 1px solid var(--console-machine-line);
+    box-shadow: inset 0 1px 1px 0 rgba(160, 220, 210, 0.12), 0 20px 48px -10px rgba(0, 0, 0, 0.70);
+    border-radius: 1.25rem;
+  }
+
+  .osiris-glass-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), 0 4px 12px rgba(0, 0, 0, 0.15);
+    color: #f8fafc;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .osiris-glass-pill:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(94, 234, 212, 0.4);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.25), 0 6px 16px rgba(13, 148, 136, 0.25);
+    transform: translateY(-1px);
+  }
+
+  .osiris-glass-input {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+    border-radius: 0.75rem;
+    color: #ffffff;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .osiris-glass-input:focus {
+    border-color: #2dd4bf;
+    box-shadow: inset 0 1px 2px 0 rgba(0, 0, 0, 0.25), 0 0 0 3px rgba(45, 212, 191, 0.25);
+    outline: none;
+  }
+
+  .osiris-btn-primary {
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+    border: 1px solid rgba(94, 234, 212, 0.4);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.35), 0 6px 20px -2px rgba(13, 148, 136, 0.45);
+    border-radius: 0.75rem;
+    color: #ffffff;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .osiris-btn-primary:hover {
+    background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.45), 0 8px 24px -2px rgba(13, 148, 136, 0.60);
+    transform: translateY(-1px);
+  }
+
+  .osiris-btn-primary:active {
+    transform: scale(0.98);
+  }
+}
+
+@keyframes osiris-orb-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(40px, -30px) scale(1.1); }
+}
+
+@keyframes osiris-orb-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-35px, 25px) scale(1.15); }
+}
+
+.osiris-orb-1 {
+  animation: osiris-orb-float-1 16s ease-in-out infinite;
+}
+
+.osiris-orb-2 {
+  animation: osiris-orb-float-2 20s ease-in-out infinite;
 }
 
 /* Print: when the user hits "Print Report" inside a lab or radiology
@@ -1579,3 +1784,147 @@ body,
     color: black !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   Console do Leito — component classes for the in-session patient screen.
+   See the token block above (--console-*) for the palette these build on.
+   Scoped to their own class names rather than touching .osiris-* (shared
+   with LoginPage/RegisterPage) so this redesign cannot leak outside the
+   patient session UI it targets.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.console-composer-footer {
+  background: var(--console-human-panel);
+  border-top: 1px solid var(--console-human-line);
+}
+
+.console-input {
+  background: var(--console-human-bg);
+  border: 1px solid var(--console-human-line);
+  border-radius: 12px;
+  color: var(--console-human-text);
+}
+.console-input::placeholder { color: var(--console-human-faint); }
+.console-input:focus-visible { outline: 2px solid var(--console-human-accent); outline-offset: 1px; }
+
+.console-voice-cta {
+  background: var(--console-human-accent);
+  color: #1a0f08;
+}
+.console-voice-cta:hover:not(:disabled) { filter: brightness(1.08); }
+
+/* One element = one hit target — icon, label and clickable box share the
+   same node, and the box has a visible boundary at rest, not only on
+   hover. Minimum 40px square, comfortably inside WCAG's 44px hit-target
+   guidance for a compact composer control. */
+.console-mic-btn {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--console-human-panel-2);
+  border: 1px solid var(--console-human-line);
+  color: var(--console-human-text);
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+.console-mic-btn:hover:not(:disabled) { border-color: var(--console-human-accent); }
+.console-mic-btn:active:not(:disabled) { transform: scale(0.95); }
+.console-mic-btn:focus-visible { outline: 2px solid var(--console-human-accent); outline-offset: 2px; }
+.console-mic-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.console-mic-btn.is-live {
+  background: var(--console-human-accent); border-color: var(--console-human-accent); color: #1a0f08;
+  animation: console-mic-pulse 1.4s ease-in-out infinite;
+}
+@keyframes console-mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 138, 92, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 138, 92, 0); }
+}
+
+/* Deliberately separate from .console-mic-btn — a distinct, smaller
+   control (which mic device) must never share a hit region with the
+   primary action (start listening) it sits beside. */
+.console-mic-picker {
+  width: 30px; height: 40px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent;
+  color: var(--console-human-faint);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.console-mic-picker:hover { background: var(--console-human-panel-2); border-color: var(--console-human-line); color: var(--console-human-text); }
+.console-mic-picker:focus-visible { outline: 2px solid var(--console-human-accent); outline-offset: 2px; }
+
+.console-send-btn {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--console-spo2-cyan); border: none; color: #04262c;
+  transition: filter 0.15s ease, transform 0.15s ease;
+}
+.console-send-btn:hover:not(:disabled) { filter: brightness(1.1); }
+.console-send-btn:active:not(:disabled) { transform: scale(0.94); }
+.console-send-btn:focus-visible { outline: 2px solid var(--console-spo2-cyan); outline-offset: 2px; }
+.console-send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Message bubbles — the human-zone / machine-zone contrast carried into
+   the transcript itself: the patient's own words read warm, the doctor's
+   (the "machine operator" asking questions) read in the cyan the monitor
+   already uses for readouts, so the two voices are never visually
+   ambiguous even mid-scroll with avatars off-screen. */
+.console-bubble-patient {
+  border-radius: 16px; border-bottom-left-radius: 4px;
+  background: var(--console-human-panel-2);
+  border: 1px solid var(--console-human-line);
+  color: var(--console-human-text);
+}
+.console-bubble-doctor {
+  border-radius: 16px; border-bottom-right-radius: 4px;
+  background: color-mix(in srgb, var(--console-spo2-cyan) 14%, var(--console-human-bg));
+  border: 1px solid rgba(45, 212, 245, 0.28);
+  color: #eaf9ff;
+}
+.console-bubble-error {
+  border-radius: 16px; border-bottom-left-radius: 4px;
+  background: rgba(255, 59, 59, 0.12);
+  border: 1px solid rgba(255, 59, 59, 0.35);
+  color: #ffd9d9;
+}
+
+/* HUD hotkeys — a control console, not a row of generic pills. Each key
+   reads as a physical button: bezel gradient, inset highlight, a keycap
+   number badge — one component, reused for all six, replacing what were
+   six subtly-inconsistent ad-hoc button styles. */
+.console-hud-key {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; flex-shrink: 0;
+  width: 78px; height: 64px; border-radius: 12px;
+  background: linear-gradient(180deg, var(--console-machine-panel-2), var(--console-machine-bg));
+  border: 1px solid var(--console-machine-line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 0 rgba(0,0,0,0.4);
+  color: var(--console-machine-muted);
+  transition: transform 0.12s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.console-hud-key:hover:not(:disabled) { border-color: var(--key-color, var(--console-machine-line)); color: var(--console-machine-text); }
+.console-hud-key:active:not(:disabled) { transform: translateY(2px); }
+.console-hud-key:focus-visible { outline: 2px solid var(--console-spo2-cyan); outline-offset: 2px; }
+.console-hud-key:disabled { opacity: 0.45; cursor: not-allowed; }
+.console-hud-key svg { color: var(--key-color); }
+.console-hud-key .console-hud-label { font-size: 10.5px; font-weight: 700; }
+.console-hud-key .console-hud-kbd {
+  position: absolute; top: 5px; right: 6px;
+  font-family: var(--console-font-display); font-size: 9px; font-weight: 700;
+  color: var(--console-machine-faint); background: rgba(255,255,255,0.06);
+  border-radius: 3px; padding: 1px 4px;
+}
+.console-hud-key.is-active { border-color: var(--key-color); background: linear-gradient(180deg, var(--console-machine-panel), var(--console-machine-panel-2)); }
+.console-hud-key--airway { --key-color: var(--console-spo2-cyan); }
+.console-hud-key--volume { --key-color: #6ea8ff; }
+.console-hud-key--meds { --key-color: #ff6ea0; }
+.console-hud-key--defib { --key-color: var(--console-alarm-yellow); }
+.console-hud-key--ausc { --key-color: var(--console-ecg-green); }
+.console-hud-key--exams { --key-color: #b98cff; }
+
+.console-toast {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px; border-radius: 10px;
+  font-size: 12.5px; font-weight: 600;
+}
+.console-toast.ok { background: rgba(52,255,160,0.14); color: var(--console-ecg-green); border: 1px solid rgba(52,255,160,0.3); }
+.console-toast.warn { background: rgba(255,204,51,0.14); color: var(--console-alarm-yellow); border: 1px solid rgba(255,204,51,0.3); }

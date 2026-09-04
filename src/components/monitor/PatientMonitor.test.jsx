@@ -200,7 +200,7 @@ beforeEach(() => {
             return {
                 clearRect: () => {}, beginPath: () => {}, moveTo: () => {},
                 lineTo: () => {}, stroke: () => {}, fillRect: () => {},
-                fillText: () => {}, setLineDash: () => {},
+                fillText: () => {}, setLineDash: () => {}, drawImage: () => {},
                 strokeStyle: '', fillStyle: '', lineWidth: 0,
                 font: '', textAlign: '', lineJoin: '',
             };
@@ -367,16 +367,33 @@ describe('PatientMonitor — top-bar controls (source contract)', () => {
 });
 
 describe('PatientMonitor — Stage-1 vitals persistence (deadband)', () => {
+    // Poll on a REAL setTimeout instead of RTL's waitFor. Sprint 2 wrapped
+    // WaveformPanel/NumericPanel in React.memo, which was the whole point
+    // (isolate them from unrelated re-renders) — but it also means the DOM
+    // mutation that used to incidentally follow the POST (an unmemoized
+    // subtree re-rendering for no reason) no longer happens. waitFor's
+    // fallback poll uses setInterval, which this file fakes (see
+    // beforeEach) and never advances, so between real DOM mutations it
+    // never re-checks — same footgun already worked around below in
+    // 'PatientMonitor — rhythm aliases resolve to canonical ids' via its
+    // own `untilPosted` helper; mirrored here.
+    const untilPosted = async (predicate, timeoutMs = 4000) => {
+        const started = Date.now();
+        while (Date.now() - started < timeoutMs) {
+            const hit = state.posted.find(predicate);
+            if (hit) return hit;
+            await new Promise(r => setTimeout(r, 25));
+        }
+        throw new Error(`no matching vitals POST landed within ${timeoutMs}ms; saw ${JSON.stringify(state.posted)}`);
+    };
+
     it('POSTs to /sessions/:id/vitals on first mount with active sessionId', async () => {
         // CONTRACT: the very first vitals snapshot is always persisted
         // (lastPersistedVitalsRef === null forces `crossed = true`). This
         // gives every session a baseline row.
         mount({ sessionId: 4242 });
-        await waitFor(() => {
-            const ours = state.posted.filter(p => p.sessionId === '4242');
-            expect(ours.length).toBeGreaterThanOrEqual(1);
-            expect(ours[0].body).toMatchObject({ hr: expect.any(Number) });
-        });
+        const posted = await untilPosted(p => p.sessionId === '4242');
+        expect(posted.body).toMatchObject({ hr: expect.any(Number) });
     });
 
     it('does NOT POST when sessionId is null', async () => {
@@ -391,13 +408,10 @@ describe('PatientMonitor — Stage-1 vitals persistence (deadband)', () => {
         // CONTRACT: server-side analytics differentiate scenario-driven
         // from learner-driven changes via the `source` tag.
         mount({ sessionId: 7 });
-        await waitFor(() => {
-            const ours = state.posted.find(p => p.sessionId === '7');
-            expect(ours).toBeTruthy();
-            expect(ours.body.rhythm).toBe('NSR');
-            // active scenario null at mount → 'monitor'
-            expect(ours.body.source).toBe('monitor');
-        });
+        const ours = await untilPosted(p => p.sessionId === '7');
+        expect(ours.body.rhythm).toBe('NSR');
+        // active scenario null at mount → 'monitor'
+        expect(ours.body.source).toBe('monitor');
     });
 });
 

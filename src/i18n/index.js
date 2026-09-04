@@ -34,15 +34,25 @@ for (const [path, mod] of Object.entries(enModules)) {
     enResources[ns] = mod.default;
 }
 
+const ptModules = import.meta.glob('../locales/pt/*.json', { eager: true });
+const ptResources = {};
+for (const [path, mod] of Object.entries(ptModules)) {
+    const ns = path.match(/\/([\w-]+)\.json$/)[1];
+    ptResources[ns] = mod.default;
+}
+
 export const NAMESPACES = Object.keys(enResources);
 
 i18n
     .use(ICU)
     .use(initReactI18next)
     .init({
-        resources: { [DEFAULT_LANGUAGE]: enResources },
+        resources: {
+            pt: ptResources,
+            en: enResources,
+        },
         lng: DEFAULT_LANGUAGE,
-        fallbackLng: DEFAULT_LANGUAGE,
+        fallbackLng: 'en',
         supportedLngs: [...Object.keys(LANGUAGES), PSEUDO_LOCALE],
         // en-XA must not fall back to en-US-style regional stripping
         nonExplicitSupportedLngs: false,
@@ -54,12 +64,10 @@ i18n
     });
 
 // Non-eager glob: each locale file becomes its own chunk, imported on the
-// first switch to that language. English is excluded — it's already in the
-// eager bundle above (and double-matching it makes rollup warn that the
-// dynamic import can't be split).
-const lazyModules = import.meta.glob(['../locales/*/*.json', '!../locales/en/*.json']);
+// first switch to that language.
+const lazyModules = import.meta.glob(['../locales/*/*.json', '!../locales/en/*.json', '!../locales/pt/*.json']);
 
-const loaded = new Set([DEFAULT_LANGUAGE]);
+const loaded = new Set(['pt', 'en']);
 
 async function loadLanguage(lng) {
     if (loaded.has(lng)) return;

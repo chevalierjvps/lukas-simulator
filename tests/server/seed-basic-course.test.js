@@ -125,10 +125,10 @@ describe('fresh-DB seed: Basic course with its test content', () => {
                 [basic.id]
             );
             // The single default course carries the English default case and the
-            // three native language cases (one course, one case per language).
+            // native language cases (one course, language-tagged cases).
             expect(links.filter((l) => l.is_default === 1).length).toBe(1);
             const prefixes = links.map((l) => l.case_code.split('-')[0]).sort();
-            expect(prefixes).toEqual(['DE', 'EN', 'ES', 'IT']);
+            expect(prefixes).toEqual(['DE', 'EN', 'ES', 'IT', 'PT', 'PT']);
         });
     });
 

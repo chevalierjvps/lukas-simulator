@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { User, RotateCcw, CheckCircle, AlertCircle, Upload, Volume2, Trash2 } from 'lucide-react';
 import BodyMap from '../examination/BodyMap';
+import { CARDIO_POINTS } from '../examination/AuscultationPanel';
 import { BODY_REGIONS, EXAM_TECHNIQUES } from '../../data/examRegions';
 import { regionLabel, techniqueLabel } from '../examination/examinationLabels';
 import { useToast } from '../../contexts/ToastContext';
@@ -91,6 +92,29 @@ export default function PhysicalExamEditor({ caseData, setCaseData, patientGende
                             ...existingExam,
                             [audioType]: url
                         }
+                    }
+                }
+            }
+        }));
+    };
+
+    // Per-focus synth override — the fix for "the whole case is abnormal so
+    // every point sounds abnormal" (dengue: normal heart, only the effusion's
+    // lung base diminished). `type: null` clears the override for that
+    // focus, falling back to AuscultationPanel's flat isAbnormal behaviour.
+    const updateAuscultationPointType = (regionId, examType, pointId, type) => {
+        const existingExam = physicalExam[regionId]?.[examType] || {};
+        const points = { ...existingExam.points };
+        if (type) points[pointId] = type; else delete points[pointId];
+        setCaseData(prev => ({
+            ...prev,
+            config: {
+                ...prev.config,
+                physical_exam: {
+                    ...prev.config?.physical_exam,
+                    [regionId]: {
+                        ...prev.config?.physical_exam?.[regionId],
+                        [examType]: { ...existingExam, points }
                     }
                 }
             }
@@ -356,6 +380,57 @@ export default function PhysicalExamEditor({ caseData, setCaseData, patientGende
                                                 {!examData.abnormal && (
                                                     <div className="bg-emerald-900/20 border border-emerald-700/30 rounded p-2 text-xs text-emerald-300">
                                                         {t('normal_defaults_note')}
+                                                    </div>
+                                                )}
+
+                                                {/* Per-focus sound override — "abnormal" no longer has to mean
+                                                    every heart valve AND every lung field sounds wrong. Only
+                                                    heart/lung profiles have a synth model; abdomen's bowel/bruit
+                                                    points don't (AuscultationPanel has no synth for them). */}
+                                                {currentRegion?.auscultationProfile !== 'abdomen' && (
+                                                    <div className="space-y-3">
+                                                        <div className="text-xs text-cyan-400 font-medium">{t('point_sounds_heading')}</div>
+                                                        <p className="text-[10px] text-neutral-500">{t('point_sounds_note')}</p>
+                                                        <div>
+                                                            <div className="text-[11px] text-red-400 mb-1">{t('heart_focus_group')}</div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                {Object.entries(CARDIO_POINTS).filter(([, p]) => p.type === 'heart').map(([pointId, p]) => (
+                                                                    <label key={pointId} className="flex items-center justify-between gap-2 text-xs bg-neutral-800 rounded px-2 py-1">
+                                                                        <span className="text-neutral-300">{tExam(p.labelKey, { defaultValue: p.label })}</span>
+                                                                        <select
+                                                                            value={examData.points?.[pointId] || ''}
+                                                                            onChange={(e) => updateAuscultationPointType(selectedRegion, examType, pointId, e.target.value || null)}
+                                                                            className="bg-neutral-900 border border-neutral-700 rounded text-xs px-1 py-0.5 text-white"
+                                                                        >
+                                                                            <option value="">{t('point_sound_inherit')}</option>
+                                                                            <option value="normal">{t('point_sound_heart_normal')}</option>
+                                                                            <option value="murmur">{t('point_sound_heart_murmur')}</option>
+                                                                        </select>
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-[11px] text-cyan-400 mb-1">{t('lung_focus_group')}</div>
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                {Object.entries(CARDIO_POINTS).filter(([, p]) => p.type === 'lung').map(([pointId, p]) => (
+                                                                    <label key={pointId} className="flex items-center justify-between gap-2 text-xs bg-neutral-800 rounded px-2 py-1">
+                                                                        <span className="text-neutral-300">{tExam(p.labelKey, { defaultValue: p.label })}</span>
+                                                                        <select
+                                                                            value={examData.points?.[pointId] || ''}
+                                                                            onChange={(e) => updateAuscultationPointType(selectedRegion, examType, pointId, e.target.value || null)}
+                                                                            className="bg-neutral-900 border border-neutral-700 rounded text-xs px-1 py-0.5 text-white"
+                                                                        >
+                                                                            <option value="">{t('point_sound_inherit')}</option>
+                                                                            <option value="vesicular">{t('point_sound_lung_normal')}</option>
+                                                                            <option value="diminished">{t('point_sound_lung_diminished')}</option>
+                                                                            <option value="crackles">{t('point_sound_lung_crackles')}</option>
+                                                                            <option value="wheeze">{t('point_sound_lung_wheeze')}</option>
+                                                                        </select>
+                                                                    </label>
+                                                                ))}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 )}
 

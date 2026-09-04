@@ -219,20 +219,22 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
     // Pure card — the split-panel shell around it is AuthLayout, owned by AuthGate.
     return (
         <div>
-                <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-8 shadow-2xl">
-                    <div className="flex items-center gap-2 mb-6">
-                        <UserPlus className="w-6 h-6 text-blue-400" />
-                        <h2 className="text-2xl font-bold text-white">{t('create_account')}</h2>
+                <div className="osiris-glass-card p-8 lg:p-10 shadow-[0_24px_60px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.2)]">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-400/25 flex items-center justify-center">
+                            <UserPlus className="w-5 h-5 text-teal-300" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white tracking-tight">{t('create_account')}</h2>
                     </div>
 
                     {error && (
                         <div
                             role="alert"
                             aria-live="assertive"
-                            className="mb-4 p-3 bg-red-900/30 border border-red-500/50 rounded-lg flex items-center gap-2 text-red-200"
+                            className="mb-5 p-3.5 bg-red-950/40 border border-red-500/40 rounded-xl flex items-center gap-2.5 text-red-200 text-sm backdrop-blur-md shadow-sm"
                         >
-                            <AlertCircle className="w-5 h-5 shrink-0" aria-hidden="true" />
-                            <span className="text-sm">{error}</span>
+                            <AlertCircle className="w-5 h-5 shrink-0 text-red-400" aria-hidden="true" />
+                            <span>{error}</span>
                         </div>
                     )}
 
@@ -240,9 +242,9 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                         BEFORE the form. Someone who was sent a link wants to know
                         they're in the right place. */}
                     {invite?.valid && (
-                        <div className="mb-4 p-3 bg-emerald-900/30 border border-emerald-500/50 rounded-lg flex items-start gap-2 text-emerald-100">
-                            <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                            <span className="text-sm">
+                        <div className="mb-5 p-3.5 bg-emerald-950/40 border border-emerald-500/40 rounded-xl flex items-start gap-2.5 text-emerald-100 text-sm backdrop-blur-md shadow-sm">
+                            <CheckCircle className="w-5 h-5 shrink-0 mt-0.5 text-emerald-400" />
+                            <span>
                                 {invite.cohort_name
                                     ? t('invite_valid_with_course', { course: invite.cohort_name })
                                     : t('invite_valid')}
@@ -254,9 +256,9 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                         them: the code field below is cleared and editable so they
                         can paste a fresh one. */}
                     {invite && !invite.valid && (
-                        <div className="mb-4 p-3 bg-amber-900/30 border border-amber-500/50 rounded-lg flex items-start gap-2 text-amber-100">
-                            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                            <span className="text-sm">{t(`invite_invalid_${invite.reason}`, t('invite_invalid_not_found'))}</span>
+                        <div className="mb-5 p-3.5 bg-amber-950/40 border border-amber-500/40 rounded-xl flex items-start gap-2.5 text-amber-100 text-sm backdrop-blur-md shadow-sm">
+                            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-amber-400" />
+                            <span>{t(`invite_invalid_${invite.reason}`, t('invite_invalid_not_found'))}</span>
                         </div>
                     )}
 
@@ -267,7 +269,7 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                             <button
                                 type="button"
                                 onClick={() => setCodeOpen(true)}
-                                className="flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors"
+                                className="flex items-center gap-1.5 text-xs font-semibold text-teal-300 hover:text-teal-200 transition-colors"
                             >
                                 <KeyRound className="w-4 h-4" />
                                 {t('invite_have_code')}
@@ -276,11 +278,11 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
 
                         {codeOpen && (
                             <div>
-                                <label className="block text-sm font-medium text-neutral-300 mb-2">
+                                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                                     {t('invite_code')}
                                 </label>
                                 <div className="relative">
-                                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+                                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                     <input
                                         type="text"
                                         name="invite"
@@ -289,7 +291,7 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                         disabled={loading || codeLocked}
                                         autoComplete="off"
                                         placeholder={t('invite_code_placeholder')}
-                                        className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-4 py-3 text-white uppercase tracking-wider placeholder:normal-case placeholder:tracking-normal placeholder:text-neutral-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all disabled:opacity-60"
+                                        className="w-full osiris-glass-input pl-10 pr-4 py-3 text-sm uppercase tracking-wider placeholder:normal-case placeholder:tracking-normal placeholder:text-slate-500 disabled:opacity-60"
                                         required={inviteRequired}
                                     />
                                 </div>
@@ -297,7 +299,7 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                     <button
                                         type="button"
                                         onClick={() => { setCodeLocked(false); setInviteCode(''); }}
-                                        className="mt-1.5 text-xs text-blue-400 hover:text-blue-300"
+                                        className="mt-1.5 text-xs text-teal-300 hover:text-teal-200"
                                     >
                                         {t('invite_use_different_code')}
                                     </button>
@@ -306,18 +308,18 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                     opened this box out of curiosity will think they
                                     are now required to produce a code they don't have. */}
                                 {!inviteRequired && !codeLocked && (
-                                    <p className="mt-1.5 text-xs text-neutral-500">{t('invite_code_optional')}</p>
+                                    <p className="mt-1.5 text-xs text-slate-500">{t('invite_code_optional')}</p>
                                 )}
                             </div>
                         )}
 
                         {/* Username */}
                         <div>
-                            <label className="block text-sm font-medium text-neutral-300 mb-2">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                                 {t('username')}
                             </label>
                             <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+                                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type="text"
                                     name="username"
@@ -326,7 +328,7 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                     disabled={loading}
                                     autoComplete="username"
                                     placeholder={t('choose_username')}
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all disabled:opacity-50"
+                                    className="w-full osiris-glass-input pl-10 pr-4 py-3 text-sm placeholder:text-slate-500 disabled:opacity-50"
                                     required
                                 />
                             </div>
@@ -334,11 +336,11 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
 
                         {/* Email */}
                         <div>
-                            <label className="block text-sm font-medium text-neutral-300 mb-2">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                                 {t('email')}
                             </label>
                             <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+                                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type="email"
                                     name="email"
@@ -347,7 +349,7 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                     disabled={loading}
                                     autoComplete="email"
                                     placeholder={t('email_placeholder')}
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all disabled:opacity-50"
+                                    className="w-full osiris-glass-input pl-10 pr-4 py-3 text-sm placeholder:text-slate-500 disabled:opacity-50"
                                     required
                                 />
                             </div>
@@ -355,7 +357,7 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                 enforces it either way, but finding out on submit is
                                 a needless round trip. */}
                             {allowedDomains.length > 0 && (
-                                <p className="mt-1.5 text-xs text-neutral-500">
+                                <p className="mt-1.5 text-xs text-slate-500">
                                     {t('email_domain_hint', {
                                         domains: allowedDomains.map((d) => `@${d}`).join(', '),
                                     })}
@@ -365,11 +367,11 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
 
                         {/* Password */}
                         <div>
-                            <label className="block text-sm font-medium text-neutral-300 mb-2">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                                 {t('password')}
                             </label>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type={showPassword ? 'text' : 'password'}
                                     name="password"
@@ -378,7 +380,7 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                     disabled={loading}
                                     autoComplete="new-password"
                                     placeholder={t('create_password_placeholder')}
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-12 py-3 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all disabled:opacity-50"
+                                    className="w-full osiris-glass-input pl-10 pr-12 py-3 text-sm placeholder:text-slate-500 disabled:opacity-50"
                                     required
                                 />
                                 <button
@@ -386,20 +388,20 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                     onClick={() => setShowPassword((v) => !v)}
                                     aria-label={showPassword ? t('hide_password') : t('show_password')}
                                     tabIndex={-1}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                                 >
-                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
                         </div>
 
                         {/* Confirm Password */}
                         <div>
-                            <label className="block text-sm font-medium text-neutral-300 mb-2">
+                            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
                                 {t('confirm_password')}
                             </label>
                             <div className="relative">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500" />
+                                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                                 <input
                                     type={showConfirm ? 'text' : 'password'}
                                     name="confirmPassword"
@@ -408,7 +410,7 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                     disabled={loading}
                                     autoComplete="new-password"
                                     placeholder={t('reenter_password_placeholder')}
-                                    className="w-full bg-neutral-800 border border-neutral-700 rounded-lg pl-10 pr-12 py-3 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all disabled:opacity-50"
+                                    className="w-full osiris-glass-input pl-10 pr-12 py-3 text-sm placeholder:text-slate-500 disabled:opacity-50"
                                     required
                                 />
                                 <button
@@ -416,9 +418,9 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                                     onClick={() => setShowConfirm((v) => !v)}
                                     aria-label={showConfirm ? t('hide_password') : t('show_password')}
                                     tabIndex={-1}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition-colors"
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
                                 >
-                                    {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                 </button>
                             </div>
                         </div>
@@ -427,7 +429,7 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                             validatePassword(). One row per rule, ticking as you
                             type, so nobody meets the policy for the first time as
                             a 400 after submit. */}
-                        <ul className="text-xs text-neutral-500 grid grid-cols-2 gap-x-4 gap-y-1 list-none p-0 m-0">
+                        <ul className="text-xs text-slate-400 grid grid-cols-2 gap-x-4 gap-y-1 list-none p-0 m-0">
                             {PASSWORD_RULES.map(({ key, test }) => (
                                 <PasswordRequirement
                                     key={key}
@@ -449,29 +451,29 @@ export default function RegisterPage({ onSwitchToLogin, onRegistered, policy, in
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full osiris-btn-primary py-3.5 text-sm font-semibold flex items-center justify-center gap-2 mt-2"
                         >
                             {loading ? (
                                 <>
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    {t('creating_account')}
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <span>{t('creating_account')}</span>
                                 </>
                             ) : (
                                 <>
-                                    <UserPlus className="w-5 h-5" />
-                                    {t('create_account')}
+                                    <UserPlus className="w-4 h-4" />
+                                    <span>{t('create_account')}</span>
                                 </>
                             )}
                         </button>
                     </form>
 
                     {/* Login Link */}
-                    <div className="mt-6 text-center">
-                        <p className="text-neutral-400 text-sm">
+                    <div className="mt-6 pt-5 border-t border-white/10 text-center">
+                        <p className="text-slate-400 text-sm">
                             {t('have_account_prompt')}{' '}
                             <button
                                 onClick={onSwitchToLogin}
-                                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                                className="text-teal-300 hover:text-teal-200 font-semibold transition-colors underline-offset-4 hover:underline"
                             >
                                 {t('sign_in')}
                             </button>

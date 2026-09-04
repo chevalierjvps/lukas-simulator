@@ -2,6 +2,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { LANGUAGES } from '../../i18n/languages';
+import logoUrl from '../../assets/medicine-symbol.svg';
+const logoWhiteUrl = logoUrl;
 import {
     Globe,
     HeartPulse,
@@ -36,42 +38,45 @@ export default function AuthLayout({ children }) {
     const { uiLanguage, setUiLanguage } = useLanguage();
 
     return (
-        <div className="min-h-screen bg-neutral-950 flex">
-            {/* Brand panel — hidden on small screens, where the card is the point. */}
-            <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative overflow-hidden flex-col justify-between p-12 bg-gradient-to-br from-blue-950 via-sky-950 to-teal-950">
-                {/* Soft radial glows so the gradient reads as depth, not banding. */}
-                <div aria-hidden="true" className="absolute -top-40 -left-40 w-[36rem] h-[36rem] rounded-full bg-blue-600/20 blur-3xl" />
-                <div aria-hidden="true" className="absolute -bottom-48 -right-24 w-[32rem] h-[32rem] rounded-full bg-teal-500/15 blur-3xl" />
+        <div className="min-h-screen bg-slate-950 flex relative overflow-hidden selection:bg-teal-500 selection:text-white">
+            {/* Ambient Apple Glow Orbs */}
+            <div aria-hidden="true" className="osiris-orb-1 pointer-events-none absolute -top-32 -left-32 w-[42rem] h-[42rem] rounded-full bg-teal-500/15 blur-[120px]" />
+            <div aria-hidden="true" className="osiris-orb-2 pointer-events-none absolute -bottom-40 right-1/4 w-[38rem] h-[38rem] rounded-full bg-cyan-600/15 blur-[140px]" />
+            <div aria-hidden="true" className="pointer-events-none absolute top-1/3 right-10 w-[28rem] h-[28rem] rounded-full bg-indigo-600/10 blur-[100px]" />
 
-                <div className="relative flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/15">
-                        <HeartPulse className="w-5 h-5 text-teal-300" />
+            {/* Brand panel — hidden on small screens */}
+            <div className="hidden lg:flex lg:w-1/2 xl:w-[55%] relative overflow-hidden flex-col justify-between p-12 lg:p-16 z-10">
+                <div className="relative flex items-center gap-3.5">
+                    <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/20 p-2 shadow-[0_8px_20px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.25)]">
+                        <img src={logoWhiteUrl} alt="Símbolo da Medicina (Esculápio)" className="w-full h-full object-contain drop-shadow-[0_0_8px_rgba(94,234,212,0.4)]" />
                     </div>
-                    <span className="text-2xl font-bold text-white tracking-tight">Rohy</span>
-                    <span className="ml-1 px-2.5 py-0.5 rounded-full border border-white/20 bg-white/5 text-[11px] font-semibold uppercase tracking-widest text-teal-200">
+                    <span className="text-2xl font-bold text-white tracking-tight bg-gradient-to-r from-white via-slate-100 to-teal-200 bg-clip-text text-transparent">
+                        Lukas 1.0
+                    </span>
+                    <span className="ml-1 px-3 py-0.5 rounded-full border border-teal-400/30 bg-teal-500/10 text-[11px] font-semibold uppercase tracking-widest text-teal-200 backdrop-blur-md shadow-sm">
                         {t('brand_badge')}
                     </span>
                 </div>
 
-                <div className="relative max-w-xl">
-                    <h1 className="text-4xl xl:text-[2.75rem] font-bold leading-tight text-white mb-5">
+                <div className="relative max-w-xl my-auto py-8">
+                    <h1 className="text-4xl xl:text-5xl font-extrabold leading-tight text-white tracking-tight mb-5">
                         {t('hero_headline')}
                     </h1>
-                    <p className="text-base text-blue-100/80 leading-relaxed mb-10">
+                    <p className="text-base text-slate-300 leading-relaxed mb-10 font-normal">
                         {t('hero_sub')}
                     </p>
 
-                    <ul className="space-y-5">
+                    <ul className="space-y-4">
                         {FEATURES.map(({ key, icon: Icon }) => (
-                            <li key={key} className="flex items-start gap-4">
-                                <div className="w-9 h-9 shrink-0 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center">
-                                    <Icon className="w-[18px] h-[18px] text-teal-300" />
+                            <li key={key} className="flex items-start gap-4 p-3 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] backdrop-blur-md transition-all duration-200 group">
+                                <div className="w-10 h-10 shrink-0 rounded-xl bg-teal-500/15 border border-teal-400/25 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform">
+                                    <Icon className="w-5 h-5 text-teal-300 drop-shadow-[0_0_6px_rgba(45,212,191,0.5)]" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-semibold text-white">
+                                    <p className="text-sm font-semibold text-white tracking-tight">
                                         {t(`feature_${key}_title`)}
                                     </p>
-                                    <p className="text-sm text-blue-100/70 leading-snug">
+                                    <p className="text-xs text-slate-400 leading-relaxed mt-0.5">
                                         {t(`feature_${key}_desc`)}
                                     </p>
                                 </div>
@@ -80,26 +85,25 @@ export default function AuthLayout({ children }) {
                     </ul>
                 </div>
 
-                <p className="relative text-xs text-blue-200/50">
+                <p className="relative text-xs text-slate-500 font-medium">
                     {t('brand_baseline')}
                 </p>
             </div>
 
             {/* Card column */}
-            <div className="flex-1 flex flex-col min-h-screen">
-                {/* Language selector — pre-login, persisted to localStorage so the
-                    whole login/register flow renders in the chosen language. */}
-                <div className="flex justify-end p-4">
+            <div className="flex-1 flex flex-col min-h-screen relative z-10">
+                {/* Language selector */}
+                <div className="flex justify-end p-6">
                     <div className="relative">
-                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500 pointer-events-none" />
+                        <Globe className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300/80 pointer-events-none" />
                         <select
                             value={uiLanguage}
                             onChange={(e) => setUiLanguage(e.target.value)}
                             aria-label={t('language', { defaultValue: 'Language' })}
-                            className="appearance-none bg-neutral-900 border border-neutral-800 rounded-lg pl-9 pr-8 py-2 text-sm text-neutral-300 focus:outline-none focus:border-blue-500 cursor-pointer"
+                            className="appearance-none osiris-glass-pill pl-10 pr-9 py-2 text-xs font-medium text-slate-200 focus:outline-none focus:border-teal-400/50 cursor-pointer shadow-lg"
                         >
                             {Object.entries(LANGUAGES).map(([code, lang]) => (
-                                <option key={code} value={code}>
+                                <option key={code} value={code} className="bg-slate-900 text-white">
                                     {lang.flag} {lang.native === lang.name ? lang.native : `${lang.native} (${lang.name})`}
                                 </option>
                             ))}
@@ -107,28 +111,25 @@ export default function AuthLayout({ children }) {
                     </div>
                 </div>
 
-                <div className="flex-1 flex items-center justify-center px-4 py-8">
+                <div className="flex-1 flex items-center justify-center px-6 py-8">
                     <div className="w-full max-w-md">
-                        {/* Compact brand header for small screens, where the panel is hidden. */}
-                        <div className="lg:hidden text-center mb-8">
-                            <h1 className="text-4xl font-bold text-white mb-2">Rohy</h1>
-                            <p className="text-neutral-400">{t('platform_tagline')}</p>
+                        {/* Compact brand header for small screens */}
+                        <div className="lg:hidden text-center mb-8 flex flex-col items-center">
+                            <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/20 p-2.5 mb-3 shadow-[0_8px_20px_rgba(0,0,0,0.3)]">
+                                <img src={logoUrl} alt="Símbolo da Medicina (Esculápio)" className="w-full h-full object-contain" />
+                            </div>
+                            <h1 className="text-3xl font-bold text-white tracking-tight mb-1">Lukas 1.0</h1>
+                            <p className="text-sm text-slate-400 font-medium">{t('platform_tagline')}</p>
                         </div>
 
                         {children}
                     </div>
                 </div>
 
-                {/* Attribution footer — proper nouns, deliberately not translated. */}
-                <footer className="px-4 pb-6 text-center text-xs text-neutral-600 space-y-0.5">
-                    <p className="font-medium text-neutral-500">Rohy — {t('platform_tagline')}</p>
-                    <p>Mohammed Saqr, PhD · University of Eastern Finland</p>
-                    <p>
-                        <a href="https://saqr.me" target="_blank" rel="noreferrer" className="hover:text-neutral-400 transition-colors">saqr.me</a>
-                        {' · '}
-                        <a href="mailto:saqr@saqr.me" className="hover:text-neutral-400 transition-colors">saqr@saqr.me</a>
-                    </p>
-                    <p>Carm Research License v1.0 · © 2025–2026</p>
+                {/* Attribution footer */}
+                <footer className="px-6 pb-6 text-center text-xs text-slate-500 space-y-0.5 font-medium">
+                    <p className="text-slate-400">Lukas 1.0 — {t('platform_tagline')}</p>
+                    <p className="text-slate-600">Simulação Médica Hiper-Realista · Criado por Jvps</p>
                 </footer>
             </div>
         </div>

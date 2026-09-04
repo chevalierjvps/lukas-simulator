@@ -4,17 +4,14 @@ import VersionBadge from './VersionBadge.jsx';
 import pkg from '../../package.json';
 
 describe('VersionBadge', () => {
-    it('renders "Rohy <full version>" from package.json', () => {
+    it('renders "Lukas <full version>" from package.json', () => {
         const { container } = render(<VersionBadge />);
-        // Full version now (including patch) — patch bumps like 2.1.1 →
-        // 2.1.2 used to disappear because the badge truncated to
-        // major.minor; the truncation is intentionally gone.
-        expect(container.textContent).toBe(`Rohy ${pkg.version}`);
+        expect(container.textContent).toBe(`Lukas ${pkg.version}`);
     });
 
     it('includes the patch version in the label', () => {
         const { container } = render(<VersionBadge />);
-        expect(container.textContent).toMatch(/^Rohy \d+\.\d+\.\d+$/);
+        expect(container.textContent).toMatch(/^Lukas \d+\.\d+\.\d+$/);
     });
 
     it('renders as a click-through wordmark with no fixed positioning of its own', () => {

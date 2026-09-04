@@ -18,7 +18,8 @@ export default function FindingDisplay({
     audioUrl,
     audioUrls = {},
     heartAudio,
-    lungAudio
+    lungAudio,
+    points
 }) {
     const { t } = useTranslation('examination');
     // No region selected
@@ -68,6 +69,7 @@ export default function FindingDisplay({
                 audioUrls={audioUrls}
                 heartAudio={heartAudio}
                 lungAudio={lungAudio}
+                points={points}
                 selectedRegion={selectedRegion}
                 auscultationProfile={region?.auscultationProfile}
                 regionName={regionLabel(t, selectedRegion, region?.name)}

@@ -7,7 +7,7 @@
 // End & Debrief button, not in this nav.
 
 import React from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { setAppLanguage } from '../../i18n/index.js';
 import RoomNavigator from './RoomNavigator';
@@ -23,8 +23,12 @@ function renderNav(overrides = {}) {
     return { onSelectRoom };
 }
 
-afterEach(async () => {
+beforeEach(async () => {
     await setAppLanguage('en');
+});
+
+afterEach(async () => {
+    await setAppLanguage('pt');
     cleanup();
 });
 
@@ -80,5 +84,20 @@ describe('RoomNavigator', () => {
         await waitFor(() => {
             expect(screen.getByRole('button', { name: /Radiologia e diagnostica/ })).toBeTruthy();
         });
+    });
+
+    // PACS no longer gets its own nav tab — its viewer is the "Imágenes" tab
+    // inside the Radiology room now (App.jsx's radiologyTab state), reached
+    // via InvestigationsScreen's onOpenImagesTab or the tablist App.jsx
+    // renders there, never via a RoomNavigator button. Two unsynchronized
+    // rooms describing the same imaging (one generic/global, one
+    // case-authored with the real DICOM series) is the bug that merge fixed;
+    // this locks the nav side of it so a future plugin-manifest change can't
+    // silently bring the standalone tab back.
+    it('never renders a standalone PACS tab, even with the plugin enabled', () => {
+        render(
+            <RoomNavigator currentRoom="radiology" onSelectRoom={vi.fn()} enabledPlugins={['pacs']} />
+        );
+        expect(screen.queryByRole('button', { name: /PACS/i })).toBeNull();
     });
 });

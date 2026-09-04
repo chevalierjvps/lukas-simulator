@@ -56,6 +56,23 @@ export const manifest = {
     capabilities: ['persist', 'remote'],
     minRole: 'student',
 
+    // The library the reference-library plugin browses (RPS-1 §7a.1),
+    // relayed by GET /api/plugins/pathology/catalog. `collection: 'assets'`
+    // and `refFields: ['url']` are the router's own defaults — pathology's
+    // catalog.json already matches them, so only `learnerKeys` needs
+    // declaring here. Unlike PACS's archive (where a study's label IS a
+    // case's answer key), a pathology slide's label/organ/stain/description
+    // ARE the teaching content of a standalone reference library — there is
+    // no active-case rubric these could spoil — so the allowlist is
+    // deliberately generous rather than minimal.
+    catalog: {
+        // `status`/`revisions`/`currentRevisionId` are required by the
+        // package's own validateCatalogAsset()/selectReadyRevision()
+        // (assetCatalog.js) — omitting any of them makes every card in the
+        // reference library throw or silently pick the wrong revision.
+        learnerKeys: ['id', 'status', 'label', 'format', 'organ', 'stain', 'description', 'preview', 'currentRevisionId', 'revisions'],
+    },
+
     // Remote content. Whole-slide images are the reason this exists: a single
     // scanned slide is gigabytes of pyramid tiles, which has no business inside
     // rohy's Docker image, its backups, or its air-gap bundle. With this block

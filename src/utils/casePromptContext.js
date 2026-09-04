@@ -19,17 +19,25 @@ function sameText(a, b) {
     return clean(a).toLowerCase() === clean(b).toLowerCase();
 }
 
+// Sprint 3: every `label` below is now { en, pt } instead of a bare string —
+// this whole file is the second, larger source of the "English noise in a
+// pt-BR prompt" problem ChatInterface.jsx's buildPatientSystemPrompt was
+// audited for (its formatters call straight into this module). Every
+// exported formatter here takes an optional `lang` ('en' default, so
+// buildDiscussionCaseContext — which never passes one — is unaffected);
+// buildPatientCaseDesignContext (the one buildPatientSystemPrompt actually
+// calls) threads the case's real language through.
 const STRUCTURED_FIELDS = [
-    { key: 'chiefComplaint', label: 'Chief Complaint', aliases: ['chiefComplaint'], clinicalKey: 'chiefComplaint' },
-    { key: 'hpi', label: 'History of Present Illness', aliases: ['hpi', 'historyOfPresentIllness', 'present_illness'], clinicalKey: 'hpi' },
-    { key: 'pmh', label: 'Past Medical History', aliases: ['pmh', 'pastMedicalHistory', 'pastMedical'], clinicalKey: 'pastMedical' },
-    { key: 'psh', label: 'Past Surgical History', aliases: ['psh', 'pastSurgicalHistory', 'pastSurgical'], clinicalKey: 'pastSurgical' },
-    { key: 'medications', label: 'Current Medications', aliases: ['medications'] },
-    { key: 'allergies', label: 'Allergies', aliases: ['allergies'], clinicalKey: 'allergies' },
-    { key: 'socialHistory', label: 'Social History', aliases: ['socialHistory', 'social'], clinicalKey: 'social' },
-    { key: 'familyHistory', label: 'Family History', aliases: ['familyHistory', 'family'], clinicalKey: 'family' },
-    { key: 'ros', label: 'Review of Systems', aliases: ['ros', 'reviewOfSystems'] },
-    { key: 'additionalNotes', label: 'Additional Notes for AI', aliases: ['additionalNotes', 'aiNotes'] },
+    { key: 'chiefComplaint', label: { en: 'Chief Complaint', pt: 'Queixa Principal' }, aliases: ['chiefComplaint'], clinicalKey: 'chiefComplaint' },
+    { key: 'hpi', label: { en: 'History of Present Illness', pt: 'História da Doença Atual' }, aliases: ['hpi', 'historyOfPresentIllness', 'present_illness'], clinicalKey: 'hpi' },
+    { key: 'pmh', label: { en: 'Past Medical History', pt: 'Antecedentes Patológicos' }, aliases: ['pmh', 'pastMedicalHistory', 'pastMedical'], clinicalKey: 'pastMedical' },
+    { key: 'psh', label: { en: 'Past Surgical History', pt: 'Antecedentes Cirúrgicos' }, aliases: ['psh', 'pastSurgicalHistory', 'pastSurgical'], clinicalKey: 'pastSurgical' },
+    { key: 'medications', label: { en: 'Current Medications', pt: 'Medicações Atuais' }, aliases: ['medications'] },
+    { key: 'allergies', label: { en: 'Allergies', pt: 'Alergias' }, aliases: ['allergies'], clinicalKey: 'allergies' },
+    { key: 'socialHistory', label: { en: 'Social History', pt: 'História Social' }, aliases: ['socialHistory', 'social'], clinicalKey: 'social' },
+    { key: 'familyHistory', label: { en: 'Family History', pt: 'História Familiar' }, aliases: ['familyHistory', 'family'], clinicalKey: 'family' },
+    { key: 'ros', label: { en: 'Review of Systems', pt: 'Revisão de Sistemas' }, aliases: ['ros', 'reviewOfSystems'] },
+    { key: 'additionalNotes', label: { en: 'Additional Notes for AI', pt: 'Notas Adicionais para a IA' }, aliases: ['additionalNotes', 'aiNotes'] },
 ];
 
 // Resolve a case config's history to one flat object keyed by the canonical
@@ -63,10 +71,12 @@ export function resolveCaseHistory(config = {}) {
 // structured-history tab. Historically only the structured-history value
 // reached the prompt, so demographics-tab entries were silently dropped.
 // Pass `demographics` here and structuredHistory wins, demographics fills in.
-export function formatStructuredHistoryForPrompt(structuredHistory, { omitMirroredHistory = null, demographics = null } = {}) {
+export function formatStructuredHistoryForPrompt(structuredHistory, { omitMirroredHistory = null, demographics = null, lang = 'en' } = {}) {
+    const isPt = lang === 'pt';
     if (!structuredHistory || typeof structuredHistory !== 'object') {
         const fallbackAllergies = clean(demographics?.allergies);
-        return fallbackAllergies ? `- Allergies: ${fallbackAllergies}` : '';
+        if (!fallbackAllergies) return '';
+        return isPt ? `- Alergias: ${fallbackAllergies}` : `- Allergies: ${fallbackAllergies}`;
     }
     const lines = [];
     for (const field of STRUCTURED_FIELDS) {
@@ -78,7 +88,7 @@ export function formatStructuredHistoryForPrompt(structuredHistory, { omitMirror
         if (omitMirroredHistory && field.clinicalKey && sameText(value, omitMirroredHistory[field.clinicalKey])) {
             continue;
         }
-        lines.push(`- ${field.label}: ${value}`);
+        lines.push(`- ${isPt ? field.label.pt : field.label.en}: ${value}`);
     }
     return lines.join('\n');
 }
@@ -87,17 +97,17 @@ export function formatStructuredHistoryForPrompt(structuredHistory, { omitMirror
 // header emits one line per non-empty field — no `Unknown` placeholders
 // so the model can't latch onto fake data.
 const DEMOGRAPHIC_FIELDS = [
-    { key: 'age',           label: 'Age',             format: (v) => `${v} years old` },
-    { key: 'gender',        label: 'Gender' },
-    { key: 'dob',           label: 'Date of birth' },
-    { key: 'mrn',           label: 'MRN' },
-    { key: 'weight',        label: 'Weight' },
-    { key: 'height',        label: 'Height' },
-    { key: 'bloodType',     label: 'Blood type' },
-    { key: 'language',      label: 'Preferred language' },
-    { key: 'ethnicity',     label: 'Ethnicity' },
-    { key: 'occupation',    label: 'Occupation' },
-    { key: 'maritalStatus', label: 'Marital status' },
+    { key: 'age',           label: { en: 'Age', pt: 'Idade' },                     format: { en: (v) => `${v} years old`, pt: (v) => `${v} anos` } },
+    { key: 'gender',        label: { en: 'Gender', pt: 'Gênero' } },
+    { key: 'dob',           label: { en: 'Date of birth', pt: 'Data de nascimento' } },
+    { key: 'mrn',           label: { en: 'MRN', pt: 'Prontuário (MRN)' } },
+    { key: 'weight',        label: { en: 'Weight', pt: 'Peso' } },
+    { key: 'height',        label: { en: 'Height', pt: 'Altura' } },
+    { key: 'bloodType',     label: { en: 'Blood type', pt: 'Tipo sanguíneo' } },
+    { key: 'language',      label: { en: 'Preferred language', pt: 'Idioma preferido' } },
+    { key: 'ethnicity',     label: { en: 'Ethnicity', pt: 'Etnia' } },
+    { key: 'occupation',    label: { en: 'Occupation', pt: 'Ocupação' } },
+    { key: 'maritalStatus', label: { en: 'Marital status', pt: 'Estado civil' } },
 ];
 
 // Personality sliders the case editor saves under config.personality. Each
@@ -108,57 +118,97 @@ const DEMOGRAPHIC_FIELDS = [
 const PERSONALITY_FIELDS = [
     {
         key: 'communicationStyle',
-        label: 'Communication style',
+        label: { en: 'Communication style', pt: 'Estilo de comunicação' },
         defaultValue: 'normal',
         directives: {
-            verbose: 'verbose — give detailed, sometimes rambling answers',
-            brief: 'brief — keep answers short and to the point',
-            tangential: 'tangential — drift off-topic before circling back',
-            guarded: 'guarded — hesitate before sharing personal details',
+            en: {
+                verbose: 'verbose — give detailed, sometimes rambling answers',
+                brief: 'brief — keep answers short and to the point',
+                tangential: 'tangential — drift off-topic before circling back',
+                guarded: 'guarded — hesitate before sharing personal details',
+            },
+            pt: {
+                verbose: 'prolixo — dá respostas detalhadas, às vezes divagando',
+                brief: 'breve — respostas curtas e diretas',
+                tangential: 'tangencial — foge do assunto antes de voltar ao ponto',
+                guarded: 'reservado — hesita antes de compartilhar detalhes pessoais',
+            },
         },
     },
     {
         key: 'emotionalState',
-        label: 'Emotional state',
+        label: { en: 'Emotional state', pt: 'Estado emocional' },
         defaultValue: 'neutral',
         directives: {
-            calm: 'calm — speak steadily and without urgency',
-            anxious: 'anxious — show worry and tension in your words',
-            fearful: 'fearful — sound scared about what is happening',
-            angry: 'angry / frustrated — let irritation show through',
-            sad: 'sad / tearful — sound low and on the edge of tears',
-            stoic: 'stoic — minimise emotional expression even if hurting',
-            distressed: 'distressed — words come out strained and breaking',
+            en: {
+                calm: 'calm — speak steadily and without urgency',
+                anxious: 'anxious — show worry and tension in your words',
+                fearful: 'fearful — sound scared about what is happening',
+                angry: 'angry / frustrated — let irritation show through',
+                sad: 'sad / tearful — sound low and on the edge of tears',
+                stoic: 'stoic — minimise emotional expression even if hurting',
+                distressed: 'distressed — words come out strained and breaking',
+            },
+            pt: {
+                calm: 'calmo — fala de forma estável e sem urgência',
+                anxious: 'ansioso — demonstra preocupação e tensão nas palavras',
+                fearful: 'medroso — soa assustado com o que está acontecendo',
+                angry: 'irritado/frustrado — deixa a irritação transparecer',
+                sad: 'triste/choroso — soa abatido, à beira das lágrimas',
+                stoic: 'estoico — minimiza a expressão emocional mesmo com dor',
+                distressed: 'angustiado — fala de forma tensa e entrecortada',
+            },
         },
     },
     {
         key: 'painTolerance',
-        label: 'Pain tolerance',
+        label: { en: 'Pain tolerance', pt: 'Tolerância à dor' },
         defaultValue: 'normal',
         directives: {
-            high: 'high — minimise how much pain you express',
-            low: 'low — express discomfort readily when relevant',
-            dramatic: 'dramatic — express pain intensely when clinically relevant',
+            en: {
+                high: 'high — minimise how much pain you express',
+                low: 'low — express discomfort readily when relevant',
+                dramatic: 'dramatic — express pain intensely when clinically relevant',
+            },
+            pt: {
+                high: 'alta — minimiza o quanto expressa a dor',
+                low: 'baixa — expressa desconforto facilmente quando relevante',
+                dramatic: 'dramática — expressa a dor intensamente quando clinicamente relevante',
+            },
         },
     },
     {
         key: 'cooperativeness',
-        label: 'Cooperativeness',
+        label: { en: 'Cooperativeness', pt: 'Cooperação' },
         defaultValue: 'cooperative',
         directives: {
-            very_cooperative: 'very cooperative — answer fully and proactively',
-            neutral: 'neutral — answer when asked but volunteer little',
-            reluctant: 'reluctant — answer with hesitation, occasionally push back',
-            uncooperative: 'uncooperative — resist questions, give partial answers',
+            en: {
+                very_cooperative: 'very cooperative — answer fully and proactively',
+                neutral: 'neutral — answer when asked but volunteer little',
+                reluctant: 'reluctant — answer with hesitation, occasionally push back',
+                uncooperative: 'uncooperative — resist questions, give partial answers',
+            },
+            pt: {
+                very_cooperative: 'muito cooperativo — responde de forma completa e proativa',
+                neutral: 'neutro — responde quando perguntado, mas oferece pouco espontaneamente',
+                reluctant: 'relutante — responde com hesitação, ocasionalmente resiste',
+                uncooperative: 'não cooperativo — resiste às perguntas, dá respostas parciais',
+            },
         },
     },
     {
         key: 'healthLiteracy',
-        label: 'Health literacy',
+        label: { en: 'Health literacy', pt: 'Letramento em saúde' },
         defaultValue: 'average',
         directives: {
-            high: 'high — comfortable with medical terms (has medical background)',
-            low: 'low — ask for plain-language explanations of medical terms',
+            en: {
+                high: 'high — comfortable with medical terms (has medical background)',
+                low: 'low — ask for plain-language explanations of medical terms',
+            },
+            pt: {
+                high: 'alto — confortável com termos médicos (tem formação na área)',
+                low: 'baixo — pede explicações em linguagem simples para termos médicos',
+            },
         },
     },
 ];
@@ -167,40 +217,59 @@ const PERSONALITY_FIELDS = [
 // the author has set to a non-default value. Returns '' when every slider
 // is at its default — no point telling the model "communication style:
 // normal" twelve cases in a row.
-export function formatPersonalityForPrompt(personality = {}) {
+export function formatPersonalityForPrompt(personality = {}, { lang = 'en' } = {}) {
     if (!personality || typeof personality !== 'object') return '';
+    const isPt = lang === 'pt';
     const lines = [];
     for (const field of PERSONALITY_FIELDS) {
         const value = clean(personality[field.key]);
         if (!value || value === field.defaultValue) continue;
-        const directive = field.directives[value];
+        const directive = field.directives[isPt ? 'pt' : 'en'][value];
         if (!directive) continue;
-        lines.push(`- ${field.label}: ${directive}`);
+        lines.push(`- ${isPt ? field.label.pt : field.label.en}: ${directive}`);
     }
     return lines.join('\n');
 }
 
 // Build the persona-header demographics block. Emits one line per authored
 // field; absent fields are omitted entirely (no fake defaults).
-export function formatPersonaDemographicsForPrompt(demographics = {}) {
+export function formatPersonaDemographicsForPrompt(demographics = {}, { lang = 'en' } = {}) {
     if (!demographics || typeof demographics !== 'object') return '';
+    const isPt = lang === 'pt';
     const lines = [];
+    const rawGender = clean(demographics.gender);
+    const isMale = /^(male|masculino|homem|m)$/i.test(rawGender);
+    const isFemale = /^(female|feminino|mulher|f)$/i.test(rawGender);
+
     for (const field of DEMOGRAPHIC_FIELDS) {
         const raw = demographics[field.key];
         const value = clean(raw);
         if (!value) continue;
-        const display = field.format ? field.format(value) : value;
-        lines.push(`- ${field.label}: ${display}`);
+        const label = isPt ? field.label.pt : field.label.en;
+        if (field.key === 'gender') {
+            if (isMale) {
+                lines.push(`- ${label}: ${value} (HOMEM). Você é um paciente HOMEM. Responda SEMPRE no gênero masculino (ex: 'estou cansado', 'muito assustado', 'preocupado'). NUNCA use termos neutros como 'o(a) paciente' nem flexões femininas.`);
+            } else if (isFemale) {
+                lines.push(`- ${label}: ${value} (MULHER). Você é uma paciente MULHER. Responda SEMPRE no gênero feminino (ex: 'estou cansada', 'muito assustada', 'preocupada'). NUNCA use termos neutros como 'o(a) paciente' nem flexões masculinas.`);
+            } else {
+                lines.push(`- ${label}: ${value}`);
+            }
+            continue;
+        }
+        const format = field.format ? (isPt ? field.format.pt : field.format.en) : null;
+        const display = format ? format(value) : value;
+        lines.push(`- ${label}: ${display}`);
     }
     const allergies = clean(demographics.allergies);
-    if (allergies) lines.push(`- Known allergies: ${allergies}`);
+    if (allergies) lines.push(isPt ? `- Alergias conhecidas: ${allergies}` : `- Known allergies: ${allergies}`);
     const ec = demographics.emergencyContact || {};
     const ecParts = [clean(ec.name), clean(ec.relationship), clean(ec.phone)].filter(Boolean);
-    if (ecParts.length) lines.push(`- Emergency contact: ${ecParts.join(' · ')}`);
+    if (ecParts.length) lines.push(`${isPt ? '- Contato de emergência' : '- Emergency contact'}: ${ecParts.join(' · ')}`);
     return lines.join('\n');
 }
 
-export function formatCaseVitalsForPrompt(config = {}) {
+export function formatCaseVitalsForPrompt(config = {}, { lang = 'en' } = {}) {
+    const isPt = lang === 'pt';
     const v = config.initialVitals || config.initial_vitals || null;
     const legacy = !v && ['hr', 'spo2', 'rr', 'temp', 'sbp', 'dbp', 'etco2'].some(k => config[k] != null)
         ? {
@@ -217,18 +286,18 @@ export function formatCaseVitalsForPrompt(config = {}) {
     if (!vitals || typeof vitals !== 'object') return '';
 
     const lines = [];
-    if (vitals.hr != null) lines.push(`- HR: ${vitals.hr} bpm`);
-    if (vitals.bpSys != null || vitals.bpDia != null) lines.push(`- BP: ${vitals.bpSys ?? '?'}/${vitals.bpDia ?? '?'} mmHg`);
+    if (vitals.hr != null) lines.push(isPt ? `- FC: ${vitals.hr} bpm` : `- HR: ${vitals.hr} bpm`);
+    if (vitals.bpSys != null || vitals.bpDia != null) lines.push(`${isPt ? '- PA' : '- BP'}: ${vitals.bpSys ?? '?'}/${vitals.bpDia ?? '?'} mmHg`);
     if (vitals.spo2 != null) lines.push(`- SpO2: ${vitals.spo2}%`);
-    if (vitals.rr != null) lines.push(`- RR: ${vitals.rr}/min`);
-    if (vitals.temp != null) lines.push(`- Temperature: ${vitals.temp} C`);
+    if (vitals.rr != null) lines.push(isPt ? `- FR: ${vitals.rr}/min` : `- RR: ${vitals.rr}/min`);
+    if (vitals.temp != null) lines.push(isPt ? `- Temperatura: ${vitals.temp} C` : `- Temperature: ${vitals.temp} C`);
     if (vitals.etco2 != null) lines.push(`- ETCO2: ${vitals.etco2} mmHg`);
-    if (vitals.rhythm) lines.push(`- Rhythm: ${vitals.rhythm}`);
+    if (vitals.rhythm) lines.push(isPt ? `- Ritmo: ${vitals.rhythm}` : `- Rhythm: ${vitals.rhythm}`);
     if (vitals.conditions && typeof vitals.conditions === 'object') {
         const active = Object.entries(vitals.conditions)
             .filter(([, value]) => value !== false && value != null && value !== 0)
             .map(([key, value]) => value === true ? key : `${key}: ${value}`);
-        if (active.length) lines.push(`- ECG/monitor conditions: ${active.join(', ')}`);
+        if (active.length) lines.push(`${isPt ? '- Condições do ECG/monitor' : '- ECG/monitor conditions'}: ${active.join(', ')}`);
     }
     return lines.join('\n');
 }
@@ -245,7 +314,8 @@ export function formatCaseRadiologyForPrompt(config = {}) {
     })));
 }
 
-export function formatPhysicalExamConfigForPrompt(config = {}) {
+export function formatPhysicalExamConfigForPrompt(config = {}, { lang = 'en' } = {}) {
+    const isPt = lang === 'pt';
     const physical = config.physical_exam;
     if (!physical || typeof physical !== 'object') return '';
     const lines = [];
@@ -254,7 +324,7 @@ export function formatPhysicalExamConfigForPrompt(config = {}) {
         for (const [technique, finding] of Object.entries(exams)) {
             const text = clean(finding?.finding);
             if (!text) continue;
-            const abnormal = finding.abnormal ? ' (abnormal)' : '';
+            const abnormal = finding.abnormal ? (isPt ? ' (alterado)' : ' (abnormal)') : '';
             lines.push(`- ${region} / ${technique}${abnormal}: ${text}`);
         }
     }
@@ -325,36 +395,46 @@ function formatClinicalRecords(config = {}, { respectAiAccess = true } = {}) {
     return sections;
 }
 
-function formatLegacyClinicalRecords(config = {}) {
+function formatLegacyClinicalRecords(config = {}, { lang = 'en' } = {}) {
+    const isPt = lang === 'pt';
     const legacy = config.clinical_records;
     if (!legacy || typeof legacy !== 'object') return [];
     const sections = [];
     const historyLines = [
-        clean(legacy.chief_complaint) && `- Chief Complaint: ${clean(legacy.chief_complaint)}`,
-        clean(legacy.present_illness) && `- Present Illness: ${clean(legacy.present_illness)}`,
-        Array.isArray(legacy.risk_factors) && legacy.risk_factors.length && `- Risk Factors: ${legacy.risk_factors.join('; ')}`,
+        clean(legacy.chief_complaint) && `${isPt ? '- Queixa Principal' : '- Chief Complaint'}: ${clean(legacy.chief_complaint)}`,
+        clean(legacy.present_illness) && `${isPt ? '- Doença Atual' : '- Present Illness'}: ${clean(legacy.present_illness)}`,
+        Array.isArray(legacy.risk_factors) && legacy.risk_factors.length && `${isPt ? '- Fatores de Risco' : '- Risk Factors'}: ${legacy.risk_factors.join('; ')}`,
     ].filter(Boolean).join('\n');
-    if (historyLines) sections.push(['Legacy Clinical History', historyLines]);
+    if (historyLines) sections.push([isPt ? 'Histórico Clínico (legado)' : 'Legacy Clinical History', historyLines]);
     if (legacy.physical_exam && typeof legacy.physical_exam === 'object') {
         const exam = Object.entries(legacy.physical_exam)
             .filter(([, value]) => clean(value))
             .map(([key, value]) => `- ${key}: ${clean(value)}`)
             .join('\n');
-        if (exam) sections.push(['Legacy Physical Examination', exam]);
+        if (exam) sections.push([isPt ? 'Exame Físico (legado)' : 'Legacy Physical Examination', exam]);
     }
     if (Array.isArray(legacy.differential_diagnosis) && legacy.differential_diagnosis.length) {
-        sections.push(['Differential Diagnosis', legacy.differential_diagnosis.map(x => `- ${x}`).join('\n')]);
+        sections.push([isPt ? 'Diagnóstico Diferencial' : 'Differential Diagnosis', legacy.differential_diagnosis.map(x => `- ${x}`).join('\n')]);
     }
     if (Array.isArray(legacy.management_plan) && legacy.management_plan.length) {
-        sections.push(['Management Plan', legacy.management_plan.map(x => `- ${x}`).join('\n')]);
+        sections.push([isPt ? 'Plano de Conduta' : 'Management Plan', legacy.management_plan.map(x => `- ${x}`).join('\n')]);
     }
     return sections;
 }
 
-function caseSummary(activeCase = {}) {
+function caseSummary(activeCase = {}, { lang = 'en' } = {}) {
+    const isPt = lang === 'pt';
     const cfg = activeCase.config || {};
     const demo = cfg.demographics || {};
-    const parts = [
+    const parts = isPt ? [
+        `Caso: ${activeCase.name || 'Sem nome'}`,
+        cfg.patient_name ? `Paciente: ${cfg.patient_name}` : '',
+        demo.age ? `Idade: ${demo.age}` : '',
+        demo.gender ? `Gênero: ${demo.gender}` : '',
+        demo.weight ? `Peso: ${demo.weight}` : '',
+        demo.height ? `Altura: ${demo.height}` : '',
+        activeCase.description ? `Descrição: ${activeCase.description}` : '',
+    ] : [
         `Case: ${activeCase.name || 'Unnamed'}`,
         cfg.patient_name ? `Patient: ${cfg.patient_name}` : '',
         demo.age ? `Age: ${demo.age}` : '',
@@ -362,30 +442,32 @@ function caseSummary(activeCase = {}) {
         demo.weight ? `Weight: ${demo.weight}` : '',
         demo.height ? `Height: ${demo.height}` : '',
         activeCase.description ? `Description: ${activeCase.description}` : '',
-    ].filter(Boolean);
-    return parts.join('\n');
+    ];
+    return parts.filter(Boolean).join('\n');
 }
 
-export function buildPatientCaseDesignContext(activeCase) {
+export function buildPatientCaseDesignContext(activeCase, { lang = 'en' } = {}) {
     if (!activeCase) return '';
+    const isPt = lang === 'pt';
     const cfg = activeCase.config || {};
-    const sections = [['Case Summary', caseSummary(activeCase)]];
+    const sections = [[isPt ? 'Resumo do Caso' : 'Case Summary', caseSummary(activeCase, { lang })]];
     const mirroredHistory = cfg.clinicalRecords?.history || null;
 
     const structured = formatStructuredHistoryForPrompt(cfg.structuredHistory, {
         omitMirroredHistory: mirroredHistory,
         demographics: cfg.demographics,
+        lang,
     });
-    if (structured) sections.push(['Structured Patient Story', structured]);
+    if (structured) sections.push([isPt ? 'História Estruturada do Paciente' : 'Structured Patient Story', structured]);
 
-    const vitals = formatCaseVitalsForPrompt(cfg);
-    if (vitals) sections.push(['Configured Initial Vitals', vitals]);
+    const vitals = formatCaseVitalsForPrompt(cfg, { lang });
+    if (vitals) sections.push([isPt ? 'Sinais Vitais Iniciais Configurados' : 'Configured Initial Vitals', vitals]);
 
-    const physical = formatPhysicalExamConfigForPrompt(cfg);
-    if (physical) sections.push(['Configured Physical Exam Findings', physical]);
+    const physical = formatPhysicalExamConfigForPrompt(cfg, { lang });
+    if (physical) sections.push([isPt ? 'Achados do Exame Físico Configurados' : 'Configured Physical Exam Findings', physical]);
 
-    const legacySections = formatLegacyClinicalRecords(cfg)
-        .filter(([title]) => !/Differential|Management/.test(title));
+    const legacySections = formatLegacyClinicalRecords(cfg, { lang })
+        .filter(([title]) => !/Differential|Management|Diagnóstico Diferencial|Plano de Conduta/.test(title));
     sections.push(...legacySections);
 
     const body = sections
@@ -394,7 +476,9 @@ export function buildPatientCaseDesignContext(activeCase) {
         .join('\n\n');
 
     return body
-        ? `\n---\n## CASE DESIGN CONTEXT (Hidden from learner)\n${body}\n`
+        ? (isPt
+            ? `\n---\n## CONTEXTO DE DESENHO DO CASO (Oculto do aluno)\n${body}\n`
+            : `\n---\n## CASE DESIGN CONTEXT (Hidden from learner)\n${body}\n`)
         : '';
 }
 

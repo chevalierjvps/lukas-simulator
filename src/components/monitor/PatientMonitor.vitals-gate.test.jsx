@@ -137,7 +137,7 @@ beforeEach(() => {
             return {
                 clearRect: () => {}, beginPath: () => {}, moveTo: () => {},
                 lineTo: () => {}, stroke: () => {}, fillRect: () => {},
-                fillText: () => {}, setLineDash: () => {},
+                fillText: () => {}, setLineDash: () => {}, drawImage: () => {},
                 strokeStyle: '', fillStyle: '', lineWidth: 0,
                 font: '', textAlign: '', lineJoin: '',
             };
@@ -180,6 +180,22 @@ const isFactoryRow = (body) =>
     && body.bp_dia === FACTORY_ROW.bp_dia;
 
 describe('PatientMonitor — #8 vitals persist gate', () => {
+    // Poll on a REAL setTimeout instead of RTL's waitFor. Sprint 2 wrapped
+    // the vitals/waveform subpanels in React.memo so unrelated re-renders
+    // stop reconciling them — which also removes the incidental DOM
+    // mutations waitFor's MutationObserver used to lean on. Its fallback
+    // poll uses setInterval, which this file fakes (see beforeEach) and
+    // never advances, so between real DOM mutations it never re-checks.
+    // Same footgun, same fix as PatientMonitor.test.jsx's `untilPosted`.
+    const untilCount = async (min, timeoutMs = 4000) => {
+        const started = Date.now();
+        while (Date.now() - started < timeoutMs) {
+            if (state.posted.length >= min) return;
+            await new Promise(r => setTimeout(r, 25));
+        }
+        throw new Error(`state.posted never reached length ${min} within ${timeoutMs}ms; saw ${JSON.stringify(state.posted)}`);
+    };
+
     // Regression lock: nothing may be written to /sessions/:id/vitals until
     // the case snapshot has actually been applied. Against the un-fixed
     // component the very first POST carries HR 80 / SpO2 98 — the factory
@@ -188,7 +204,7 @@ describe('PatientMonitor — #8 vitals persist gate', () => {
     it('never persists the factory-default row, and the first row is the case baseline', async () => {
         mount({ sessionId: 3131 });
 
-        await waitFor(() => expect(state.posted.length).toBeGreaterThanOrEqual(1));
+        await untilCount(1);
 
         expect(state.posted.some(isFactoryRow)).toBe(false);
         expect(state.posted[0].hr).toBe(118);
@@ -203,7 +219,8 @@ describe('PatientMonitor — #8 vitals persist gate', () => {
     // baseline row still has to be written.
     it('still writes exactly one baseline row for a fresh session', async () => {
         mount({ sessionId: 3132 });
-        await waitFor(() => expect(state.posted.length).toBe(1));
+        await untilCount(1);
+        expect(state.posted.length).toBe(1);
     });
 });
 

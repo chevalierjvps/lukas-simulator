@@ -14,18 +14,27 @@ import { hasOpticalProfile } from '../../components/pathology/slideGeometry.js';
 
 /**
  * Host-side tightening of the package's servability gate.
- *
- * `caseDocumentIsServable()` admits a slide on `dzi` alone, but the viewer's
- * `opticalProfile()` THROWS on a slide with no optical description (by design:
- * honest magnification) — so a legacy-shaped, dzi-only document passed the
- * gate and then crashed the room at render time. Until the fix lands upstream
- * and is re-vendored, the host asks the stricter question here: material is a
- * slide the viewer can actually render (dzi + complete optics) or a gross
- * photograph. Total by construction, like the gate it wraps.
+ * Ensures complete optics on slides.
  */
+function normalizeViewerSlide(slide) {
+    if (!slide) return slide;
+    const optics = slide.optics;
+    if (!optics) return slide;
+    return {
+        ...slide,
+        nativeObjective: slide.nativeObjective ?? optics.nativeObjective,
+        nativeMpp: slide.nativeMpp ?? optics.nativeMpp,
+        downsample: slide.downsample ?? optics.downsample,
+    };
+}
+
 function hasRenderableMaterial(stored) {
-    const viewer = learnerCase(stored);
-    if (!viewer) return false;
+    const rawViewer = learnerCase(stored);
+    if (!rawViewer) return false;
+    const viewer = {
+        ...rawViewer,
+        slides: (rawViewer.slides ?? []).map(normalizeViewerSlide),
+    };
     const renderableSlide = (viewer.slides ?? []).some(
         (slide) => typeof slide?.dzi === 'string' && slide.dzi !== '' && hasOpticalProfile(slide),
     );
@@ -101,7 +110,14 @@ export default {
         // filtered out afterwards. `remote:` references have already been
         // rewritten to this plugin's proxy mount by createPluginContext, so
         // this is the case as the viewer can actually open it.
-        pathologyCase: learnerCase(ctx.data),
+        pathologyCase: (() => {
+            const lc = learnerCase(ctx.data);
+            if (!lc) return lc;
+            return {
+                ...lc,
+                slides: (lc.slides ?? []).map(normalizeViewerSlide),
+            };
+        })(),
         caseTitle: readCaseDocument(ctx.data)?.manifest?.title ?? undefined,
 
         eventLogger: ctx.eventLogger,

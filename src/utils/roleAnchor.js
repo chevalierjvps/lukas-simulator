@@ -15,9 +15,24 @@
 // back as if they were the learner. With this directive, the model treats
 // the user as the learner even when the user content looks role-shaped.
 
-export function roleAnchor({ role, name }) {
-    const safeRole = (role || '').trim() || 'this character';
+export function roleAnchor({ role, name, lang = 'en' } = {}) {
+    const isPt = lang === 'pt';
+    const safeRole = (role || '').trim() || (isPt ? 'o paciente' : 'this character');
     const safeName = (name || '').trim();
+
+    if (isPt) {
+        const lines = ['## PAPEL DO PERSONAGEM'];
+        lines.push(`Você é: ${safeRole}.`);
+        if (safeName) lines.push(`Seu nome: ${safeName}.`);
+        lines.push('');
+        lines.push(
+            `Responda ESTRITAMENTE como ${safeRole}. Nunca responda como médico, profissional de saúde, ` +
+            `estudante, tutor, narrador ou examinador. Responda SEMPRE em Português do Brasil natural e coloquial, ` +
+            `como uma pessoa real em consulta/emergência médica. Nunca use markdown, asteriscos ou narrações de palco.`
+        );
+        lines.push('');
+        return lines.join('\n');
+    }
 
     const lines = ['## ROLE'];
     lines.push(`You are: ${safeRole}.`);

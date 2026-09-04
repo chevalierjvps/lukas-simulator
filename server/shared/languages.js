@@ -18,7 +18,7 @@
 // "stay in English" when the student writes Italian); requests with NO
 // case language get nothing appended.
 
-export const DEFAULT_LANGUAGE = 'en';
+export const DEFAULT_LANGUAGE = 'pt';
 
 export const LANGUAGES = {
     en: {
@@ -74,6 +74,15 @@ export const LANGUAGES = {
         sttLabel: 'Spanish',
         llmDirective: 'Always respond in Spanish (español), regardless of the language the student writes in. Responde siempre en español.',
         dir: 'ltr'
+    },
+    pt: {
+        name: 'Portuguese',
+        native: 'Português',
+        flag: '🇧🇷',
+        stt: 'pt-BR',
+        sttLabel: 'Português (Brasil)',
+        llmDirective: 'Always respond in Portuguese (português do Brasil), regardless of the language the student writes in. Responda sempre em português brasileiro de forma natural.',
+        dir: 'ltr'
     }
 };
 
@@ -82,6 +91,9 @@ export const LANGUAGES = {
 // VoiceSettingsTab. Promoting one to a full language = moving it into
 // LANGUAGES above; it disappears from here automatically via sttOptions().
 export const STT_DIALECTS = [
+    { code: 'es-PY', label: 'Español (Paraguay)' },
+    { code: 'es-419', label: 'Español (Latinoamérica)' },
+    { code: 'pt-PT', label: 'Português (Portugal)' },
     { code: 'en-GB', label: 'English (UK)' },
     { code: 'tr-TR', label: 'Turkish' },
     { code: 'ar-SA', label: 'Arabic (Saudi)' },

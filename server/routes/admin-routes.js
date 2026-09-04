@@ -1230,7 +1230,7 @@ router.get('/platform-settings/language', async (req, res) => {
     try {
         const value = await getPlatformSetting('default_ui_language');
         res.json({
-            default_ui_language: value && LANGUAGES[value] ? value : 'en'
+            default_ui_language: value && LANGUAGES[value] ? value : 'pt'
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -1303,7 +1303,7 @@ router.get('/setup/status', authenticateToken, requireAdmin, async (req, res) =>
                 enabled: llmEnabled !== 'false'
             },
             language: {
-                default_ui_language: defaultLang && LANGUAGES[defaultLang] ? defaultLang : 'en'
+                default_ui_language: defaultLang && LANGUAGES[defaultLang] ? defaultLang : 'pt'
             },
             cases: {
                 total: cases.length,
@@ -1698,7 +1698,7 @@ router.put('/platform-settings/chat', authenticateToken, requireAdmin, async (re
 // registry language) plus `tts_provider_enabled_<p>` policy toggles.
 // Migration 0034 deletes the retired rows.
 const VOICE_GENDERS = ['male', 'female', 'child'];
-const VOICE_STT_PROVIDERS = ['browser'];
+const VOICE_STT_PROVIDERS = ['browser', 'google'];
 const VOICE_AVATAR_TYPES = ['3d_head', 'none'];
 
 // Path-traversal-proof voice id check. Piper voices end in .onnx; Kokoro

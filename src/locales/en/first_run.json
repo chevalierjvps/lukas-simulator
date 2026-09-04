@@ -4,7 +4,7 @@
   "access_intro": "Decide who sees which cases and set up your user accounts.",
   "access_saved": "Access setting saved",
   "access_users_hint": "Create teacher and student accounts under Settings → Users — individually, in bulk, or by CSV import. Students can also self-register and join a course with a class code.",
-  "admin_subtitle": "Get Rohy ready for your students — every setting here stays editable later in Settings.",
+  "admin_subtitle": "Get Lukas ready for your students — every setting here stays editable later in Settings.",
   "admin_title": "Platform setup",
   "affect_disabled": "Affect routing disabled",
   "affect_enable": "Route observed learner affect to the AI patient",
@@ -20,7 +20,7 @@
   "case_coverage": "Cases per language",
   "case_default_label": "Fallback default case",
   "case_hint": "Manage courses and author new cases later under Settings → Cases and Settings → Courses.",
-  "case_intro": "Students land directly on a patient case. Rohy picks the case matching each student's language; the default case below is the fallback when no match exists.",
+  "case_intro": "Students land directly on a patient case. Lukas picks the case matching each student's language; the default case below is the fallback when no match exists.",
   "case_is_default": "Default",
   "case_none": "No cases yet — the built-in demo course is created automatically on first start, or you can author one under Settings → Cases.",
   "case_saved": "Default case updated",
@@ -28,7 +28,7 @@
   "emotion_disabled": "Emotion capture disabled",
   "emotion_enable": "Enable emotion capture (Oyon)",
   "emotion_enabled": "Emotion capture enabled",
-  "emotion_intro": "Rohy can observe learners' facial emotion during sessions (Oyon). Analysis runs in the browser; storing data additionally requires each student's consent.",
+  "emotion_intro": "Lukas can observe learners' facial emotion during sessions (Oyon). Analysis runs in the browser; storing data additionally requires each student's consent.",
   "emotion_unavailable": "The Oyon add-on is not available on this server.",
   "finish_later": "Finish later",
   "finish_setup": "Finish setup",
@@ -87,5 +87,5 @@
   "voice_mic_ok": "Microphone works",
   "voice_missing_defaults": "No default voice is set for: {langs}. Patients in those languages have no fallback voice — set them under Settings → Voice.",
   "welcome_intro": "A few quick choices before your first patient. Everything can be changed later from the top-bar menu.",
-  "welcome_title": "Welcome to Rohy"
+  "welcome_title": "Welcome to Lukas"
 }
