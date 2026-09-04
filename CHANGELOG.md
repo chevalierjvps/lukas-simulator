@@ -9,6 +9,263 @@ repo root (this updates `package.json` + `package-lock.json` and creates a
 tag in one step). Add a new section at the top of this file for every
 release before tagging.
 
+## [3.0.0-beta.9] — 2026-09-03
+
+### Fixed
+
+- **Plugin delivery and content installation hardening.** The private 3D-room
+  credential is now a BuildKit secret rather than a URL/build argument, Git
+  metadata is removed before packaging, and one version contract pins CI,
+  Docker, source bundles and local verification. Remote PACS/Pathology bodies
+  are byte-limited while streaming. Starter archives are hashed without a
+  whole-file allocation, staged and validated before replacement, and restored
+  on a failed swap.
+- **Bedside naming, voice and language state.** The user-facing 3D room is now
+  named **Bedside** in navigation, room chrome, help and documentation. An
+  explicit room mute now overrides the hidden chat voice mode, and a runtime
+  language switch remounts translated Bedside chrome, callbacks and monitor
+  labels.
+
+## [3.0.0-beta.8] — 2026-09-03
+
+### Changed
+
+- **The default patient answers only what is asked** (`server/db.js`
+  `PATIENT_TEMPLATE_PROMPT`, migration `0054`). The shipped "Default Patient"
+  and "Default Female Patient" prompts told the model to answer truthfully and
+  express feelings, and small models recited the whole case on "how are
+  you?". The new baseline is one question, one answer, one or two sentences,
+  nothing volunteered, everyday words, a number when a number is asked for,
+  with a short example exchange. The dos and don'ts lists match. Migration
+  0054 rewrites installed copies that still carry the shipped text and leaves
+  an admin-edited template alone. Regression lock in
+  `tests/server/patient-template-short-answers.test.js`.
+
+## [3.0.0-beta.7] — 2026-09-03
+
+### Added
+
+- **Every document rendered into the public website** (`website/build-docs.mjs`,
+  `website/docs/**`): 135 pages built from `docs/`, `CHANGELOG.md` and
+  `LICENSE` in the site shell, with a sidebar parsed from the VitePress
+  config, callouts for `:::` containers, escaped placeholder tokens, anchor
+  aliases for both slug spellings, generated indexes for directories without
+  an `index.md`, GitHub links for paths outside the rendered set, and a build
+  that fails on any missing link target. Output is byte-identical across
+  runs. `npm run website:build` runs it together with the help page
+  generator, which now shares the same shell template.
+- The site gains a `Docs` nav item; the footer, the rooms guide links and the
+  install links point at the rendered pages. Page titles use `Name · Rohy`.
+
+## [3.0.0-beta.6] — 2026-09-03
+
+### Changed
+
+- **Documentation style pass** over the trainee, educator, admin, operator
+  and product guides plus `INSTALL.md`, `DEPLOY.md`, `UPDATING.md` and the
+  docs home: declarative present tense, one fact per sentence, contractions
+  expanded, em dashes and antithesis removed, room counts replaced by room
+  names. Link targets and code blocks are unchanged in every file; 28
+  headings changed text and none was referenced by an anchor. The
+  `UPDATING.md` troubleshooting heading now quotes the message
+  `bin/rohy-update` emits; two `docs/index.md` frontmatter values are quoted.
+
+## [3.0.0-beta.5] — 2026-09-03
+
+### Changed
+
+- **Public website rebuilt** (`website/`): shared `site.css`/`site.js`, new
+  `rooms.html` (every room with a screenshot, in navigator order),
+  `about.html` (author page) and a generated `help.html` (the root README
+  rendered into the site shell by `website/build-help.mjs`); `index.html` and
+  `whats-new.html` rewritten for the 3.0 beta. Screenshots replaced with
+  current JPEG captures of the rooms and analytics.
+- **README rewritten** as the source of the website's help page: shorter
+  install path, the nine rooms, features, architecture, configuration,
+  testing, roles and licence.
+
+## [3.0.0-beta.4] — 2026-09-03
+
+### Added
+
+- **Trainee documentation for the plugin rooms** (`docs/trainee/`): five new
+  pages — Bedside, 12-lead ECG, reading a pathology slide, the PACS
+  reading room, and courses, lessons & surveys — wired into the VitePress
+  sidebar. `rooms.md` now covers all nine rooms in navigator order.
+- **Help & Support drawer** lists the same pages (`src/help/helpContent.js`)
+  in the order a learner meets the material, unconditionally: a learner whose
+  case does not enable a plugin room still gets the article explaining why the
+  tab is absent. New `help` catalogue keys in all six languages plus `en-XA`.
+
+## [3.0.0-beta.3] — 2026-09-03
+
+### Fixed
+
+- **Intermittent Cloudflare 502s on a healthy server** (`server/config/keepAlive.js`).
+  rohy.lacarm.com sits behind cloudflared, which pools idle origin sockets for
+  90 s; node's `http.Server` closed them after its 5 s default, so a request
+  that reused a just-closed socket got a TCP reset before Express saw it and
+  the browser rendered Cloudflare's 502 page (a lost chat message, eight
+  times in the last fortnight). Both listeners now set `keepAliveTimeout` to
+  95 s and `headersTimeout` to 96 s, so the upstream outlives the proxy pool.
+  Regression lock in `tests/server/keep-alive-timeouts.test.js` holds a raw
+  keep-alive socket idle for 6.5 s and expects the second request to be served.
+
+## [3.0.0-beta.2] — 2026-09-02
+
+Second beta of Rohy 3. Rohy 3 adds a sixth room: the patient in a 3D bedside room, sharing the
+session's physiology and its one patient conversation with the chat room.
+The major bump marks a new sibling dependency and a new plugin capability
+surface; no existing API or data shape changes.
+
+### Added
+
+- **Bedside** (`src/plugins/room3d/`), an RPS-1 plugin rendering the
+  `rohy-3d-patient-room` package (`file:../3D`, a sibling clone like
+  `dynajs`) as the SECOND room in the navigator. The case's patient lies in
+  bed with the live monitor, the room's camera wheel and the examination
+  wheel; findings open the real finding chart (auscultation points and
+  sounds included) and persist like the 2D room's; the chart and IV pole
+  open the Records and Treatments drawers. The room is drawn OVER the chat
+  layout (`room.presentation: 'overlay'`), so the physiology engine and the
+  conversation keep running underneath.
+- **One patient conversation.** `PatientConversationContext` publishes the
+  chat room's transcript and send handler; the host narrows it into a new
+  `conversation` plugin capability. A question spoken at the bedside runs
+  through the chat's own handler (persona, agent template, record write,
+  voice) and appears in the chat transcript as it streams; a typed question
+  is captioned at the bedside. One turn at a time is enforced.
+- `interactions.source` (migration 0053): where a turn came from — `typed`,
+  `voice`, or a plugin room id — for the educator's transcript and analytics.
+- Plugin capabilities `case` (a deep-frozen copy of the case snapshot),
+  `conversation`, and `drawer`; `room.presentation` on the manifest,
+  validated. `PluginRoom` layers live grants onto the memoised context.
+- The room is translated in all seven locales (`room3d` namespace), including
+  the package chrome through its new `labels` option; rhythm names come from
+  the monitor's vocabulary.
+- `deploy/preflight.sh` step 9 and `scripts/verify-room3d-install.mjs`
+  (`prebuild`) check the `3D` sibling; `deploy/bundle-airgap.sh --with-3d`;
+  the Docker builder clones it beside rohy (`ROOM3D_GIT_URL` / `_REF`).
+- Core generalisations shared with the new room: `hooks/usePhysicalExam`
+  (now also persists exam findings for both rooms), `services/ecgWaveform`
+  (extracted from PatientMonitor, bit-identical), `utils/patientTemplate`,
+  `components/voice/SubtitleBand` + `useSubtitleReveal`, additive props on
+  `VoiceControl`, `AuscultationPanel`, `FindingDisplay`, `OrdersDrawer`.
+
+### Changed
+
+- Trainee docs: "The five rooms" is now "The six rooms".
+- `OrdersDrawer`: the backdrop is a sibling of the panel (click-outside and
+  dimming work again), Escape closes, the close button has a name, and the
+  closed panel is inert (its catalogue was in the tab order).
+- The chat's `handleSendToPatient(text, meta)` accepts `source` and
+  `spoken`; the model payload is projected to role + content.
+- `AuscultationPanel` guards its one-shot auto-play with a ref (no double
+  analytics row under StrictMode).
+
+### Fixed
+
+- (3D package) a WebGL context leaked per room visit; avatars of different
+  heights are placed by their head bone so no head sits under the pillow.
+
+## [2.9.148] — 2026-09-01
+
+### Fixed
+
+- **Server tests that build their own database no longer race a 5s clock.**
+  `vitest.config.js` already raised `hookTimeout` to 90s because parallel
+  server boots contend for ports and sqlite migrations, and `--coverage`
+  makes it worse — but several server tests do that setup in the TEST body
+  (`await createTestDb()`, `await freshCtx(...)`), applying fifty-odd
+  migrations before the first assertion, where `hookTimeout` does not reach
+  them. They passed in 2.6s locally and timed out on a loaded CI runner where
+  the full suite takes ~28 minutes. `testTimeout: 30_000` on the server
+  project only; the client project keeps the 5s default.
+
+## [2.9.147] — 2026-09-01
+
+### Changed
+
+- **The content archives are public; `setup:content` needs no credential.**
+  The repository was private because the licensing position was unsettled and
+  then because the pixels were unreviewed. Both are now closed — every item is
+  CC0, CC BY or CC BY-SA, and the burned-in identifier review is done — so the
+  gate was no longer protecting anything. It was also never a security
+  boundary: `--from` is a documented, credential-free path, because what the
+  installer trusts is the SHA-256 in `content-sources.json`, not the host the
+  bytes came from. A gate whose bypass is in the install instructions is an
+  install tax, not a control.
+
+  `scripts/content-sources.json` sets `"private": false`. Installation
+  instructions, `deploy/env.example` and the README drop the token sections.
+  `ROHY_CONTENT_TOKEN` still works and is still documented, for a deployment
+  that mirrors the archives behind its own private release.
+
+## [2.9.146] — 2026-09-01
+
+### Security
+
+- **Burned-in patient identifiers removed from the shipped imaging.** Every
+  ultrasound entry in the starter archive was reviewed pixel by pixel — 28
+  series across 11 entries, max-projected over every frame, because burned-in
+  text changes within a loop and frame 0 does not show it. Nineteen series
+  carried identifiers rendered into the image itself, where no header
+  operation reaches: patient names, hospital and department names, a probable
+  date of birth, accession numbers and acquisition dates and times. All are
+  masked on every frame. View labels, stress stage, heart rate, ECG trace,
+  depth, probe and MI/TIS are preserved — they carry no identity and the study
+  cannot be read without them.
+
+  Masking was applied at the source archive and rebuilt forward, so a later
+  rebuild cannot restore the originals. DICOM headers were separately
+  confirmed clean across all 4,070 instances: every patient name is a
+  pseudonym, every id is synthetic or a public dataset citation key, and no
+  institution, accession, physician, birth date or address value survives.
+
+- **Ingest now refuses to write an at-risk study that nobody has looked at.**
+  `burnedInAnnotationRisk()` had flagged all eleven ultrasound entries
+  correctly, every run — and printed `REVIEW REQUIRED` at the end of a
+  *successful* one. Detection was never the problem; the warning had no
+  consumer, so the archive shipped anyway. An at-risk study now requires
+  `--pixels-reviewed "<who looked, when>"`, recorded in the entry's
+  `provenance.pixelsReviewed` beside its licence (Radoyon 0.3.4).
+
+### Changed
+
+- Content archives repacked and republished; `scripts/content-sources.json`
+  carries the new checksums, sizes and content versions. The imaging archive
+  is now 741 MB (re-encoding the masked frames costs about 10 MB).
+- Installation instructions lead with the no-credential `--from` path, which
+  needs no token because the installer verifies the archive's checksum rather
+  than trusting its host. The token section now specifies a fine-grained,
+  single-repository, read-only token and warns that an expired token returns
+  the same 404 as a missing one.
+- `docs/contributing/burned-in-masks.json` records the mask geometry and the
+  categories removed — deliberately not the strings, since writing those down
+  re-creates the disclosure the masking exists to undo.
+
+## [2.9.145] — 2026-08-31
+
+### Fixed
+
+- The room navigator wrapped onto three lines. The plugin rooms wrote
+  sentences where the core rooms use one word — "Interpret a calibrated
+  12-lead tracing" beside "chat" and "physical exam" — and because the
+  buttons share a row, one wrapped label makes the whole bar taller.
+  Shortened to the register the core rooms already use, in all six
+  locales: `interpretation`, `workstation`, `slides`, and `Radiology` for
+  a title that ran to two lines.
+- The radiology SUBTITLE is unchanged on purpose. It is what tells a
+  student the room holds the diagnostic tests as well as imaging, which
+  the navigator's own tests document; only its title was wrapping.
+- Labels are now held to one line and truncate. Wording alone cannot fix
+  this — German builds `Befundungsarbeitsplatz` and Finnish
+  `kuvantamistyöasema`, single compounds no editing shortens — so the row
+  has to hold a label that does not fit. Truncating one keeps the bar a
+  single line; wrapping it moves every other room. `min-w-0` is what lets
+  the flex child shrink at all; without it `truncate` silently does
+  nothing.
+
 ## [2.9.144] — 2026-08-31
 
 ### Added

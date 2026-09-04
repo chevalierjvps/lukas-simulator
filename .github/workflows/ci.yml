@@ -55,6 +55,12 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/mohsaqr/dynajs.git ../dynajs
           cd ../dynajs && npm install --prefer-offline --no-audit --no-fund
+      # The helper reads the one ref/version contract used by Docker, local
+      # installs and verification. Auth is a one-shot header, never a remote URL.
+      - name: Clone 3D patient room sibling
+        env:
+          ROOM3D_GIT_TOKEN: ${{ secrets.ROOM3D_GIT_TOKEN }}
+        run: bash scripts/clone-room3d.sh ../3D
       - name: Install dependencies
         run: npm ci
       - name: Build
@@ -81,6 +87,11 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/mohsaqr/dynajs.git ../dynajs
           cd ../dynajs && npm install --prefer-offline --no-audit --no-fund
+      # Same pinned package the release image builds.
+      - name: Clone 3D patient room sibling
+        env:
+          ROOM3D_GIT_TOKEN: ${{ secrets.ROOM3D_GIT_TOKEN }}
+        run: bash scripts/clone-room3d.sh ../3D
       - name: Install dependencies
         run: npm ci
       - name: Run tests with coverage and JUnit
@@ -148,6 +159,11 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/mohsaqr/dynajs.git ../dynajs
           cd ../dynajs && npm install --prefer-offline --no-audit --no-fund
+      # Same pinned package the release image builds.
+      - name: Clone 3D patient room sibling
+        env:
+          ROOM3D_GIT_TOKEN: ${{ secrets.ROOM3D_GIT_TOKEN }}
+        run: bash scripts/clone-room3d.sh ../3D
       - name: Install dependencies
         run: npm ci
       # The audit-*.sh scripts (except audit-observability.sh, which spins

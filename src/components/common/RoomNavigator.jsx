@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlaskConical, GraduationCap, HeartPulse, MessageCircle, Microscope, Scan, Stethoscope, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bed, FlaskConical, GraduationCap, HeartPulse, MessageCircle, Microscope, Scan, Stethoscope, BookOpen, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiFetch } from '../../services/apiClient';
 import { PLUGIN_MANIFESTS } from '../../../server/shared/plugins/manifests.generated.js';
 
@@ -9,7 +9,7 @@ import { PLUGIN_MANIFESTS } from '../../../server/shared/plugins/manifests.gener
 // rather than a React component and a class list. Both must be resolved
 // against literals here: Tailwind's JIT only emits a class it can see written
 // out, so a computed `bg-${accent}-500/15` would silently render unstyled.
-const PLUGIN_ICONS = { Microscope, FlaskConical, Scan, Stethoscope, BookOpen, GraduationCap, HeartPulse };
+const PLUGIN_ICONS = { Microscope, FlaskConical, Scan, Stethoscope, BookOpen, GraduationCap, HeartPulse, Bed };
 const PLUGIN_ACCENTS = {
     fuchsia: {
         iconText: 'text-fuchsia-300', activeText: 'text-fuchsia-200',
@@ -305,15 +305,31 @@ function RoomButton({ room, active, badge, onClick }) {
                     </span>
                 )}
             </div>
-            <div className="flex flex-col items-start leading-tight">
-                <span className={`text-sm font-semibold tracking-tight transition-colors ${
-                    active ? 'text-white font-bold' : 'text-slate-300 group-hover:text-white'
-                }`}>
+            {/* min-w-0 so the flex child MAY shrink: without it a long label
+                cannot be truncated, it just forces the row wider. The labels
+                are deliberately short — one word and one subtitle, the register
+                the core rooms already use — but German and Finnish build
+                compounds that no wording discipline shortens
+                ("Befundungsarbeitsplatz", "kuvantamistyöasema"), so the bar
+                must hold one that does not fit. Truncating one label is a
+                readable row; wrapping it is a three-line row and every other
+                room moves. */}
+            <div className="flex min-w-0 flex-col items-start leading-tight">
+                <span
+                    title={label}
+                    className={`w-full truncate text-sm font-semibold ${
+                        active ? 'text-white' : 'text-slate-300 group-hover:text-white'
+                    }`}
+                >
                     {label}
                 </span>
-                <span className={`text-[10px] uppercase tracking-wider font-medium transition-colors ${
-                    active ? room.activeText : 'text-slate-400/80 group-hover:text-slate-300'
-                }`}>
+                <span
+                    title={t(room.subKey)}
+                    className={`w-full truncate text-[10px] uppercase tracking-wider ${
+                        active ? room.activeText : 'text-slate-500'
+                    }`}
+                >
+
                     {t(room.subKey)}
                 </span>
             </div>

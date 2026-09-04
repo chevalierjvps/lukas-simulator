@@ -48,6 +48,15 @@ describe('RoomNavigator', () => {
         expect(screen.queryByRole('button', { name: /End Session/i })).toBeNull();
     });
 
+    it('presents the immersive room as Bedside without changing its room key', () => {
+        const { onSelectRoom } = renderNav();
+        const bedside = screen.getByRole('button', { name: 'Bedside' });
+        expect(screen.queryByRole('button', { name: /3D Room/i })).toBeNull();
+        expect(bedside.textContent).toMatch(/immersive patient view/);
+        fireEvent.click(bedside);
+        expect(onSelectRoom).toHaveBeenCalledWith('room3d');
+    });
+
     it('aria-pressed reflects the active room', () => {
         renderNav({ currentRoom: 'lab' });
         const lab = screen.getByRole('button', { name: /Laboratory/ });
@@ -68,21 +77,24 @@ describe('RoomNavigator', () => {
         expect(onSelectRoom).toHaveBeenCalledWith(expected);
     });
 
-    // The room key stays `radiology` (URL/state/tests depend on it); only the
-    // student-facing label says the room also holds the diagnostic tests
-    // (ECG, Holter, echo, cath live under the 'Cardiac' modality there).
-    it('labels the radiology room "Radiology & diagnostics" in English', () => {
+    // The room key stays `radiology` (URL/state/tests depend on it). The TITLE
+    // is one word, as every other room's is — it wrapped to two lines and, in a
+    // shared row, one wrapped label makes the whole bar taller. The SUBTITLE is
+    // what still says the room holds the diagnostic tests as well as imaging
+    // (ECG, Holter, echo, cath live under the 'Cardiac' modality there), which
+    // is why that half is asserted here rather than shortened away.
+    it('labels the radiology room "Radiology", with a subtitle that says it also holds tests', () => {
         renderNav();
-        const button = screen.getByRole('button', { name: /Radiology & diagnostics/ });
+        const button = screen.getByRole('button', { name: /Radiology/ });
         expect(button).toBeTruthy();
         expect(button.textContent).toMatch(/imaging & tests/);
     });
 
-    it('labels the radiology room "Radiologia e diagnostica" in Italian', async () => {
+    it('labels the radiology room "Radiologia" in Italian', async () => {
         renderNav();
         await setAppLanguage('it');
         await waitFor(() => {
-            expect(screen.getByRole('button', { name: /Radiologia e diagnostica/ })).toBeTruthy();
+            expect(screen.getByRole('button', { name: /Radiologia/ })).toBeTruthy();
         });
     });
 

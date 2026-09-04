@@ -53,6 +53,7 @@
   "patient_generic": "the patient",
   "patient_label": "Patient",
   "patient_speaking": "Patient speaking…",
+  "patient_turn_in_flight": "The patient is still answering — wait for the reply.",
   "quick_prompt_associated_symptoms": "Any other symptoms?",
   "quick_prompt_location": "Where exactly does it hurt?",
   "quick_prompt_onset": "When did it start?",

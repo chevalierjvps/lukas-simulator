@@ -93,6 +93,10 @@ jobs:
           file: deploy/docker/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
+          # BuildKit mounts this for the clone RUN only. It never becomes a
+          # build argument, layer environment, Git remote, or image file.
+          secrets: |
+            room3d_token=${{ secrets.ROOM3D_GIT_TOKEN }}
           tags: |
             ${{ env.IMAGE }}:${{ steps.tag.outputs.ref }}
             ${{ env.IMAGE }}:latest
@@ -139,6 +143,11 @@ jobs:
           node-version: '22'
           cache: npm
 
+      - name: Clone pinned 3D patient room sibling
+        env:
+          ROOM3D_GIT_TOKEN: ${{ secrets.ROOM3D_GIT_TOKEN }}
+        run: bash scripts/clone-room3d.sh ../3D
+
       - name: Install build prereqs
         run: |
           sudo apt-get update -qq
@@ -151,11 +160,12 @@ jobs:
       # Bundler defaults: source mode, no HF cache (saves ~330 MB; Kokoro
       # downloads on first request anyway), no Piper (saves ~326 MB; Piper
       # is opt-in TTS), no dynajs sibling (not needed when OyonR
-      # standalone/vendor/dynajs is already tracked in-repo). Operators
-      # who need any of the above can rebuild with `--with-*` flags.
+      # standalone/vendor/dynajs is already tracked in-repo). The 3D package
+      # is required by package.json, so the published source bundle carries
+      # the same pinned, metadata-free package as CI and Docker.
       - name: Build air-gap source tarball
         run: |
-          bash deploy/bundle-airgap.sh --mode=source --output=dist/airgap
+          bash deploy/bundle-airgap.sh --mode=source --with-3d --output=dist/airgap
           ls -la dist/airgap/
 
       - name: Verify sha256
