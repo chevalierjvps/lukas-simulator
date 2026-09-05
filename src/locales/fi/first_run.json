@@ -4,7 +4,7 @@
   "access_intro": "Päätä, kuka näkee mitkä tapaukset, ja luo käyttäjätilit.",
   "access_saved": "Käyttöoikeusasetus tallennettu",
   "access_users_hint": "Luo opettaja- ja opiskelijatilit kohdassa Asetukset → Käyttäjät — yksitellen, joukkona tai CSV-tuonnilla. Opiskelijat voivat myös rekisteröityä itse ja liittyä kurssille luokkakoodilla.",
-  "admin_subtitle": "Tee Rohysta valmis opiskelijoillesi — kaikki tämän listan asetukset ovat myöhemminkin muokattavissa Asetuksissa.",
+  "admin_subtitle": "Tee Lukasista valmis opiskelijoillesi — kaikki tämän listan asetukset ovat myöhemminkin muokattavissa Asetuksissa.",
   "admin_title": "Alustan käyttöönotto",
   "affect_disabled": "Tunnetilan välitys pois käytöstä",
   "affect_enable": "Välitä opiskelijan havaittu tunnetila tekoälypotilaalle",
@@ -20,7 +20,7 @@
   "case_coverage": "Tapauksia kielittäin",
   "case_default_label": "Oletustapaus (varavaihtoehto)",
   "case_hint": "Hallitse kursseja ja luo uusia tapauksia myöhemmin kohdissa Asetukset → Tapaukset ja Asetukset → Kurssit.",
-  "case_intro": "Opiskelijat aloittavat suoraan potilastapauksesta. Rohy valitsee opiskelijan kieltä vastaavan tapauksen; alla oleva oletustapaus toimii varavaihtoehtona, kun vastaavuutta ei ole.",
+  "case_intro": "Opiskelijat aloittavat suoraan potilastapauksesta. Lukas valitsee opiskelijan kieltä vastaavan tapauksen; alla oleva oletustapaus toimii varavaihtoehtona, kun vastaavuutta ei ole.",
   "case_is_default": "Oletus",
   "case_none": "Ei vielä tapauksia — sisäänrakennettu esittelykurssi luodaan automaattisesti ensimmäisellä käynnistyksellä, tai voit luoda tapauksen kohdassa Asetukset → Tapaukset.",
   "case_saved": "Oletustapaus päivitetty",
@@ -28,7 +28,7 @@
   "emotion_disabled": "Tunteiden tunnistus pois käytöstä",
   "emotion_enable": "Ota tunteiden tunnistus käyttöön (Oyon)",
   "emotion_enabled": "Tunteiden tunnistus käytössä",
-  "emotion_intro": "Rohy voi havainnoida opiskelijoiden kasvojen tunneilmaisuja istuntojen aikana (Oyon). Analyysi tapahtuu selaimessa; tietojen tallentaminen vaatii lisäksi jokaisen opiskelijan suostumuksen.",
+  "emotion_intro": "Lukas voi havainnoida opiskelijoiden kasvojen tunneilmaisuja istuntojen aikana (Oyon). Analyysi tapahtuu selaimessa; tietojen tallentaminen vaatii lisäksi jokaisen opiskelijan suostumuksen.",
   "emotion_unavailable": "Oyon-lisäosa ei ole käytettävissä tällä palvelimella.",
   "finish_later": "Viimeistele myöhemmin",
   "finish_setup": "Viimeistele käyttöönotto",
@@ -87,5 +87,5 @@
   "voice_mic_ok": "Mikrofoni toimii",
   "voice_missing_defaults": "Oletusääntä ei ole asetettu kielille: {langs}. Näiden kielten potilailla ei ole vara-ääntä — aseta ne kohdassa Asetukset → Puheominaisuus.",
   "welcome_intro": "Muutama nopea valinta ennen ensimmäistä potilastasi. Kaiken voi muuttaa myöhemmin ylävalikosta.",
-  "welcome_title": "Tervetuloa Rohyyn"
+  "welcome_title": "Tervetuloa Lukasiin"
 }

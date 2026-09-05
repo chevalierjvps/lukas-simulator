@@ -4,7 +4,7 @@
   "access_intro": "Legen Sie fest, wer welche Fälle sieht, und richten Sie Ihre Benutzerkonten ein.",
   "access_saved": "Zugriffseinstellung gespeichert",
   "access_users_hint": "Erstellen Sie Lehrenden- und Studierendenkonten unter Einstellungen → Benutzer — einzeln, gesammelt oder per CSV-Import. Studierende können sich auch selbst registrieren und mit einem Kurscode beitreten.",
-  "admin_subtitle": "Machen Sie Rohy startklar für Ihre Studierenden — alles hier bleibt später in den Einstellungen änderbar.",
+  "admin_subtitle": "Machen Sie Lukas startklar für Ihre Studierenden — alles hier bleibt später in den Einstellungen änderbar.",
   "admin_title": "Plattform-Einrichtung",
   "affect_disabled": "Affekt-Weiterleitung deaktiviert",
   "affect_enable": "Beobachteten Lern-Affekt an den KI-Patienten weiterleiten",
@@ -20,7 +20,7 @@
   "case_coverage": "Fälle pro Sprache",
   "case_default_label": "Standardfall (Fallback)",
   "case_hint": "Kurse verwalten und neue Fälle erstellen Sie später unter Einstellungen → Fälle und Einstellungen → Kurse.",
-  "case_intro": "Studierende landen direkt in einem Patientenfall. Rohy wählt den Fall passend zur Sprache der Studierenden; der Standardfall unten greift, wenn keine Übereinstimmung existiert.",
+  "case_intro": "Studierende landen direkt in einem Patientenfall. Lukas wählt den Fall passend zur Sprache der Studierenden; der Standardfall unten greift, wenn keine Übereinstimmung existiert.",
   "case_is_default": "Standard",
   "case_none": "Noch keine Fälle — der mitgelieferte Demokurs wird beim ersten Start automatisch angelegt, oder Sie erstellen einen unter Einstellungen → Fälle.",
   "case_saved": "Standardfall aktualisiert",
@@ -28,7 +28,7 @@
   "emotion_disabled": "Emotionserfassung deaktiviert",
   "emotion_enable": "Emotionserfassung aktivieren (Oyon)",
   "emotion_enabled": "Emotionserfassung aktiviert",
-  "emotion_intro": "Rohy kann während der Sitzungen die Mimik der Lernenden beobachten (Oyon). Die Analyse läuft im Browser; die Speicherung erfordert zusätzlich die Einwilligung der Studierenden.",
+  "emotion_intro": "Lukas kann während der Sitzungen die Mimik der Lernenden beobachten (Oyon). Die Analyse läuft im Browser; die Speicherung erfordert zusätzlich die Einwilligung der Studierenden.",
   "emotion_unavailable": "Das Oyon-Add-on ist auf diesem Server nicht verfügbar.",
   "finish_later": "Später abschließen",
   "finish_setup": "Einrichtung abschließen",
@@ -87,5 +87,5 @@
   "voice_mic_ok": "Mikrofon funktioniert",
   "voice_missing_defaults": "Für folgende Sprachen ist keine Standardstimme gesetzt: {langs}. Patienten in diesen Sprachen haben keine Ersatzstimme — legen Sie sie unter Einstellungen → Sprachmodus fest.",
   "welcome_intro": "Ein paar kurze Fragen vor Ihrem ersten Patienten. Alles lässt sich später über das Menü ändern.",
-  "welcome_title": "Willkommen bei Rohy"
+  "welcome_title": "Willkommen bei Lukas"
 }

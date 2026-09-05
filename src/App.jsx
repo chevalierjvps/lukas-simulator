@@ -1361,14 +1361,20 @@ function MainApp() {
          />
          {user?.role && <OnboardingTour role={user.role} />}
 
-         {/* Tactical Clinical HUD & Action Wheel (Gamified HUD by Jvps) */}
-         {activeCase && sessionId && !caseEnded && (
+         {/* Tactical Clinical HUD & Action Wheel (Gamified HUD by Jvps).
+             Hidden while the 3D Bedside room (overlayPlugin) is showing:
+             that room already surfaces physical exam through its own wheel
+             and reaches Treatments/Records through the chart and IV pole,
+             so this bar collided with the room's own bottom-center controls
+             (the wheel, FindingPanel) instead of integrating with them.
+             Every other room keeps the full instant-action console. */}
+         {activeCase && sessionId && !caseEnded && !overlayPlugin && (
             <LiveTacticalHud
                sessionId={sessionId}
                fallbackVitals={activeCase?.config?.vitals || {}}
                patientName={activeCase?.config?.patient_name || activeCase?.title}
                onOpenInvestigations={() => navigateToRoom('radiology')}
-               onOpenExam={() => navigateToRoom('examination')}
+               onOpenExam={() => navigateToRoom('room3d')}
             />
          )}
 

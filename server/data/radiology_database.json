@@ -67,7 +67,10 @@
         "Degenerative disease"
       ],
       "normal_findings": "Cervical spine alignment is normal. Vertebral body heights are maintained. Disc spaces are preserved. No prevertebral soft tissue swelling. No fracture or subluxation identified. The atlantoaxial relationship is normal.",
-      "normal_interpretation": "1. Normal cervical spine alignment.\n2. No fracture or dislocation.\n3. Maintained disc spaces without significant degenerative changes."
+      "normal_interpretation": "1. Normal cervical spine alignment.\n2. No fracture or dislocation.\n3. Maintained disc spaces without significant degenerative changes.",
+      "name_es": "Radiografía de Columna Cervical",
+      "normal_findings_es": "La alineación de la columna cervical es normal. Se mantienen las alturas de los cuerpos vertebrales. Los espacios discales están conservados. No hay tumefacción de partes blandas prevertebrales. No se identifica fractura ni subluxación. La relación atlantoaxial es normal.",
+      "normal_interpretation_es": "1. Alineación normal de la columna cervical.\n2. Sin fractura ni luxación.\n3. Espacios discales conservados, sin cambios degenerativos significativos."
     },
     {
       "id": "xray_lspine",
@@ -81,7 +84,10 @@
         "Scoliosis"
       ],
       "normal_findings": "Lumbar spine alignment is maintained. Vertebral body heights are preserved. Disc spaces are maintained. No spondylolisthesis. Pedicles are intact. SI joints appear normal. No acute fracture identified.",
-      "normal_interpretation": "1. Normal lumbar spine alignment.\n2. No acute fracture or subluxation.\n3. Preserved disc heights without significant degenerative changes."
+      "normal_interpretation": "1. Normal lumbar spine alignment.\n2. No acute fracture or subluxation.\n3. Preserved disc heights without significant degenerative changes.",
+      "name_es": "Radiografía de Columna Lumbar",
+      "normal_findings_es": "Se mantiene la alineación de la columna lumbar. Se conservan las alturas de los cuerpos vertebrales. Los espacios discales están conservados. No hay espondilolistesis. Los pedículos están íntegros. Las articulaciones sacroilíacas parecen normales. No se identifica fractura aguda.",
+      "normal_interpretation_es": "1. Alineación normal de la columna lumbar.\n2. Sin fractura aguda ni subluxación.\n3. Alturas discales conservadas, sin cambios degenerativos significativos."
     },
     {
       "id": "xray_tspine",
@@ -95,7 +101,10 @@
         "Compression fracture"
       ],
       "normal_findings": "Thoracic spine alignment is normal. Vertebral body heights are maintained without compression deformity. Disc spaces are preserved. No paravertebral soft tissue abnormality. The visualized ribs are intact.",
-      "normal_interpretation": "1. Normal thoracic spine alignment.\n2. No compression fracture.\n3. No significant degenerative changes."
+      "normal_interpretation": "1. Normal thoracic spine alignment.\n2. No compression fracture.\n3. No significant degenerative changes.",
+      "name_es": "Radiografía de Columna Torácica",
+      "normal_findings_es": "La alineación de la columna torácica es normal. Se mantienen las alturas de los cuerpos vertebrales, sin deformidad en cuña. Los espacios discales están conservados. No hay alteración de partes blandas paravertebrales. Las costillas visualizadas están íntegras.",
+      "normal_interpretation_es": "1. Alineación normal de la columna torácica.\n2. Sin fractura por compresión.\n3. Sin cambios degenerativos significativos."
     },
     {
       "id": "xray_pelvis",
@@ -109,7 +118,10 @@
         "Arthritis"
       ],
       "normal_findings": "The pelvis is intact without fracture or dislocation. The hip joints are preserved bilaterally with normal joint spaces. The sacroiliac joints are unremarkable. The pubic symphysis is normal. No destructive bone lesions.",
-      "normal_interpretation": "1. No pelvic fracture or hip dislocation.\n2. Normal hip joint spaces bilaterally.\n3. No significant degenerative changes."
+      "normal_interpretation": "1. No pelvic fracture or hip dislocation.\n2. Normal hip joint spaces bilaterally.\n3. No significant degenerative changes.",
+      "name_es": "Radiografía de Pelvis",
+      "normal_findings_es": "La pelvis está íntegra, sin fractura ni luxación. Las articulaciones coxofemorales están conservadas bilateralmente, con espacios articulares normales. Las articulaciones sacroilíacas no muestran alteraciones. La sínfisis del pubis es normal. No hay lesiones óseas destructivas.",
+      "normal_interpretation_es": "1. Sin fractura pélvica ni luxación de cadera.\n2. Espacios articulares coxofemorales normales bilateralmente.\n3. Sin cambios degenerativos significativos."
     },
     {
       "id": "xray_hand",
@@ -137,7 +149,10 @@
         "Arthritis"
       ],
       "normal_findings": "The distal radius and ulna are intact. Carpal bones show normal alignment without fracture. The scaphoid appears intact. Joint spaces are preserved. No significant soft tissue swelling.",
-      "normal_interpretation": "1. No fracture of the distal radius, ulna, or carpal bones.\n2. Normal carpal alignment.\n3. Preserved joint spaces."
+      "normal_interpretation": "1. No fracture of the distal radius, ulna, or carpal bones.\n2. Normal carpal alignment.\n3. Preserved joint spaces.",
+      "name_es": "Radiografía de Muñeca",
+      "normal_findings_es": "El radio y el cúbito distales están íntegros. Los huesos del carpo muestran alineación normal, sin fractura. El escafoides parece íntegro. Los espacios articulares están conservados. No hay tumefacción significativa de partes blandas.",
+      "normal_interpretation_es": "1. Sin fractura del radio distal, el cúbito ni los huesos del carpo.\n2. Alineación carpiana normal.\n3. Espacios articulares conservados."
     },
     {
       "id": "xray_ankle",
@@ -151,7 +166,10 @@
         "Arthritis"
       ],
       "normal_findings": "The ankle mortise is intact with normal alignment. No fracture of the distal tibia, fibula, or talus. The ankle joint space is preserved. Soft tissues are unremarkable without significant swelling.",
-      "normal_interpretation": "1. No fracture or dislocation.\n2. Intact ankle mortise.\n3. Preserved joint space."
+      "normal_interpretation": "1. No fracture or dislocation.\n2. Intact ankle mortise.\n3. Preserved joint space.",
+      "name_es": "Radiografía de Tobillo",
+      "normal_findings_es": "La mortaja tibioperonea está íntegra, con alineación normal. No hay fractura de la tibia distal, el peroné ni el astrágalo. El espacio articular del tobillo está conservado. Las partes blandas no muestran alteraciones ni tumefacción significativa.",
+      "normal_interpretation_es": "1. Sin fractura ni luxación.\n2. Mortaja tibioperonea íntegra.\n3. Espacio articular conservado."
     },
     {
       "id": "xray_knee",
@@ -165,7 +183,10 @@
         "Effusion"
       ],
       "normal_findings": "No fracture or dislocation. The joint spaces are preserved. The patella is normally positioned. No significant joint effusion. No loose bodies identified. Mild degenerative changes may be age-appropriate.",
-      "normal_interpretation": "1. No acute fracture or dislocation.\n2. Preserved medial and lateral joint spaces.\n3. No significant joint effusion."
+      "normal_interpretation": "1. No acute fracture or dislocation.\n2. Preserved medial and lateral joint spaces.\n3. No significant joint effusion.",
+      "name_es": "Radiografía de Rodilla",
+      "normal_findings_es": "Sin fractura ni luxación. Los espacios articulares están conservados. La rótula está normalmente posicionada. No hay derrame articular significativo. No se identifican cuerpos libres. Pueden observarse cambios degenerativos leves acordes con la edad.",
+      "normal_interpretation_es": "1. Sin fractura ni luxación aguda.\n2. Espacios articulares medial y lateral conservados.\n3. Sin derrame articular significativo."
     },
     {
       "id": "xray_shoulder",
@@ -179,7 +200,10 @@
         "Arthritis"
       ],
       "normal_findings": "The glenohumeral joint is normally aligned. No fracture of the proximal humerus, clavicle, or scapula. The acromioclavicular joint is unremarkable. The joint space is preserved. No calcific tendinitis.",
-      "normal_interpretation": "1. No fracture or dislocation.\n2. Normal glenohumeral alignment.\n3. Intact AC joint."
+      "normal_interpretation": "1. No fracture or dislocation.\n2. Normal glenohumeral alignment.\n3. Intact AC joint.",
+      "name_es": "Radiografía de Hombro",
+      "normal_findings_es": "La articulación glenohumeral está normalmente alineada. No hay fractura del húmero proximal, la clavícula ni la escápula. La articulación acromioclavicular no muestra alteraciones. El espacio articular está conservado. No hay tendinitis calcificante.",
+      "normal_interpretation_es": "1. Sin fractura ni luxación.\n2. Alineación glenohumeral normal.\n3. Articulación acromioclavicular íntegra."
     },
     {
       "id": "xray_foot",
@@ -193,7 +217,10 @@
         "Diabetic foot"
       ],
       "normal_findings": "The osseous structures of the foot are intact without fracture or dislocation. Joint spaces are preserved. The arch is maintained. No radiopaque foreign body. Soft tissues are unremarkable.",
-      "normal_interpretation": "1. No fracture or dislocation.\n2. Normal alignment and preserved joint spaces.\n3. No foreign body identified."
+      "normal_interpretation": "1. No fracture or dislocation.\n2. Normal alignment and preserved joint spaces.\n3. No foreign body identified.",
+      "name_es": "Radiografía de Pie",
+      "normal_findings_es": "Las estructuras óseas del pie están íntegras, sin fractura ni luxación. Los espacios articulares están conservados. Se mantiene el arco plantar. No hay cuerpo extraño radiopaco. Las partes blandas no muestran alteraciones.",
+      "normal_interpretation_es": "1. Sin fractura ni luxación.\n2. Alineación normal y espacios articulares conservados.\n3. No se identifica cuerpo extraño."
     },
     {
       "id": "ct_head_noncon",
@@ -208,7 +235,10 @@
         "Rebaixamento de consciência"
       ],
       "normal_findings": "Parênquima encefálico com coeficientes de atenuação normais, com adequada diferenciação entre as substâncias branca e cinzenta. Ausência de hemorragias intra ou extra-axiais agudas. Sistema ventricular simétrico e de dimensões normais para a faixa etária. Linha média centrada, sem desvios ou herniações. Cisternas da base e sulcos corticais preservados. Calota craniana íntegra.",
-      "normal_interpretation": "1. Ausência de hemorragia intracraniana aguda ou efeito de massa expansivo.\n2. Ausência de sinais precoces de infarto territorial extenso (ASPECTS 10/10)."
+      "normal_interpretation": "1. Ausência de hemorragia intracraniana aguda ou efeito de massa expansivo.\n2. Ausência de sinais precoces de infarto territorial extenso (ASPECTS 10/10).",
+      "name_es": "Tomografía Computarizada de Cráneo (Sin Contraste)",
+      "normal_findings_es": "Parénquima encefálico con coeficientes de atenuación normales, con adecuada diferenciación entre sustancia blanca y gris. Ausencia de hemorragias intra o extraaxiales agudas. Sistema ventricular simétrico y de dimensiones normales para la edad. Línea media centrada, sin desviaciones ni herniaciones. Cisternas de la base y surcos corticales conservados. Calota craneal íntegra.",
+      "normal_interpretation_es": "1. Ausencia de hemorragia intracraneal aguda o efecto de masa expansivo.\n2. Ausencia de signos precoces de infarto territorial extenso (ASPECTS 10/10)."
     },
     {
       "id": "ct_head_con",
@@ -236,7 +266,10 @@
         "Emphysema"
       ],
       "normal_findings": "The lungs are clear without nodules, masses, or consolidation. No pleural effusion or pneumothorax. The airways are patent to the subsegmental level. The mediastinal structures are unremarkable. The heart size is normal. No pathologically enlarged lymph nodes. The visualized upper abdomen is unremarkable. Osseous structures show no suspicious lesions.",
-      "normal_interpretation": "1. Clear lungs without nodules or masses.\n2. No pleural effusion or pneumothorax.\n3. Normal mediastinal structures."
+      "normal_interpretation": "1. Clear lungs without nodules or masses.\n2. No pleural effusion or pneumothorax.\n3. Normal mediastinal structures.",
+      "name_es": "TC de Tórax (Sin Contraste)",
+      "normal_findings_es": "Los pulmones están limpios, sin nódulos, masas ni consolidación. No hay derrame pleural ni neumotórax. Las vías aéreas son permeables hasta el nivel subsegmentario. Las estructuras mediastínicas no muestran alteraciones. El tamaño cardíaco es normal. No hay adenopatías patológicas. El abdomen superior visualizado no muestra alteraciones. Las estructuras óseas no muestran lesiones sospechosas.",
+      "normal_interpretation_es": "1. Pulmones limpios sin nódulos ni masas.\n2. Sin derrame pleural ni neumotórax.\n3. Estructuras mediastínicas normales."
     },
     {
       "id": "ct_chest_con",
@@ -341,7 +374,10 @@
         "Spinal stenosis"
       ],
       "normal_findings": "Normal cervical spine alignment. No fracture or subluxation from C1 through C7-T1. The vertebral body heights and disc spaces are maintained. The spinal canal is patent. No prevertebral soft tissue swelling. The atlantoaxial and atlantooccipital joints are normal.",
-      "normal_interpretation": "1. No cervical spine fracture or subluxation.\n2. Normal alignment and spinal canal.\n3. No evidence of acute traumatic injury."
+      "normal_interpretation": "1. No cervical spine fracture or subluxation.\n2. Normal alignment and spinal canal.\n3. No evidence of acute traumatic injury.",
+      "name_es": "TC de Columna Cervical",
+      "normal_findings_es": "Alineación normal de la columna cervical. No hay fractura ni subluxación desde C1 hasta C7-T1. Se mantienen las alturas de los cuerpos vertebrales y los espacios discales. El canal espinal es permeable. No hay tumefacción de partes blandas prevertebrales. Las articulaciones atlantoaxial y atlantooccipital son normales.",
+      "normal_interpretation_es": "1. Sin fractura ni subluxación de la columna cervical.\n2. Alineación y canal espinal normales.\n3. Sin evidencia de lesión traumática aguda."
     },
     {
       "id": "ct_lspine",
@@ -371,7 +407,10 @@
         "Dementia"
       ],
       "normal_findings": "No abnormal signal or enhancement in the brain parenchyma. The ventricles and sulci are normal in size and configuration. No mass, mass effect, or midline shift. No acute infarct on diffusion-weighted imaging. No abnormal meningeal enhancement. The pituitary gland and sella are normal. The major intracranial vessels demonstrate normal flow voids. The orbits, paranasal sinuses, and mastoid air cells are unremarkable.",
-      "normal_interpretation": "1. No intracranial mass or abnormal enhancement.\n2. No acute infarct or hemorrhage.\n3. Normal ventricular system and brain parenchyma."
+      "normal_interpretation": "1. No intracranial mass or abnormal enhancement.\n2. No acute infarct or hemorrhage.\n3. Normal ventricular system and brain parenchyma.",
+      "name_es": "RM de Cerebro (Con/Sin Contraste)",
+      "normal_findings_es": "No hay señal anómala ni realce en el parénquima cerebral. Los ventrículos y surcos tienen tamaño y configuración normales. No hay masa, efecto de masa ni desviación de la línea media. No hay infarto agudo en las secuencias de difusión. No hay realce meníngeo anómalo. La glándula hipófisis y la silla turca son normales. Los principales vasos intracraneales muestran vacíos de flujo normales. Las órbitas, senos paranasales y celdillas mastoideas no muestran alteraciones.",
+      "normal_interpretation_es": "1. Sin masa intracraneal ni realce anómalo.\n2. Sin infarto agudo ni hemorragia.\n3. Sistema ventricular y parénquima cerebral normales."
     },
     {
       "id": "mri_brain_noncon",
@@ -385,7 +424,10 @@
         "TIA"
       ],
       "normal_findings": "No restricted diffusion to suggest acute infarct. No intracranial hemorrhage. The ventricles and sulci are normal in size. Gray-white matter differentiation is preserved. No mass or mass effect. The brainstem and cerebellum are normal. Flow voids are preserved in the major intracranial vessels.",
-      "normal_interpretation": "1. No acute infarct on diffusion-weighted imaging.\n2. No intracranial hemorrhage.\n3. Normal brain parenchyma."
+      "normal_interpretation": "1. No acute infarct on diffusion-weighted imaging.\n2. No intracranial hemorrhage.\n3. Normal brain parenchyma.",
+      "name_es": "RM de Cerebro (Sin Contraste)",
+      "normal_findings_es": "No hay restricción a la difusión que sugiera infarto agudo. No hay hemorragia intracraneal. Los ventrículos y surcos tienen tamaño normal. Se conserva la diferenciación entre sustancia gris y blanca. No hay masa ni efecto de masa. El tronco encefálico y el cerebelo son normales. Se conservan los vacíos de flujo en los principales vasos intracraneales.",
+      "normal_interpretation_es": "1. Sin infarto agudo en las secuencias de difusión.\n2. Sin hemorragia intracraneal.\n3. Parénquima cerebral normal."
     },
     {
       "id": "mri_cspine",
@@ -400,7 +442,10 @@
         "Spinal cord lesion"
       ],
       "normal_findings": "Normal cervical spine alignment. The cervical spinal cord demonstrates normal signal intensity without myelomalacia or cord compression. The intervertebral discs show normal signal without significant bulge or herniation. Neural foramina are patent bilaterally at all levels. No abnormal paraspinal soft tissue mass. The vertebral body marrow signal is normal.",
-      "normal_interpretation": "1. Normal cervical spinal cord without signal abnormality.\n2. No significant disc herniation or canal stenosis.\n3. Patent neural foramina bilaterally."
+      "normal_interpretation": "1. Normal cervical spinal cord without signal abnormality.\n2. No significant disc herniation or canal stenosis.\n3. Patent neural foramina bilaterally.",
+      "name_es": "RM de Columna Cervical",
+      "normal_findings_es": "Alineación normal de la columna cervical. La médula espinal cervical muestra intensidad de señal normal, sin mielomalacia ni compresión medular. Los discos intervertebrales muestran señal normal, sin abombamiento ni hernia significativos. Los forámenes neurales son permeables bilateralmente en todos los niveles. No hay masa paravertebral anómala de partes blandas. La señal de la médula ósea de los cuerpos vertebrales es normal.",
+      "normal_interpretation_es": "1. Médula espinal cervical normal, sin alteración de señal.\n2. Sin hernia discal significativa ni estenosis del canal.\n3. Forámenes neurales permeables bilateralmente."
     },
     {
       "id": "mri_tspine",
@@ -429,7 +474,10 @@
         "Spinal stenosis"
       ],
       "normal_findings": "Normal lumbar lordosis. The conus medullaris terminates at a normal level (L1-L2). The cauda equina nerve roots are normal. The intervertebral discs demonstrate normal signal and height without significant bulge or herniation. The spinal canal and neural foramina are patent at all levels. Vertebral body heights and marrow signal are maintained. No spondylolisthesis. The paraspinal musculature is normal.",
-      "normal_interpretation": "1. No disc herniation or significant degenerative changes.\n2. Patent spinal canal and neural foramina.\n3. Normal conus medullaris and cauda equina."
+      "normal_interpretation": "1. No disc herniation or significant degenerative changes.\n2. Patent spinal canal and neural foramina.\n3. Normal conus medullaris and cauda equina.",
+      "name_es": "RM de Columna Lumbar",
+      "normal_findings_es": "Lordosis lumbar normal. El cono medular termina en un nivel normal (L1-L2). Las raíces nerviosas de la cola de caballo son normales. Los discos intervertebrales muestran señal y altura normales, sin abombamiento ni hernia significativos. El canal espinal y los forámenes neurales son permeables en todos los niveles. Se mantienen las alturas de los cuerpos vertebrales y la señal medular. No hay espondilolistesis. La musculatura paravertebral es normal.",
+      "normal_interpretation_es": "1. Sin hernia discal ni cambios degenerativos significativos.\n2. Canal espinal y forámenes neurales permeables.\n3. Cono medular y cola de caballo normales."
     },
     {
       "id": "mri_abdomen",
@@ -457,7 +505,10 @@
         "Rectal cancer staging"
       ],
       "normal_findings": "The pelvic organs are unremarkable. The bladder wall is normal without mass. The prostate/uterus (as applicable) is normal in size and signal intensity without focal lesion. The rectum is normal. No pelvic lymphadenopathy. The pelvic musculature and osseous structures are unremarkable. No free fluid.",
-      "normal_interpretation": "1. Normal pelvic organs without mass or focal lesion.\n2. No pelvic lymphadenopathy.\n3. Unremarkable pelvic structures."
+      "normal_interpretation": "1. Normal pelvic organs without mass or focal lesion.\n2. No pelvic lymphadenopathy.\n3. Unremarkable pelvic structures.",
+      "name_es": "RM de Pelvis",
+      "normal_findings_es": "Los órganos pélvicos no muestran alteraciones. La pared vesical es normal, sin masa. La próstata/útero (según corresponda) tiene tamaño y señal normales, sin lesión focal. El recto es normal. No hay adenopatías pélvicas. La musculatura y las estructuras óseas pélvicas no muestran alteraciones. No hay líquido libre.",
+      "normal_interpretation_es": "1. Órganos pélvicos normales, sin masa ni lesión focal.\n2. Sin adenopatías pélvicas.\n3. Estructuras pélvicas sin alteraciones."
     },
     {
       "id": "mri_knee",
@@ -471,7 +522,10 @@
         "Ligament injury"
       ],
       "normal_findings": "The anterior cruciate ligament (ACL) is intact with normal signal and contour. The posterior cruciate ligament (PCL) is intact. The medial and lateral menisci are normal in morphology and signal without tear. The medial and lateral collateral ligaments are intact. The extensor mechanism is normal. The articular cartilage is preserved. No joint effusion. The osseous structures show no bone marrow edema or fracture.",
-      "normal_interpretation": "1. Intact ACL and PCL.\n2. Normal medial and lateral menisci without tear.\n3. No ligamentous injury or significant cartilage abnormality."
+      "normal_interpretation": "1. Intact ACL and PCL.\n2. Normal medial and lateral menisci without tear.\n3. No ligamentous injury or significant cartilage abnormality.",
+      "name_es": "RM de Rodilla",
+      "normal_findings_es": "El ligamento cruzado anterior (LCA) está íntegro, con señal y contorno normales. El ligamento cruzado posterior (LCP) está íntegro. Los meniscos medial y lateral tienen morfología y señal normales, sin rotura. Los ligamentos colaterales medial y lateral están íntegros. El mecanismo extensor es normal. El cartílago articular está conservado. No hay derrame articular. Las estructuras óseas no muestran edema medular ni fractura.",
+      "normal_interpretation_es": "1. LCA y LCP íntegros.\n2. Meniscos medial y lateral normales, sin rotura.\n3. Sin lesión ligamentaria ni alteración cartilaginosa significativa."
     },
     {
       "id": "mri_shoulder",
@@ -485,7 +539,10 @@
         "Impingement"
       ],
       "normal_findings": "The rotator cuff tendons (supraspinatus, infraspinatus, subscapularis, and teres minor) are intact without tear or tendinosis. The biceps tendon is normal in position and signal. The labrum is intact without tear. The glenohumeral joint is normally aligned. The acromioclavicular joint is unremarkable. No significant subacromial/subdeltoid bursitis. The osseous structures are normal without bone marrow edema.",
-      "normal_interpretation": "1. Intact rotator cuff without tear.\n2. Normal labrum and biceps anchor.\n3. No significant bursitis or impingement."
+      "normal_interpretation": "1. Intact rotator cuff without tear.\n2. Normal labrum and biceps anchor.\n3. No significant bursitis or impingement.",
+      "name_es": "RM de Hombro",
+      "normal_findings_es": "Los tendones del manguito rotador (supraespinoso, infraespinoso, subescapular y redondo menor) están íntegros, sin rotura ni tendinosis. El tendón del bíceps tiene posición y señal normales. El labrum está íntegro, sin rotura. La articulación glenohumeral está normalmente alineada. La articulación acromioclavicular no muestra alteraciones. No hay bursitis subacromial/subdeltoidea significativa. Las estructuras óseas son normales, sin edema medular.",
+      "normal_interpretation_es": "1. Manguito rotador íntegro, sin rotura.\n2. Labrum y anclaje del bíceps normales.\n3. Sin bursitis ni pinzamiento significativos."
     },
     {
       "id": "mra_head",
@@ -645,7 +702,10 @@
         "Infarto agudo do miocárdio"
       ],
       "normal_findings": "Ventrículo esquerdo com dimensões cavitárias e espessura parietal normais. Fração de ejeção do ventrículo esquerdo (FEVE) preservada estimada em 64% (método de Simpson biplanar). Contratilidade segmentar e global preservada, sem discinesias ou acinesias. Valvas cardíacas aórtica, mitral, tricúspide e pulmonar com abertura e fechamento normais, sem refluxos ou estênoses significativas. Átrio esquerdo e cavidades direitas normais. Pericárdio livre de derrame.",
-      "normal_interpretation": "1. Função sistólica global e segmentar do VE preservada (FEVE 64%).\n2. Ausência de alterações valvares hemodinamicamente relevantes.\n3. Pericárdio sem derrame."
+      "normal_interpretation": "1. Função sistólica global e segmentar do VE preservada (FEVE 64%).\n2. Ausência de alterações valvares hemodinamicamente relevantes.\n3. Pericárdio sem derrame.",
+      "name_es": "Ecocardiograma Transtorácico (ECO TT)",
+      "normal_findings_es": "Ventrículo izquierdo con dimensiones cavitarias y espesor parietal normales. Fracción de eyección del ventrículo izquierdo (FEVI) conservada, estimada en 64% (método de Simpson biplano). Contractilidad segmentaria y global conservada, sin discinesias ni acinesias. Válvulas cardíacas aórtica, mitral, tricúspide y pulmonar con apertura y cierre normales, sin regurgitación ni estenosis significativas. Aurícula izquierda y cavidades derechas normales. Pericardio sin derrame.",
+      "normal_interpretation_es": "1. Función sistólica global y segmentaria del VI conservada (FEVI 64%).\n2. Ausencia de alteraciones valvares hemodinámicamente relevantes.\n3. Pericardio sin derrame."
     },
     {
       "id": "echo_tee",
@@ -659,7 +719,10 @@
         "Valve surgery planning"
       ],
       "normal_findings": "The left atrium is normal in size without thrombus. The left atrial appendage is free of thrombus with normal emptying velocities. The interatrial septum is intact without patent foramen ovale or atrial septal defect on color Doppler and saline contrast study. The mitral valve is structurally normal without vegetation or significant regurgitation. The aortic valve is structurally normal without vegetation. The tricuspid valve is normal. The thoracic aorta is normal in caliber without atheroma, dissection, or aneurysm.",
-      "normal_interpretation": "1. No left atrial or left atrial appendage thrombus.\n2. No valvular vegetation.\n3. Intact interatrial septum."
+      "normal_interpretation": "1. No left atrial or left atrial appendage thrombus.\n2. No valvular vegetation.\n3. Intact interatrial septum.",
+      "name_es": "Ecocardiograma Transesofágico (ETE)",
+      "normal_findings_es": "La aurícula izquierda tiene tamaño normal, sin trombo. La orejuela izquierda está libre de trombo, con velocidades de vaciamiento normales. El tabique interauricular está íntegro, sin foramen oval permeable ni comunicación interauricular en el Doppler color ni en el estudio con contraste salino. La válvula mitral es estructuralmente normal, sin vegetaciones ni insuficiencia significativa. La válvula aórtica es estructuralmente normal, sin vegetaciones. La válvula tricúspide es normal. La aorta torácica tiene calibre normal, sin ateromas, disección ni aneurisma.",
+      "normal_interpretation_es": "1. Sin trombo en la aurícula izquierda ni en la orejuela izquierda.\n2. Sin vegetaciones valvulares.\n3. Tabique interauricular íntegro."
     },
     {
       "id": "echo_stress",
@@ -674,7 +737,10 @@
         "Pre-operative cardiac risk"
       ],
       "normal_findings": "Resting images demonstrate normal left ventricular size and systolic function. All wall segments contract normally at rest. Exercise stress test: Patient achieved target heart rate (>85% of maximum predicted heart rate). No chest pain or significant ST changes during exercise. Peak stress images demonstrate appropriate augmentation of all wall segments without new wall motion abnormalities. No inducible ischemia.",
-      "normal_interpretation": "1. Negative stress echocardiogram for inducible ischemia.\n2. Normal left ventricular function at rest and stress.\n3. Appropriate hemodynamic response to exercise."
+      "normal_interpretation": "1. Negative stress echocardiogram for inducible ischemia.\n2. Normal left ventricular function at rest and stress.\n3. Appropriate hemodynamic response to exercise.",
+      "name_es": "Ecocardiograma de Estrés (Ejercicio)",
+      "normal_findings_es": "Las imágenes en reposo muestran tamaño y función sistólica del ventrículo izquierdo normales. Todos los segmentos parietales se contraen normalmente en reposo. Prueba de esfuerzo: el paciente alcanzó la frecuencia cardíaca objetivo (>85% de la frecuencia máxima prevista). Sin dolor torácico ni cambios significativos del ST durante el ejercicio. Las imágenes de esfuerzo máximo muestran una adecuada hipercontractilidad de todos los segmentos parietales, sin nuevas alteraciones de la motilidad. Sin isquemia inducible.",
+      "normal_interpretation_es": "1. Ecocardiograma de estrés negativo para isquemia inducible.\n2. Función ventricular izquierda normal en reposo y esfuerzo.\n3. Respuesta hemodinámica adecuada al ejercicio."
     },
     {
       "id": "echo_dobutamine",
@@ -704,7 +770,10 @@
         "Viability"
       ],
       "normal_findings": "Left ventricular size is normal with normal wall thickness. Left ventricular systolic function is normal with ejection fraction of 55-65%. No regional wall motion abnormality. Right ventricular size and function are normal. The atria are normal in size. No late gadolinium enhancement to suggest myocardial scar or fibrosis. No evidence of myocardial edema on T2-weighted images. The pericardium is normal. The cardiac valves are structurally normal. No intracardiac mass or thrombus.",
-      "normal_interpretation": "1. Normal biventricular size and systolic function.\n2. No myocardial late gadolinium enhancement (no scar/fibrosis).\n3. No evidence of cardiomyopathy or myocarditis."
+      "normal_interpretation": "1. Normal biventricular size and systolic function.\n2. No myocardial late gadolinium enhancement (no scar/fibrosis).\n3. No evidence of cardiomyopathy or myocarditis.",
+      "name_es": "Resonancia Magnética Cardíaca",
+      "normal_findings_es": "El tamaño del ventrículo izquierdo es normal, con espesor parietal normal. La función sistólica del ventrículo izquierdo es normal, con fracción de eyección de 55-65%. No hay alteraciones segmentarias de la motilidad parietal. El tamaño y la función del ventrículo derecho son normales. Las aurículas tienen tamaño normal. No hay realce tardío con gadolinio que sugiera cicatriz o fibrosis miocárdica. No hay evidencia de edema miocárdico en las secuencias potenciadas en T2. El pericardio es normal. Las válvulas cardíacas son estructuralmente normales. No hay masa ni trombo intracardíaco.",
+      "normal_interpretation_es": "1. Tamaño y función sistólica biventricular normales.\n2. Sin realce tardío con gadolinio miocárdico (sin cicatriz/fibrosis).\n3. Sin evidencia de miocardiopatía o miocarditis."
     },
     {
       "id": "cardiac_mri_stress",
@@ -1062,7 +1131,10 @@
         "Breast pain"
       ],
       "normal_findings": "Bilateral mammogram performed. The breasts are composed of scattered fibroglandular densities. No suspicious masses, architectural distortion, or suspicious calcifications. No skin thickening or nipple retraction. Axillary lymph nodes are unremarkable.",
-      "normal_interpretation": "1. Negative mammogram - BI-RADS Category 1.\n2. No mammographic evidence of malignancy.\n3. Recommend routine screening."
+      "normal_interpretation": "1. Negative mammogram - BI-RADS Category 1.\n2. No mammographic evidence of malignancy.\n3. Recommend routine screening.",
+      "name_es": "Mamografía (Bilateral)",
+      "normal_findings_es": "Se realizó mamografía bilateral. Las mamas están compuestas por densidades fibroglandulares dispersas. No hay masas sospechosas, distorsión de la arquitectura ni calcificaciones sospechosas. No hay engrosamiento cutáneo ni retracción del pezón. Los ganglios axilares no muestran alteraciones.",
+      "normal_interpretation_es": "1. Mamografía negativa - Categoría BI-RADS 1.\n2. Sin evidencia mamográfica de malignidad.\n3. Se recomienda tamizaje de rutina."
     },
     {
       "id": "dexa",

@@ -1886,6 +1886,94 @@ body,
   color: #ffd9d9;
 }
 
+/* Patient bay — the avatar stage, carrying the same warm "human zone"
+   identity the composer and the transcript already use, instead of a flat
+   neutral-900 that read as a placeholder photo frame rather than a
+   monitored bed. A soft vignette (not flat black) plus a faint instrument
+   grid give it depth without competing with the face on stage. */
+.console-patient-bay {
+  background:
+    radial-gradient(ellipse 80% 65% at 50% 38%, rgba(255, 138, 92, 0.08), transparent 70%),
+    var(--console-human-bg);
+}
+.console-patient-grid {
+  background-image:
+    linear-gradient(var(--console-human-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--console-human-line) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.35;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, black 0%, transparent 75%);
+}
+.console-patient-panel {
+  background: var(--console-human-panel);
+  border: 1px solid var(--console-human-line);
+}
+.console-patient-live {
+  background: var(--console-human-panel-2);
+  border: 1px solid var(--console-human-line);
+  backdrop-filter: blur(6px);
+}
+.console-patient-live-dot {
+  width: 7px; height: 7px; border-radius: 999px; flex-shrink: 0;
+  background: var(--console-human-accent);
+  box-shadow: 0 0 6px 1px rgba(255, 138, 92, 0.6);
+  animation: console-mic-pulse 1s ease-in-out infinite;
+}
+.console-patient-caption {
+  background: rgba(18, 13, 10, 0.72);
+  border: 1px solid var(--console-human-line);
+  backdrop-filter: blur(6px);
+}
+
+/* Transcript bay — the chat column, built out of the same instrument
+   bezel the monitor column is: a near-black body (not a plain neutral-900
+   web panel), a header that is a device bezel rather than a browser tab
+   strip, and the same faint channel grid the patient bay carries. The
+   "human" warm accent still runs through it (bubbles, the live dot, the
+   mic CTA) — this is the SAME device as the monitor, reading a different
+   channel, not a second app bolted on beside it. */
+.console-transcript-bay {
+  background: var(--console-human-bg);
+  position: relative;
+}
+.console-transcript-bay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--console-human-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--console-human-line) 1px, transparent 1px);
+  background-size: 26px 26px;
+  opacity: 0.2;
+}
+.console-transcript-header {
+  background: var(--console-human-panel);
+  border-bottom: 1px solid var(--console-human-line);
+  position: relative;
+  z-index: 1;
+}
+/* One control, two states — mirrors the monitor's own round icon buttons
+   (bg-neutral-800 at rest, a tinted fill when the state it toggles is
+   "on"), so Ocultar/Voz activada read as instrument controls instead of
+   the web's default pill buttons. */
+.console-instrument-btn {
+  border-radius: 8px;
+  background: var(--console-human-panel-2);
+  border: 1px solid var(--console-human-line);
+  color: var(--console-human-muted);
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.console-instrument-btn:hover:not(:disabled) {
+  border-color: var(--console-human-accent);
+  color: var(--console-human-text);
+}
+.console-instrument-btn.is-live {
+  background: var(--console-human-accent);
+  border-color: var(--console-human-accent);
+  color: #1a0f08;
+}
+
 /* HUD hotkeys — a control console, not a row of generic pills. Each key
    reads as a physical button: bezel gradient, inset highlight, a keycap
    number badge — one component, reused for all six, replacing what were

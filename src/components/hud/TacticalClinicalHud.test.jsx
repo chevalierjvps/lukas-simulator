@@ -4,7 +4,7 @@
 // VFib. ACLS: unsynchronized shock is only indicated for VF or pulseless VT.
 
 import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '../../../tests/utils/renderWithProviders.jsx';
@@ -25,10 +25,13 @@ vi.mock('../../services/clinicalAudioSynthesizer', () => ({
 
 import { TacticalClinicalHud } from './TacticalClinicalHud.jsx';
 
+// tests/setup.js sets the global i18n instance to 'en' before every test,
+// so the HUD's now-translated (previously hardcoded-Portuguese) strings
+// render in English here — these assertions are pinned to src/locales/en/hud.json.
 async function chargeAndDeliver(user) {
     await user.keyboard('4'); // open the defib menu (hotkey 4)
-    await user.click(await screen.findByText(/Carregar 200J Bifásico/i));
-    await user.click(await screen.findByText(/DISPARAR CHOQUE/i, {}, { timeout: 4000 }));
+    await user.click(await screen.findByText(/Charge 200J Biphasic/i));
+    await user.click(await screen.findByText(/DELIVER SHOCK/i, {}, { timeout: 4000 }));
 }
 
 beforeEach(() => {
@@ -49,7 +52,7 @@ describe('TacticalClinicalHud — defibrillator only "works" on a shockable rhyt
         // Defibrillation has no `case_treatments`/`treatment_effects` row —
         // it's not prescribed-then-administered like a drug — so it stays a
         // direct client-side action and never calls apiPost.
-        expect(await screen.findByText(/Ordem Executada!/i)).toBeTruthy();
+        expect(await screen.findByText(/Order Executed!/i)).toBeTruthy();
         expect(apiPost).not.toHaveBeenCalled();
     });
 
@@ -61,7 +64,7 @@ describe('TacticalClinicalHud — defibrillator only "works" on a shockable rhyt
 
         await chargeAndDeliver(user);
 
-        expect(await screen.findByText(/Ordem Executada!/i)).toBeTruthy();
+        expect(await screen.findByText(/Order Executed!/i)).toBeTruthy();
         expect(apiPost).not.toHaveBeenCalled();
     });
 
@@ -73,8 +76,8 @@ describe('TacticalClinicalHud — defibrillator only "works" on a shockable rhyt
 
         await chargeAndDeliver(user);
 
-        expect(screen.queryByText(/Ordem Executada!/i)).toBeNull();
-        expect(await screen.findByText(/Choque sem indicação/i)).toBeTruthy();
+        expect(screen.queryByText(/Order Executed!/i)).toBeNull();
+        expect(await screen.findByText(/Shock without indication/i)).toBeTruthy();
         expect(apiPost).not.toHaveBeenCalled();
     });
 
@@ -86,7 +89,7 @@ describe('TacticalClinicalHud — defibrillator only "works" on a shockable rhyt
 
         await chargeAndDeliver(user);
 
-        expect(await screen.findByText(/Choque sem indicação/i)).toBeTruthy();
+        expect(await screen.findByText(/Shock without indication/i)).toBeTruthy();
     });
 
     it('the physical discharge still fires regardless of rhythm — a manual defibrillator does not refuse to shock', async () => {
@@ -104,11 +107,14 @@ describe('TacticalClinicalHud — defibrillator only "works" on a shockable rhyt
 // Regression lock: the HUD's drug/fluid/O2 hotkeys posted to
 // `/sessions/:id/orders` (plural) — a path the server never registered (only
 // the singular `/order`, for lab/investigation IDs) — so every quick order
-// 404ed silently while still showing "Ordem Executada!". This locks the fix:
+// 404ed silently while still showing "Order Executed!". This locks the fix:
 // the hotkeys go through the same order-treatment → administer pair
-// TreatmentPanel.jsx uses.
+// TreatmentPanel.jsx uses. `treatment_name` stays the exact catalogue
+// identifier ('Morfina', not the translated display text) — the display
+// label is what's translated, not the wire value matched against
+// treatment_effects.json.
 describe('TacticalClinicalHud — quick orders use the real Tratamentos pipeline', () => {
-    it('prescribes then administers Morfina via order-treatment + administer, not the old /orders path', async () => {
+    it('prescribes then administers Morphine via order-treatment + administer, not the old /orders path', async () => {
         apiPost.mockImplementation((path) => (
             path.endsWith('/order-treatment') ? Promise.resolve({ order_id: 42 }) : Promise.resolve({})
         ));
@@ -116,9 +122,9 @@ describe('TacticalClinicalHud — quick orders use the real Tratamentos pipeline
         renderWithProviders(<TacticalClinicalHud sessionId="sess-1" vitals={{ hr: 90 }} />);
 
         await user.keyboard('3'); // open the meds menu (hotkey 3)
-        await user.click(await screen.findByText(/Morfina 4 mg IV/i));
+        await user.click(await screen.findByText(/Morphine 4 mg IV/i));
 
-        await screen.findByText(/Ordem Executada!/i);
+        await screen.findByText(/Order Executed!/i);
         expect(apiPost).toHaveBeenCalledWith('/sessions/sess-1/order-treatment', expect.objectContaining({
             treatment_type: 'medication', treatment_name: 'Morfina', route: 'IV', dose: '4 mg', urgency: 'stat',
         }));
@@ -135,10 +141,10 @@ describe('TacticalClinicalHud — quick orders use the real Tratamentos pipeline
         renderWithProviders(<TacticalClinicalHud sessionId="sess-1" vitals={{ hr: 90 }} />);
 
         await user.keyboard('3');
-        await user.click(await screen.findByText(/Morfina 4 mg IV/i));
+        await user.click(await screen.findByText(/Morphine 4 mg IV/i));
 
-        expect(await screen.findByText(/Contraindicado neste caso/i)).toBeTruthy();
-        expect(screen.queryByText(/Ordem Executada!/i)).toBeNull();
+        expect(await screen.findByText(/Contraindicated in this case/i)).toBeTruthy();
+        expect(screen.queryByText(/Order Executed!/i)).toBeNull();
     });
 });
 
@@ -146,11 +152,11 @@ describe('TacticalClinicalHud — quick orders use the real Tratamentos pipeline
 // ('investigations'), a room key nothing in App.jsx's ROOM_KEYS recognized —
 // clicking it silently did nothing. Ausculta opened a local mini-menu that
 // only played a synthesized demo tone, with no link at all to the real
-// per-region auscultation in Exame Físico. Both now call the room-navigation
-// callbacks the app actually wires to valid rooms ('radiology'/'examination'
-// in App.jsx), so this test only needs to confirm the HUD calls the callback
-// — which room it resolves to is App.jsx's concern, already covered by it
-// passing valid ROOM_KEYS values into these props.
+// per-region auscultation. Both now call the room-navigation callbacks the
+// app actually wires to valid rooms ('radiology'/'room3d' in App.jsx — the
+// old 'examination' 2D room Ausculta used to open no longer exists, the 3D
+// Bedside room replaces it), so this test only needs to confirm the HUD
+// calls the callback — which room it resolves to is App.jsx's concern.
 describe('TacticalClinicalHud — Exames and Ausculta navigate instead of no-op / demo sound', () => {
     it('Exames calls onOpenInvestigations, not a dead local menu', async () => {
         const onOpenInvestigations = vi.fn();
@@ -159,7 +165,7 @@ describe('TacticalClinicalHud — Exames and Ausculta navigate instead of no-op 
             <TacticalClinicalHud sessionId="sess-1" vitals={{ hr: 90 }} onOpenInvestigations={onOpenInvestigations} />
         );
 
-        await user.click(screen.getByTitle(/Exames & Imagem/i));
+        await user.click(screen.getByTitle(/Exams & Imaging/i));
 
         expect(onOpenInvestigations).toHaveBeenCalledTimes(1);
     });
@@ -171,7 +177,7 @@ describe('TacticalClinicalHud — Exames and Ausculta navigate instead of no-op 
             <TacticalClinicalHud sessionId="sess-1" vitals={{ hr: 90 }} onOpenExam={onOpenExam} />
         );
 
-        await user.click(screen.getByTitle(/Ausculta — abrir Exame Físico/i));
+        await user.click(screen.getByTitle(/Auscultation — open the 3D Room/i));
         expect(onOpenExam).toHaveBeenCalledTimes(1);
 
         await user.keyboard('5');

@@ -1447,9 +1447,16 @@ router.put('/sessions/:sessionId/labs/:labId', authenticateToken, requireEducato
 
 // --- RADIOLOGY ORDERING ENDPOINTS ---
 
-// GET /api/radiology-database - Get master radiology database for case designer
+// GET /api/radiology-database - Get master radiology database for case
+// designer AND for the Reference Library's read-only student-facing browse
+// (ReferenceLibraryRoom.jsx). The two callers want different defaults —
+// authoring wants the raw English source of truth to curate against,
+// students want their own UI language — so `lang` is opt-in: omit it (the
+// case designer never sends it) and studies come back exactly as authored;
+// pass it (the Reference Library sends its i18n language) and studies are
+// localized the same way `localizeStudy` does for a session's language.
 router.get('/radiology-database', authenticateToken, (req, res) => {
-    const { search, modality } = req.query;
+    const { search, modality, lang } = req.query;
 
     let filtered = radiologyDatabase;
 
@@ -1475,7 +1482,7 @@ router.get('/radiology-database', authenticateToken, (req, res) => {
     const modalities = [...new Set(radiologyDatabase.map(s => s.modality))].sort();
 
     res.json({
-        studies: filtered,
+        studies: lang ? filtered.map(s => localizeStudy(s, lang)) : filtered,
         modalities,
         total: filtered.length,
         totalAvailable: radiologyDatabase.length
@@ -1486,11 +1493,14 @@ router.get('/radiology-database', authenticateToken, (req, res) => {
 // truth, with a growing set of studies additionally carrying `name_es`/
 // `normal_findings_es`/`normal_interpretation_es` fields (additive — never
 // overwrites the English original, unlike the destructive prior translation
-// pass). This resolves a study to the CASE's language, falling back to
-// English for any study/field not yet translated so nothing ever renders
-// blank. `lang` is the case's language (case_language), never the student's
-// UI chrome language — see the same distinction fixed for exam findings in
-// examRegions.js.
+// pass). This resolves a study to `lang`, falling back to English for any
+// study/field not yet translated so nothing ever renders blank. Two callers,
+// two meanings of `lang`: `/sessions/:id/available-radiology` passes the
+// CASE's language (case_language, same distinction as exam findings in
+// examRegions.js), because that catalogue's content is part of a specific
+// patient's chart; `/radiology-database` passes the student's own UI
+// language when called from the Reference Library, because that catalogue
+// is browsed independent of any case.
 function localizeStudy(study, lang) {
     if (!study || !lang?.startsWith('es')) return study;
     return {

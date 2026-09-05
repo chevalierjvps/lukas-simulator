@@ -242,9 +242,62 @@ const ALARM_SEVERITY_RANK = {
 
 // Ambient reactive lines the patient blurts out when a clinical alarm fires
 // (independent of the LLM chat turn) — was hardcoded English regardless of
-// case language, so a pt-BR case's patient spoke English mid-scenario. Every
-// case in this build is authored pt/es (see server/seedLanguageCases.js);
-// 'en' stays as the literal fallback for the one English-authored case.
+// case language, so a pt-BR case's patient spoke English mid-scenario, and
+// later an es case did too (this map had no 'es' branch at all, so it fell
+// through to the English one). Every case in this build is authored pt/es
+// (see server/seedLanguageCases.js); 'en' stays as the literal fallback for
+// the one English-authored case.
+const ALARM_SPEECH_LINES = {
+    pt: {
+        hr_high: { critical: 'Meu coração está disparado, estou muito pior.', normal: 'Meu coração parece estar acelerado.' },
+        hr_low: { critical: 'Estou me sentindo muito fraco e tonto.', normal: 'Estou me sentindo fraco e um pouco tonto.' },
+        spo2_low: { critical: 'Estou muito mais sem ar.', normal: 'Estou ficando mais sem ar.' },
+        bpSys_low: { critical: 'Sinto que vou desmaiar.', normal: 'Estou tonto, com a cabeça leve.' },
+        bpDia_low: { critical: 'Sinto que vou desmaiar.', normal: 'Estou tonto, com a cabeça leve.' },
+        bpSys_high: { critical: 'Minha cabeça está latejando, estou pior.', normal: 'Minha cabeça está começando a latejar.' },
+        bpDia_high: { critical: 'Minha cabeça está latejando, estou pior.', normal: 'Minha cabeça está começando a latejar.' },
+        rr_high: { critical: 'Não consigo respirar direito.', normal: 'Está ficando mais difícil respirar.' },
+        rr_low: { critical: 'Estou muito sonolento e com dificuldade pra respirar.', normal: 'Estou incomumente sonolento.' },
+        temp_high: { critical: 'Sinto que estou pegando fogo.', normal: 'Estou com calor, me sentindo mal.' },
+        temp_low: { critical: 'Estou tremendo, com muito frio.', normal: 'Estou com frio e tremendo.' },
+        etco2_high: { critical: 'Estou sonolento e sem ar.', normal: 'Estou mais sonolento.' },
+        etco2_low: { critical: 'Estou tonto e sem ar.', normal: 'Estou tonto.' },
+        fallback: { critical: 'Algo está muito errado. Estou pior.', normal: 'Estou começando a me sentir pior.' },
+    },
+    es: {
+        hr_high: { critical: 'Mi corazón va muy rápido, me siento mucho peor.', normal: 'Siento que mi corazón está acelerado.' },
+        hr_low: { critical: 'Me siento muy débil y mareado.', normal: 'Me siento débil y un poco mareado.' },
+        spo2_low: { critical: 'Me falta mucho más el aire.', normal: 'Cada vez me falta más el aire.' },
+        bpSys_low: { critical: 'Siento que me voy a desmayar.', normal: 'Estoy mareado, con la cabeza liviana.' },
+        bpDia_low: { critical: 'Siento que me voy a desmayar.', normal: 'Estoy mareado, con la cabeza liviana.' },
+        bpSys_high: { critical: 'Me duele mucho la cabeza, me siento peor.', normal: 'Me está empezando a doler la cabeza.' },
+        bpDia_high: { critical: 'Me duele mucho la cabeza, me siento peor.', normal: 'Me está empezando a doler la cabeza.' },
+        rr_high: { critical: 'No puedo respirar bien.', normal: 'Cada vez me cuesta más respirar.' },
+        rr_low: { critical: 'Estoy muy adormecido y me cuesta respirar.', normal: 'Estoy inusualmente somnoliento.' },
+        temp_high: { critical: 'Siento que me quemo.', normal: 'Tengo calor, me siento mal.' },
+        temp_low: { critical: 'Estoy temblando, tengo mucho frío.', normal: 'Tengo frío y estoy temblando.' },
+        etco2_high: { critical: 'Estoy somnoliento y sin aire.', normal: 'Estoy más somnoliento.' },
+        etco2_low: { critical: 'Estoy mareado y sin aire.', normal: 'Estoy mareado.' },
+        fallback: { critical: 'Algo anda muy mal. Me siento peor.', normal: 'Estoy empezando a sentirme peor.' },
+    },
+    en: {
+        hr_high: { critical: 'My heart is racing and I feel much worse.', normal: 'My heart feels like it is racing.' },
+        hr_low: { critical: 'I feel very weak and lightheaded.', normal: 'I feel weak and a little lightheaded.' },
+        spo2_low: { critical: 'I feel much more short of breath.', normal: 'I am getting more short of breath.' },
+        bpSys_low: { critical: 'I feel like I might pass out.', normal: 'I feel dizzy and lightheaded.' },
+        bpDia_low: { critical: 'I feel like I might pass out.', normal: 'I feel dizzy and lightheaded.' },
+        bpSys_high: { critical: 'My head is pounding and I feel worse.', normal: 'My head is starting to pound.' },
+        bpDia_high: { critical: 'My head is pounding and I feel worse.', normal: 'My head is starting to pound.' },
+        rr_high: { critical: 'I cannot catch my breath.', normal: 'It is getting harder to breathe.' },
+        rr_low: { critical: 'I feel very drowsy and it is hard to breathe.', normal: 'I feel unusually drowsy.' },
+        temp_high: { critical: 'I feel like I am burning up.', normal: 'I feel hot and unwell.' },
+        temp_low: { critical: 'I am shivering and feel very cold.', normal: 'I feel cold and shaky.' },
+        etco2_high: { critical: 'I feel drowsy and short of breath.', normal: 'I feel more drowsy.' },
+        etco2_low: { critical: 'I feel lightheaded and short of breath.', normal: 'I feel lightheaded.' },
+        fallback: { critical: 'Something feels really wrong. I feel worse.', normal: 'I am starting to feel worse.' },
+    },
+};
+
 function alarmSpeechLine(notification, lang = 'en') {
     if (notification?.source !== SOURCES.CLINICAL) return null;
     if (!notification.key?.startsWith('alarm:')) return null;
@@ -255,41 +308,12 @@ function alarmSpeechLine(notification, lang = 'en') {
     const vital = data.vital || key.split('_')[0];
     const kind = data.thresholdType || key.split('_').slice(1).join('_');
     const critical = notification.severity === SEVERITY.CRITICAL;
-    const isPt = lang === 'pt';
-
-    const lines = isPt ? {
-        hr_high: critical ? 'Meu coração está disparado, estou muito pior.' : 'Meu coração parece estar acelerado.',
-        hr_low: critical ? 'Estou me sentindo muito fraco e tonto.' : 'Estou me sentindo fraco e um pouco tonto.',
-        spo2_low: critical ? 'Estou muito mais sem ar.' : 'Estou ficando mais sem ar.',
-        bpSys_low: critical ? 'Sinto que vou desmaiar.' : 'Estou tonto, com a cabeça leve.',
-        bpDia_low: critical ? 'Sinto que vou desmaiar.' : 'Estou tonto, com a cabeça leve.',
-        bpSys_high: critical ? 'Minha cabeça está latejando, estou pior.' : 'Minha cabeça está começando a latejar.',
-        bpDia_high: critical ? 'Minha cabeça está latejando, estou pior.' : 'Minha cabeça está começando a latejar.',
-        rr_high: critical ? 'Não consigo respirar direito.' : 'Está ficando mais difícil respirar.',
-        rr_low: critical ? 'Estou muito sonolento e com dificuldade pra respirar.' : 'Estou incomumente sonolento.',
-        temp_high: critical ? 'Sinto que estou pegando fogo.' : 'Estou com calor, me sentindo mal.',
-        temp_low: critical ? 'Estou tremendo, com muito frio.' : 'Estou com frio e tremendo.',
-        etco2_high: critical ? 'Estou sonolento e sem ar.' : 'Estou mais sonolento.',
-        etco2_low: critical ? 'Estou tonto e sem ar.' : 'Estou tonto.',
-    } : {
-        hr_high: critical ? 'My heart is racing and I feel much worse.' : 'My heart feels like it is racing.',
-        hr_low: critical ? 'I feel very weak and lightheaded.' : 'I feel weak and a little lightheaded.',
-        spo2_low: critical ? 'I feel much more short of breath.' : 'I am getting more short of breath.',
-        bpSys_low: critical ? 'I feel like I might pass out.' : 'I feel dizzy and lightheaded.',
-        bpDia_low: critical ? 'I feel like I might pass out.' : 'I feel dizzy and lightheaded.',
-        bpSys_high: critical ? 'My head is pounding and I feel worse.' : 'My head is starting to pound.',
-        bpDia_high: critical ? 'My head is pounding and I feel worse.' : 'My head is starting to pound.',
-        rr_high: critical ? 'I cannot catch my breath.' : 'It is getting harder to breathe.',
-        rr_low: critical ? 'I feel very drowsy and it is hard to breathe.' : 'I feel unusually drowsy.',
-        temp_high: critical ? 'I feel like I am burning up.' : 'I feel hot and unwell.',
-        temp_low: critical ? 'I am shivering and feel very cold.' : 'I feel cold and shaky.',
-        etco2_high: critical ? 'I feel drowsy and short of breath.' : 'I feel more drowsy.',
-        etco2_low: critical ? 'I feel lightheaded and short of breath.' : 'I feel lightheaded.',
-    };
-
-    return lines[`${vital}_${kind}`] || (critical
-        ? (isPt ? 'Algo está muito errado. Estou pior.' : 'Something feels really wrong. I feel worse.')
-        : (isPt ? 'Estou começando a me sentir pior.' : 'I am starting to feel worse.'));
+    // `lang` carries the case's own language code (e.g. 'es', 'pt-BR'), not
+    // necessarily one of the exact keys above — match by its base language.
+    const base = String(lang || 'en').slice(0, 2).toLowerCase();
+    const lines = ALARM_SPEECH_LINES[base] || ALARM_SPEECH_LINES.en;
+    const entry = lines[`${vital}_${kind}`] || lines.fallback;
+    return critical ? entry.critical : entry.normal;
 }
 
 function isAvatarAlarmSpeechForceOff() {
@@ -2020,10 +2044,15 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
     const sttSupported = VoiceService.isSttSupported();
 
     return (
-        <div className="flex flex-col h-full bg-neutral-900 text-white font-sans border-t border-neutral-800">
-            {/* Tab Bar */}
-            <div className="flex items-end gap-1 px-2 pt-2 bg-neutral-950 border-b border-neutral-800">
-                {renderTab('patient', patientName, <Bot className="w-4 h-4 text-emerald-400" />)}
+        <div className="console-transcript-bay flex flex-col h-full text-white font-sans">
+            {/* Instrument header — a bezel, not a browser tab strip: the
+                same chip+icon-button language the monitor's own header uses
+                (VersionBadge chip on the left, round icon buttons on the
+                right), carried onto this panel so the two halves of the
+                session read as one device instead of an app window bolted
+                onto an instrument. */}
+            <div className="console-transcript-header flex items-end gap-1 px-3 pt-2.5 pb-2 shrink-0">
+                {renderTab('patient', patientName, <Bot className="w-4 h-4" style={{ color: 'var(--console-human-accent)' }} />)}
                 {/* Bug 10 (16.5.2026): patient already has its own tab
                     above — visibleAgentTabs() drops agent_type==='patient'
                     so the seeded "Default Patient" isn't a duplicate tab. */}
@@ -2042,7 +2071,7 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                             <button
                                 onClick={() => setShowTranscript(s => !s)}
                                 title={showTranscript ? t('hide_transcript_title') : t('show_transcript_title')}
-                                className="px-2.5 py-1.5 rounded text-xs font-bold flex items-center gap-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition-colors"
+                                className="console-instrument-btn px-2.5 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-colors"
                             >
                                 {showTranscript
                                     ? <><EyeOff className="w-3.5 h-3.5" /> {t('hide')}</>
@@ -2066,10 +2095,10 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                                 }
                             }}
                             title={voiceMode ? t('switch_to_text_mode') : t('switch_to_voice_mode')}
-                            className={`px-3 py-1.5 rounded text-xs font-bold flex items-center gap-1.5 transition-colors ${
+                            className={`px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 transition-colors ${
                                 voiceMode
-                                    ? 'rohy-voice-primary'
-                                    : 'bg-neutral-800 hover:bg-neutral-700 text-neutral-300'
+                                    ? 'console-instrument-btn is-live'
+                                    : 'console-instrument-btn'
                             }`}
                         >
                             {voiceMode ? <Volume2 className="w-3.5 h-3.5" /> : <Mic className="w-3.5 h-3.5" />}
@@ -2224,7 +2253,7 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                             <div className="flex flex-col items-center gap-1 shrink-0">
                                 <div className={`w-9 h-9 rounded-full flex items-center justify-center border overflow-hidden ${
                                     activeTab === 'patient'
-                                        ? 'bg-neutral-800 border-neutral-700'
+                                        ? 'bg-[var(--console-human-panel-2)] border-[var(--console-human-line)]'
                                         : currentAgent?.agent_type === 'nurse' ? 'bg-blue-900/30 border-blue-700'
                                         : currentAgent?.agent_type === 'consultant' ? 'bg-green-900/30 border-green-700'
                                         : currentAgent?.agent_type === 'relative' ? 'bg-amber-900/30 border-amber-700'
@@ -2234,13 +2263,13 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                                         patientAvatar ? (
                                             <img src={baseUrl(patientAvatar)} alt={patientName} className="w-full h-full object-cover" />
                                         ) : (
-                                            <Bot className="w-5 h-5 text-emerald-400" />
+                                            <Bot className="w-5 h-5 text-[var(--console-human-accent)]" />
                                         )
                                     ) : (
                                         getAgentIcon(currentAgent?.agent_type)
                                     )}
                                 </div>
-                                <span className="text-[10px] text-neutral-500 max-w-[60px] truncate">
+                                <span className={`text-[10px] max-w-[60px] truncate ${activeTab === 'patient' ? 'text-[var(--console-human-muted)]' : 'text-neutral-500'}`}>
                                     {activeTab === 'patient' ? t('patient_label') : agentShortName(currentAgent?.name)}
                                 </span>
                             </div>

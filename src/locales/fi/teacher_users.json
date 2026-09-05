@@ -117,7 +117,7 @@
   "invite_copy_failed": "Kopiointi epäonnistui — selain esti sen. Valitse teksti ja kopioi käsin.",
   "invite_copy_link": "Kopioi linkki",
   "invite_create": "Luo kutsu",
-  "invite_created_help": "Lähetä linkki tai lue koodi ääneen. Rohy ei lähetä sähköpostia — jakaminen jää sinulle.",
+  "invite_created_help": "Lähetä linkki tai lue koodi ääneen. Lukas ei lähetä sähköpostia — jakaminen jää sinulle.",
   "invite_created_title": "Kutsu on valmis jaettavaksi",
   "invite_creating": "Luodaan…",
   "invite_done": "Valmis",

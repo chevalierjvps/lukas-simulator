@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, Search, X, ImageOff } from 'lucide-react';
 import { createHostAssetService } from '../hostAssetService.js';
 import { SlideAssetCard } from '../../components/pathology/SlideAssetCard.jsx';
 import { SlideCanvas } from '../../components/pathology/SlideCanvas.jsx';
 import { materializeSlideAsset } from '../../components/pathology/assetCatalog.js';
 import { apiFetch } from '../../services/apiClient';
+import { fetchArchive } from '../pacs/hostArchive.js';
+import { createHostSeriesLoader } from '../pacs/hostSeriesLoader.js';
+import { readArchive } from '../../components/pacs/archive.js';
+import { resolveRemoteRefs } from '../context.js';
+import { PacsScreen } from '../../components/pacs/PacsScreen.jsx';
 
 const pathologyAssetService = createHostAssetService({ pluginId: 'pathology' });
+const PACS_PLUGIN_ID = 'pacs';
+const pacsLoadSeries = createHostSeriesLoader({ pluginId: PACS_PLUGIN_ID });
 
 /**
  * Read-only study room: the platform's pathology slide catalogue and
@@ -74,6 +82,7 @@ export function ReferenceLibraryRoom({ caseTitle, topBarControls = null, roomNav
 }
 
 function PathologyLibraryTab() {
+    const { t } = useTranslation('reference_library');
     const [assets, setAssets] = useState(null);
     const [error, setError] = useState(null);
     const [openAsset, setOpenAsset] = useState(null);
@@ -82,15 +91,15 @@ function PathologyLibraryTab() {
         let cancelled = false;
         pathologyAssetService.list()
             .then((result) => { if (!cancelled) setAssets(result.assets ?? []); })
-            .catch((err) => { if (!cancelled) setError(err?.message ?? 'Failed to load'); });
+            .catch((err) => { if (!cancelled) setError(err?.message ?? t('failed_to_load')); });
         return () => { cancelled = true; };
-    }, []);
+    }, [t]);
 
     const slide = useMemo(() => (openAsset ? materializeSlideAsset({}, openAsset) : null), [openAsset]);
 
     if (error) return <EmptyState message={error} />;
-    if (assets === null) return <EmptyState message="Loading…" />;
-    if (assets.length === 0) return <EmptyState message="No slides in the library yet." />;
+    if (assets === null) return <EmptyState message={t('loading')} />;
+    if (assets.length === 0) return <EmptyState message={t('no_slides_yet')} />;
 
     return (
         <>
@@ -109,18 +118,50 @@ function PathologyLibraryTab() {
 }
 
 function RadiologyLibraryTab() {
+    // 'reference_library' owns this tab's own chrome text; 'investigations'
+    // is reused for "Interpretation" — the exact same word/concept the real
+    // Radiología room's report viewer already uses, not a second one that
+    // could drift from it.
+    const { t, i18n } = useTranslation('reference_library');
+    const { t: tInv } = useTranslation('investigations');
     const [studies, setStudies] = useState(null);
     const [error, setError] = useState(null);
     const [query, setQuery] = useState('');
     const [openStudy, setOpenStudy] = useState(null);
+    // The archive of REAL bundled imaging (server/plugin-content/pacs), the
+    // same one the case-authoring PACS editor previews from and a session's
+    // Radiología > Imágenes tab opens ordered studies against. Not every one
+    // of the 74 catalogue studies has a real scan behind it yet — this map
+    // is how a card knows whether to open the actual DICOM reader or the
+    // text-only normal report.
+    const [archiveByStudyId, setArchiveByStudyId] = useState(new Map());
 
     useEffect(() => {
         let cancelled = false;
-        apiFetch('/radiology-database')
+        // `lang` opts this (student-facing, case-independent) browse into
+        // localization — the case-authoring tool that owns this same
+        // endpoint never sends it, and keeps getting the raw English source.
+        apiFetch(`/radiology-database?lang=${encodeURIComponent(i18n.language)}`)
             .then((data) => { if (!cancelled) setStudies(data?.studies ?? []); })
-            .catch((err) => { if (!cancelled) setError(err?.message ?? 'Failed to load'); });
+            .catch((err) => { if (!cancelled) setError(err?.message ?? t('failed_to_load')); });
+        fetchArchive({ pluginId: PACS_PLUGIN_ID }).then(({ archive }) => {
+            if (cancelled) return;
+            const byStudyId = new Map();
+            readArchive(archive).entries.forEach((entry) => {
+                // First entry wins: a few studyIds carry more than one archive
+                // preparation (e.g. mri_pelvis has both a CT and an MR of the
+                // same region) — the catalogue card names one study, so it
+                // opens one reader, not a picker between near-duplicates.
+                if (entry.studyId && !byStudyId.has(entry.studyId)) byStudyId.set(entry.studyId, entry);
+            });
+            setArchiveByStudyId(byStudyId);
+        });
+        // No catch: an archive that fails to load (no imaging origin
+        // configured) just means every card falls back to its text report —
+        // exactly like the case-authoring editor's own "no imaging yet"
+        // degradation, never a broken library.
         return () => { cancelled = true; };
-    }, []);
+    }, [i18n.language, t]);
 
     const filtered = useMemo(() => {
         if (!studies) return [];
@@ -132,8 +173,13 @@ function RadiologyLibraryTab() {
             s.body_region?.toLowerCase().includes(q));
     }, [studies, query]);
 
+    const imagingEntry = openStudy ? archiveByStudyId.get(openStudy.id) : null;
+    const worklist = useMemo(() => (
+        imagingEntry ? [worklistRowFromArchiveEntry(imagingEntry)] : []
+    ), [imagingEntry]);
+
     if (error) return <EmptyState message={error} />;
-    if (studies === null) return <EmptyState message="Loading…" />;
+    if (studies === null) return <EmptyState message={t('loading')} />;
 
     return (
         <div className="p-6">
@@ -142,7 +188,7 @@ function RadiologyLibraryTab() {
                 <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Buscar estudio, modalidad, región…"
+                    placeholder={t('search_placeholder')}
                     className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
                 />
             </div>
@@ -156,21 +202,31 @@ function RadiologyLibraryTab() {
                     >
                         <h3 className="text-sm font-semibold text-slate-100">{study.name}</h3>
                         <p className="mt-0.5 text-[11px] text-slate-500">{study.modality} · {study.body_region}</p>
+                        {archiveByStudyId.has(study.id) && (
+                            <p className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-400">
+                                {t('has_imaging')}
+                            </p>
+                        )}
                     </button>
                 ))}
                 {filtered.length === 0 && (
-                    <p className="col-span-full p-2 text-xs text-slate-500">Sin resultados.</p>
+                    <p className="col-span-full p-2 text-xs text-slate-500">{t('no_results')}</p>
                 )}
             </div>
-            {openStudy && (
+            {openStudy && imagingEntry && (
+                <SlideModal title={openStudy.name} onClose={() => setOpenStudy(null)}>
+                    <PacsScreen worklist={worklist} loadSeries={pacsLoadSeries} t={t} />
+                </SlideModal>
+            )}
+            {openStudy && !imagingEntry && (
                 <SlideModal title={openStudy.name} onClose={() => setOpenStudy(null)}>
                     <div className="mx-auto max-w-2xl space-y-4 overflow-y-auto p-6 text-sm text-slate-200">
                         <div>
-                            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hallazgos normales</h4>
+                            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('normal_findings_heading')}</h4>
                             <p className="mt-1 whitespace-pre-line">{openStudy.normal_findings}</p>
                         </div>
                         <div>
-                            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Interpretación</h4>
+                            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{tInv('interpretation')}</h4>
                             <p className="mt-1 whitespace-pre-line">{openStudy.normal_interpretation}</p>
                         </div>
                     </div>
@@ -178,6 +234,28 @@ function RadiologyLibraryTab() {
             )}
         </div>
     );
+}
+
+/**
+ * One archive entry, in the worklist shape `PacsScreen` renders — always
+ * "available" (this is a reference archive, not an order gated by
+ * turnaround), refs rewritten from `remote:` onto the plugin's proxy mount
+ * exactly as the session-based Radiología > Imágenes tab does (see
+ * src/plugins/pacs/index.jsx > worklistProps).
+ */
+function worklistRowFromArchiveEntry(entry) {
+    const series = resolveRemoteRefs(entry.series, PACS_PLUGIN_ID);
+    return {
+        id: entry.id,
+        studyId: entry.studyId,
+        description: entry.label || entry.id,
+        modality: entry.modality,
+        accession: null,
+        available: series.length > 0,
+        error: series.length === 0,
+        ref: series[0]?.ref ?? null,
+        series,
+    };
 }
 
 function SlideModal({ title, onClose, children }) {

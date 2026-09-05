@@ -98,6 +98,11 @@ export default function Exam3DScreen({ activeCase, sessionId, onOpenDrawer, conv
     // 'chat' stays last for the one chat key this screen uses.
     const { t: tRoom } = useTranslation('room3d');
     const { t: tMonitor } = useTranslation('monitor');
+    // The exam wheel's technique/region labels reuse the SAME translation
+    // keys as the 2D examination room (technique_*/region_*/test_*, plus
+    // this wheel's own wheel_verb_*/wheel_hint_* pair) — one vocabulary,
+    // not a second one that can drift or get missed on a locale pass.
+    const { t: tExamination } = useTranslation('examination');
     const { t } = useTranslation('chat');
     const hostRef = useRef(null);
     const reactionLine = useCallback(
@@ -244,7 +249,7 @@ export default function Exam3DScreen({ activeCase, sessionId, onOpenDrawer, conv
     });
 
     // Static merge of the supine collider boxes with the exam model.
-    const bodyRegions = useMemo(() => supineRegionsWithExams(), []);
+    const bodyRegions = useMemo(() => supineRegionsWithExams(tExamination), [tExamination]);
 
     useEffect(() => {
         // Wait for the resolver. Mounting before it answers would put the

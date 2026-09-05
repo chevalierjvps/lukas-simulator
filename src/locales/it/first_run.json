@@ -4,7 +4,7 @@
   "access_intro": "Decidi chi vede quali casi e configura gli account utente.",
   "access_saved": "Impostazione di accesso salvata",
   "access_users_hint": "Crea account per docenti e studenti in Impostazioni → Utenti — singolarmente, in blocco o tramite importazione CSV. Gli studenti possono anche registrarsi da soli e unirsi a un corso con un codice classe.",
-  "admin_subtitle": "Prepara Rohy per i tuoi studenti — tutto ciò che vedi qui resta modificabile nelle Impostazioni.",
+  "admin_subtitle": "Prepara Lukas per i tuoi studenti — tutto ciò che vedi qui resta modificabile nelle Impostazioni.",
   "admin_title": "Configurazione della piattaforma",
   "affect_disabled": "Instradamento dell'affetto disattivato",
   "affect_enable": "Invia l'affetto osservato dello studente al paziente IA",
@@ -20,7 +20,7 @@
   "case_coverage": "Casi per lingua",
   "case_default_label": "Caso predefinito (riserva)",
   "case_hint": "Gestisci i corsi e crea nuovi casi in seguito in Impostazioni → Casi e Impostazioni → Corsi.",
-  "case_intro": "Gli studenti entrano direttamente in un caso clinico. Rohy sceglie il caso corrispondente alla lingua di ogni studente; il caso predefinito qui sotto è la riserva quando non c'è corrispondenza.",
+  "case_intro": "Gli studenti entrano direttamente in un caso clinico. Lukas sceglie il caso corrispondente alla lingua di ogni studente; il caso predefinito qui sotto è la riserva quando non c'è corrispondenza.",
   "case_is_default": "Predefinito",
   "case_none": "Ancora nessun caso — il corso dimostrativo integrato viene creato automaticamente al primo avvio, oppure puoi crearne uno in Impostazioni → Casi.",
   "case_saved": "Caso predefinito aggiornato",
@@ -28,7 +28,7 @@
   "emotion_disabled": "Rilevazione delle emozioni disattivata",
   "emotion_enable": "Attiva la rilevazione delle emozioni (Oyon)",
   "emotion_enabled": "Rilevazione delle emozioni attivata",
-  "emotion_intro": "Rohy può osservare le emozioni facciali degli studenti durante le sessioni (Oyon). L'analisi avviene nel browser; la memorizzazione dei dati richiede inoltre il consenso di ogni studente.",
+  "emotion_intro": "Lukas può osservare le emozioni facciali degli studenti durante le sessioni (Oyon). L'analisi avviene nel browser; la memorizzazione dei dati richiede inoltre il consenso di ogni studente.",
   "emotion_unavailable": "Il componente aggiuntivo Oyon non è disponibile su questo server.",
   "finish_later": "Completa più tardi",
   "finish_setup": "Completa la configurazione",
@@ -87,5 +87,5 @@
   "voice_mic_ok": "Il microfono funziona",
   "voice_missing_defaults": "Nessuna voce predefinita impostata per: {langs}. I pazienti in queste lingue non hanno una voce di riserva — impostale in Impostazioni → Voce.",
   "welcome_intro": "Qualche rapida scelta prima del tuo primo paziente. Tutto può essere modificato in seguito dal menu in alto.",
-  "welcome_title": "Benvenuto in Rohy"
+  "welcome_title": "Benvenuto in Lukas"
 }

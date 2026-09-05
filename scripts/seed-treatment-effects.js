@@ -63,14 +63,15 @@ export async function seedTreatmentEffects(db, { dataPath = DATA_PATH, log = con
     // medications-catalogue seeder backfills it via name match in a follow-up).
     const sql = `
         INSERT INTO treatment_effects (
-            treatment_type, treatment_name, route,
+            treatment_type, treatment_name, treatment_name_es, route,
             onset_minutes, peak_minutes, duration_minutes,
             hr_effect, bp_sys_effect, bp_dia_effect, rr_effect, spo2_effect, temp_effect, etco2_effect,
             dose_dependent, base_dose, base_dose_unit, max_effect_multiplier,
             description, is_active, rxcui, data_source_id, pk_source, pk_evidence_url
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
         ON CONFLICT(treatment_name, route) DO UPDATE SET
             treatment_type        = excluded.treatment_type,
+            treatment_name_es     = excluded.treatment_name_es,
             onset_minutes         = excluded.onset_minutes,
             peak_minutes          = excluded.peak_minutes,
             duration_minutes      = excluded.duration_minutes,
@@ -98,6 +99,7 @@ export async function seedTreatmentEffects(db, { dataPath = DATA_PATH, log = con
         await run(db, sql, [
             row.treatment_type,
             row.treatment_name,
+            row.treatment_name_es ?? null,
             row.route ?? null,
             row.onset_minutes ?? 5,
             row.peak_minutes ?? 15,

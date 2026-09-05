@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     Heart, Wind, Droplets, Zap,
     Stethoscope, FileText, CheckCircle2, ChevronRight, X, AlertTriangle
 } from 'lucide-react';
 import { ClinicalAudio } from '../../services/clinicalAudioSynthesizer';
 import { apiPost } from '../../services/apiClient';
-import { RHYTHM_LABELS_PT } from '../../data/aiPromptContext';
+import { RHYTHM_LABEL_KEYS } from '../../services/rhythms';
 
 // ACLS: unsynchronized shock is only indicated for VF or pulseless VT — this
 // simulator has no separate "stable VT with a pulse" state (VTach only
@@ -30,6 +31,10 @@ export function TacticalClinicalHud({
     onOpenExam,
     onTreatmentAdministered
 }) {
+    const { t } = useTranslation('hud');
+    // Rhythm names come from the monitor's own vocabulary (RHYTHM_LABEL_KEYS)
+    // so this HUD and the bedside monitor can never name a rhythm differently.
+    const { t: tMonitor } = useTranslation('monitor');
     const [activeActionMenu, setActiveActionMenu] = useState(null); // 'airway' | 'fluids' | 'meds' | 'defib' | 'labs'
     const [defibState, setDefibState] = useState('idle'); // 'idle' | 'charging' | 'charged'
     const [actionFeedback, setActionFeedback] = useState(null);
@@ -83,10 +88,10 @@ export function TacticalClinicalHud({
             const feedback = feedbackOverride || (order.is_contraindicated
                 ? {
                     type: 'warning',
-                    title: 'Contraindicado neste caso',
-                    desc: order.contraindication_feedback || `${treatmentName} não é indicado neste quadro clínico.`
+                    title: t('feedback_contraindicated_title'),
+                    desc: order.contraindication_feedback || t('feedback_contraindicated_desc', { treatment: treatmentName })
                 }
-                : { title: 'Ordem Executada!', desc: `${treatmentName} (${dose}, ${route}) administrado com sucesso.` });
+                : { title: t('feedback_order_executed_title'), desc: t('feedback_order_executed_desc', { treatment: treatmentName, dose, route }) });
             setActionFeedback(feedback);
             setTimeout(() => setActionFeedback(null), feedback.type === 'warning' ? 4500 : 3500);
 
@@ -96,8 +101,8 @@ export function TacticalClinicalHud({
             console.error('Falha ao enviar ordem rápida:', err);
             setActionFeedback({
                 type: 'warning',
-                title: 'Falha ao administrar',
-                desc: err?.message || `Não foi possível registrar ${treatmentName}.`
+                title: t('feedback_order_failed_title'),
+                desc: err?.message || t('feedback_order_failed_desc', { treatment: treatmentName })
             });
             setTimeout(() => setActionFeedback(null), 4500);
         }
@@ -131,15 +136,16 @@ export function TacticalClinicalHud({
         onTreatmentAdministered?.();
         setActiveActionMenu(null);
         if (isShockable) {
-            setActionFeedback({ title: 'Ordem Executada!', desc: 'Desfibrilação Elétrica Não-Sincronizada (200J Bifásico) aplicada com sucesso.' });
+            setActionFeedback({ title: t('feedback_order_executed_title'), desc: t('feedback_shock_success_desc') });
             setTimeout(() => setActionFeedback(null), 3500);
             return;
         }
-        const rhythmLabel = rhythm ? (RHYTHM_LABELS_PT[rhythm] || rhythm) : 'ritmo desconhecido';
+        const rhythmKey = rhythm ? RHYTHM_LABEL_KEYS[rhythm] : null;
+        const rhythmName = rhythmKey ? tMonitor(rhythmKey) : t('unknown_rhythm');
         setActionFeedback({
             type: 'warning',
-            title: 'Choque sem indicação',
-            desc: `${rhythmLabel} não é um ritmo chocável (FV ou TV sem pulso). O choque não tem efeito clínico neste ritmo.`
+            title: t('feedback_shock_no_indication_title'),
+            desc: t('feedback_shock_no_indication_desc', { rhythm: rhythmName })
         });
         setTimeout(() => setActionFeedback(null), 4500);
     };
@@ -231,11 +237,11 @@ export function TacticalClinicalHud({
                         type="button"
                         onClick={() => setActiveActionMenu(prev => prev === 'airway' ? null : 'airway')}
                         className={`console-hud-key console-hud-key--airway ${activeActionMenu === 'airway' ? 'is-active' : ''}`}
-                        title="Via Aérea & Oxigênio (Atalho 1)"
+                        title={t('btn_airway_title')}
                     >
                         <span className="console-hud-kbd">1</span>
                         <Wind className="w-5 h-5" />
-                        <span className="console-hud-label">Via Aérea</span>
+                        <span className="console-hud-label">{t('btn_airway_label')}</span>
                     </button>
 
                     {/* Hotkey 2: Fluids & Access */}
@@ -243,11 +249,11 @@ export function TacticalClinicalHud({
                         type="button"
                         onClick={() => setActiveActionMenu(prev => prev === 'fluids' ? null : 'fluids')}
                         className={`console-hud-key console-hud-key--volume ${activeActionMenu === 'fluids' ? 'is-active' : ''}`}
-                        title="Acesso & Volume (Atalho 2)"
+                        title={t('btn_volume_title')}
                     >
                         <span className="console-hud-kbd">2</span>
                         <Droplets className="w-5 h-5" />
-                        <span className="console-hud-label">Volume</span>
+                        <span className="console-hud-label">{t('btn_volume_label')}</span>
                     </button>
 
                     {/* Hotkey 3: Emergency Meds */}
@@ -255,11 +261,11 @@ export function TacticalClinicalHud({
                         type="button"
                         onClick={() => setActiveActionMenu(prev => prev === 'meds' ? null : 'meds')}
                         className={`console-hud-key console-hud-key--meds ${activeActionMenu === 'meds' ? 'is-active' : ''}`}
-                        title="Drogas & Analgesia (Atalho 3)"
+                        title={t('btn_meds_title')}
                     >
                         <span className="console-hud-kbd">3</span>
                         <Heart className="w-5 h-5" />
-                        <span className="console-hud-label">Drogas</span>
+                        <span className="console-hud-label">{t('btn_meds_label')}</span>
                     </button>
 
                     {/* Hotkey 4: Defibrillator */}
@@ -267,28 +273,27 @@ export function TacticalClinicalHud({
                         type="button"
                         onClick={() => setActiveActionMenu(prev => prev === 'defib' ? null : 'defib')}
                         className={`console-hud-key console-hud-key--defib ${activeActionMenu === 'defib' ? 'is-active' : ''}`}
-                        title="Desfibrilador (Atalho 4)"
+                        title={t('btn_defib_title')}
                     >
                         <span className="console-hud-kbd">4</span>
                         <Zap className="w-5 h-5" />
-                        <span className="console-hud-label">Choque</span>
+                        <span className="console-hud-label">{t('btn_defib_label')}</span>
                     </button>
 
-                    {/* Hotkey 5: Stethoscope Auscultation — jumps to the real
-                        per-region auscultation in Exame Físico (case-configured
-                        sounds) instead of a standalone demo tone. It used to
-                        open a local mini-menu that just played a synthesized
-                        heart/lung sample with no chart or case connection at
-                        all — a toy duplicate of the real thing one room over. */}
+                    {/* Hotkey 5: Stethoscope Auscultation — jumps to the 3D
+                        Bedside room, which now owns physical exam / real
+                        per-region auscultation (case-configured sounds) —
+                        the old standalone 2D Examination room this used to
+                        open is gone; the 3D room does it better. */}
                     <button
                         type="button"
                         onClick={() => onOpenExam?.()}
                         className="console-hud-key console-hud-key--ausc"
-                        title="Ausculta — abrir Exame Físico (Atalho 5)"
+                        title={t('btn_ausc_title')}
                     >
                         <span className="console-hud-kbd">5</span>
                         <Stethoscope className="w-5 h-5" />
-                        <span className="console-hud-label">Ausculta</span>
+                        <span className="console-hud-label">{t('btn_ausc_label')}</span>
                     </button>
 
                     {/* Hotkey 6: Quick Labs */}
@@ -299,11 +304,11 @@ export function TacticalClinicalHud({
                             else setActiveActionMenu(prev => prev === 'labs' ? null : 'labs');
                         }}
                         className={`console-hud-key console-hud-key--exams ${activeActionMenu === 'labs' ? 'is-active' : ''}`}
-                        title="Exames & Imagem (Atalho 6)"
+                        title={t('btn_exams_title')}
                     >
                         <span className="console-hud-kbd">6</span>
                         <FileText className="w-5 h-5" />
-                        <span className="console-hud-label">Exames</span>
+                        <span className="console-hud-label">{t('btn_exams_label')}</span>
                     </button>
                 </div>
             </div>
@@ -313,11 +318,11 @@ export function TacticalClinicalHud({
                 <div className="fixed bottom-[186px] left-1/2 -translate-x-1/2 z-50 w-80 sm:w-96 rounded-2xl bg-slate-950/95 backdrop-blur-2xl border border-white/20 p-4 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
                     <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
                         <div className="flex items-center gap-2 text-white font-bold text-sm">
-                            {activeActionMenu === 'airway' && <><Wind className="w-4 h-4 text-sky-400" /> Via Aérea & Oxigenoterapia</>}
-                            {activeActionMenu === 'fluids' && <><Droplets className="w-4 h-4 text-blue-400" /> Acesso & Reposição Volêmica</>}
-                            {activeActionMenu === 'meds' && <><Heart className="w-4 h-4 text-rose-400" /> Farmacologia & Analgesia STAT</>}
-                            {activeActionMenu === 'defib' && <><Zap className="w-4 h-4 text-amber-400" /> Desfibrilador de Emergência</>}
-                            {activeActionMenu === 'labs' && <><FileText className="w-4 h-4 text-purple-400" /> Exames de Emergência STAT</>}
+                            {activeActionMenu === 'airway' && <><Wind className="w-4 h-4 text-sky-400" /> {t('menu_airway')}</>}
+                            {activeActionMenu === 'fluids' && <><Droplets className="w-4 h-4 text-blue-400" /> {t('menu_fluids')}</>}
+                            {activeActionMenu === 'meds' && <><Heart className="w-4 h-4 text-rose-400" /> {t('menu_meds')}</>}
+                            {activeActionMenu === 'defib' && <><Zap className="w-4 h-4 text-amber-400" /> {t('menu_defib')}</>}
+                            {activeActionMenu === 'labs' && <><FileText className="w-4 h-4 text-purple-400" /> {t('menu_labs')}</>}
                         </div>
                         <button
                             type="button"
@@ -337,8 +342,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-sky-500/20 border border-white/5 hover:border-sky-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-sky-300">Cânula Nasal (O₂ 3 L/min)</p>
-                                    <p className="text-[10px] text-slate-400">FiO₂ ~32% para hipoxemia leve</p>
+                                    <p className="font-semibold text-sky-300">{t('airway_nasal_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('airway_nasal_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-sky-400" />
                             </button>
@@ -348,8 +353,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-sky-500/20 border border-white/5 hover:border-sky-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-sky-300">Máscara Não-Reinalante (15 L/min)</p>
-                                    <p className="text-[10px] text-slate-400">FiO₂ até 90-100% no choque / hipóxia grave</p>
+                                    <p className="font-semibold text-sky-300">{t('airway_mask_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('airway_mask_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-sky-400" />
                             </button>
@@ -359,8 +364,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-rose-500/20 border border-white/5 hover:border-rose-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-rose-300">Intubação Orotraqueal (SRI)</p>
-                                    <p className="text-[10px] text-slate-400">Via aérea definitiva para Glasgow &le; 8 ou falência respiratória</p>
+                                    <p className="font-semibold text-rose-300">{t('airway_intubation_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('airway_intubation_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-rose-400" />
                             </button>
@@ -376,8 +381,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-blue-500/20 border border-white/5 hover:border-blue-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-blue-300">Ringer Lactato 1000 mL (Bolus)</p>
-                                    <p className="text-[10px] text-slate-400">Expansão volêmica rápida em choque / desidratação</p>
+                                    <p className="font-semibold text-blue-300">{t('fluids_ringer_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('fluids_ringer_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400" />
                             </button>
@@ -387,8 +392,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-blue-500/20 border border-white/5 hover:border-blue-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-blue-300">Soro Fisiológico 0.9% 500 mL</p>
-                                    <p className="text-[10px] text-slate-400">Cristaloide isotônico para manutenção / lavagem</p>
+                                    <p className="font-semibold text-blue-300">{t('fluids_saline_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('fluids_saline_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400" />
                             </button>
@@ -398,8 +403,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-rose-500/20 border border-white/5 hover:border-rose-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-rose-300">Concentrado de Hemácias (2 CH)</p>
-                                    <p className="text-[10px] text-slate-400">Transfusão no choque hemorrágico com Hb &lt; 7.0</p>
+                                    <p className="font-semibold text-rose-300">{t('fluids_blood_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('fluids_blood_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-rose-400" />
                             </button>
@@ -415,8 +420,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-emerald-500/20 border border-white/5 hover:border-emerald-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-emerald-300">Morfina 4 mg IV (Analgesia Potente)</p>
-                                    <p className="text-[10px] text-slate-400">Alívio de dor torácica aguda e ansiedade severa</p>
+                                    <p className="font-semibold text-emerald-300">{t('meds_morphine_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('meds_morphine_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400" />
                             </button>
@@ -426,8 +431,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-rose-500/20 border border-white/5 hover:border-rose-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-rose-300">Nitroglicerina 5 mg Sublingual</p>
-                                    <p className="text-[10px] text-slate-400">Vasodilatação coronariana na dor anginosa</p>
+                                    <p className="font-semibold text-rose-300">{t('meds_nitro_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('meds_nitro_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-rose-400" />
                             </button>
@@ -437,8 +442,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-amber-500/20 border border-white/5 hover:border-amber-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-amber-300">Adrenalina 1 mg IV (PCR / Anafilaxia)</p>
-                                    <p className="text-[10px] text-slate-400">Vasopressor e inotrópico máximo no ACLS</p>
+                                    <p className="font-semibold text-amber-300">{t('meds_epi_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('meds_epi_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400" />
                             </button>
@@ -448,8 +453,8 @@ export function TacticalClinicalHud({
                                 className="w-full text-left p-2.5 rounded-xl bg-white/[0.04] hover:bg-sky-500/20 border border-white/5 hover:border-sky-500/30 text-white text-xs flex items-center justify-between group"
                             >
                                 <div>
-                                    <p className="font-semibold text-sky-300">Paracetamol 1 g IV</p>
-                                    <p className="text-[10px] text-slate-400">Analgésico e antipirético padrão de 1ª linha</p>
+                                    <p className="font-semibold text-sky-300">{t('meds_acet_title')}</p>
+                                    <p className="text-[10px] text-slate-400">{t('meds_acet_desc')}</p>
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-sky-400" />
                             </button>
@@ -461,8 +466,8 @@ export function TacticalClinicalHud({
                         <div className="space-y-3 text-center py-2">
                             <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
                                 <AlertTriangle className="w-5 h-5 mx-auto mb-1 text-amber-400" />
-                                <p className="font-bold">Desfibrilador Bifásico (Pás Posicionadas)</p>
-                                <p className="text-[10px] text-slate-400 mt-0.5">Indicado para Fibrilação Ventricular e TV sem pulso</p>
+                                <p className="font-bold">{t('defib_notice_title')}</p>
+                                <p className="text-[10px] text-slate-400 mt-0.5">{t('defib_notice_desc')}</p>
                             </div>
 
                             {defibState === 'idle' && (
@@ -471,13 +476,13 @@ export function TacticalClinicalHud({
                                     onClick={handleChargeDefib}
                                     className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/40 transition-all uppercase tracking-wider"
                                 >
-                                    ⚡ Carregar 200J Bifásico
+                                    {t('defib_charge_btn')}
                                 </button>
                             )}
 
                             {defibState === 'charging' && (
                                 <div className="p-3 rounded-xl bg-amber-500/20 border border-amber-500 animate-pulse text-amber-300 text-xs font-bold">
-                                    CARREGANDO CAPACITOR (200J)... AFASTAR EQUIPE!
+                                    {t('defib_charging')}
                                 </div>
                             )}
 
@@ -487,7 +492,7 @@ export function TacticalClinicalHud({
                                     onClick={handleDeliverShock}
                                     className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-base shadow-2xl shadow-rose-600/60 animate-bounce uppercase tracking-widest"
                                 >
-                                    🔥 DISPARAR CHOQUE (200J)!
+                                    {t('defib_shock_btn')}
                                 </button>
                             )}
                         </div>

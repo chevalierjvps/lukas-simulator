@@ -1,10 +1,14 @@
 // Contract for RoomNavigator — the bottom nav shared across every
-// in-session surface (chat, exam, investigations, consultant). It must:
-//   1. Render all five room buttons as peers (no special end action).
+// in-session surface (chat, investigations, consultant). It must:
+//   1. Render all core room buttons as peers (no special end action).
 //   2. Mark the active room (aria-pressed=true) and only that one.
 //   3. Invoke onSelectRoom(key) when a room is clicked.
 // The actual session-end action lives on the patient room's
 // End & Debrief button, not in this nav.
+//
+// The standalone 2D 'examination' room is gone (v3.x): physical exam now
+// lives inside the 3D Bedside room, which does it better than a flat body
+// map ever could — see PluginRoom's room3d entry.
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -33,13 +37,17 @@ afterEach(async () => {
 });
 
 describe('RoomNavigator', () => {
-    it('renders all five peer room buttons', () => {
+    it('renders all core peer room buttons', () => {
         renderNav();
         expect(screen.getByRole('button', { name: /Patient/ })).toBeTruthy();
-        expect(screen.getByRole('button', { name: /Examination/ })).toBeTruthy();
         expect(screen.getByRole('button', { name: /Laboratory/ })).toBeTruthy();
         expect(screen.getByRole('button', { name: /Radiology/ })).toBeTruthy();
         expect(screen.getByRole('button', { name: /Consultant/ })).toBeTruthy();
+    });
+
+    it('does not render the retired standalone Examination room', () => {
+        renderNav();
+        expect(screen.queryByRole('button', { name: /Examination/ })).toBeNull();
     });
 
     it('does not render an End-session button (that lives in the patient room)', () => {
@@ -67,7 +75,6 @@ describe('RoomNavigator', () => {
 
     it.each([
         ['Patient', 'chat'],
-        ['Examination', 'examination'],
         ['Laboratory', 'lab'],
         ['Radiology', 'radiology'],
         ['Consultant', 'consultant'],

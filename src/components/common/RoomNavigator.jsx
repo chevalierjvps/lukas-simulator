@@ -67,18 +67,6 @@ const CORE_ROOM_DEFS = [
         activeBar: 'bg-rose-400',
     },
     {
-        key: 'examination',
-        order: 20,
-        labelKey: 'room_examination',
-        subKey: 'room_examination_sub',
-        icon: Stethoscope,
-        iconText: 'text-emerald-300',
-        activeText: 'text-emerald-200',
-        activeBg: 'bg-emerald-500/15',
-        activeRing: 'ring-emerald-500/30',
-        activeBar: 'bg-emerald-400',
-    },
-    {
         key: 'lab',
         order: 30,
         labelKey: 'room_lab',
@@ -218,8 +206,8 @@ export default function RoomNavigator({
                 <button
                     type="button"
                     onClick={() => setIsCollapsed((v) => !v)}
-                    aria-label={isCollapsed ? t('expand_navigation', { defaultValue: 'Expand navigation' }) : t('collapse_navigation', { defaultValue: 'Hide navigation' })}
-                    title={isCollapsed ? 'Expandir barra de navegação' : 'Recolher barra de navegação'}
+                    aria-label={isCollapsed ? t('expand_navigation') : t('collapse_navigation')}
+                    title={isCollapsed ? t('expand_navigation') : t('collapse_navigation')}
                     className="group -mb-1 px-4 py-0.5 rounded-t-xl bg-[rgba(5,9,10,0.85)] hover:bg-[rgba(14,22,24,0.9)] border-t border-x border-white/15 backdrop-blur-md flex items-center gap-1.5 text-[11px] font-medium text-slate-300 hover:text-white transition-all shadow-md cursor-pointer"
                 >
                     {isCollapsed ? (
@@ -231,7 +219,7 @@ export default function RoomNavigator({
                         <>
                             <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-300 transition-colors" />
                             <span className="text-[10px] uppercase tracking-wider text-slate-400 group-hover:text-slate-200">
-                                {t('hide_nav', { defaultValue: 'Recolher' })}
+                                {t('hide_nav')}
                             </span>
                         </>
                     )}
@@ -239,7 +227,7 @@ export default function RoomNavigator({
 
                 {/* Dock Nav */}
                 <nav
-                    className="flex items-stretch gap-1.5 px-3 py-1.5 w-full max-w-5xl console-glass-dock shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.2)]"
+                    className="flex items-stretch gap-1 px-3 py-1.5 w-full max-w-[92vw] xl:max-w-7xl console-glass-dock shadow-[0_20px_50px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.2)]"
                     aria-label={t('room_navigation')}
                 >
                     {ROOM_DEFS
@@ -287,7 +275,7 @@ function RoomButton({ room, active, badge, onClick }) {
             onClick={onClick}
             aria-pressed={active}
             aria-label={showBadge ? t('room_ready_results', { label, count: badge }) : label}
-            className={`relative flex-1 px-3.5 py-2 rounded-xl flex items-center justify-center gap-2.5 transition-all duration-200 group active:scale-[0.98] ${
+            className={`relative flex-1 min-w-0 px-2.5 py-2 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 group active:scale-[0.98] ${
                 active
                     ? `${room.activeBg} ring-1 ${room.activeRing} shadow-[0_4px_16px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.2)]`
                     : 'hover:bg-white/5 hover:shadow-[0_2px_8px_rgba(0,0,0,0.2)]'
