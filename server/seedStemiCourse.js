@@ -12,8 +12,8 @@ import { DEFAULT_COURSE_NAME } from './shared/defaultCourse.js';
 
 const log = logger('seed-stemi');
 
-const LESSON_TITLE = 'STEMI: Recognition & Management';
-const SURVEY_TITLE = 'Clinical Reasoning in STEMI';
+const LESSON_TITLE = 'IAMCSST: Reconhecimento e Manejo';
+const SURVEY_TITLE = 'Raciocínio Clínico no IAMCSST';
 
 // Encode a JSON string so it is safe inside a single-quoted HTML attribute
 // (TipTap reads <lecture-mcq data-questions='…'> back out of the DOM).
@@ -26,34 +26,36 @@ function attr(json) {
 }
 
 const INTRO_HTML = `
-<h2>What is a STEMI?</h2>
-<p>ST-elevation myocardial infarction (STEMI) is acute myocardial injury caused by
-complete, thrombotic occlusion of a coronary artery. The occlusion produces
-transmural ischaemia, which is what generates the hallmark ST-segment elevation
-on the surface ECG. It is a <strong>time-critical</strong> diagnosis: myocardium
-infarcts progressively from the moment of occlusion, so "time is muscle."</p>
+<h2>O que é um IAMCSST?</h2>
+<p>O infarto agudo do miocárdio com supradesnivelamento do segmento ST (IAMCSST) é
+uma lesão miocárdica aguda causada pela oclusão trombótica completa de uma artéria
+coronária. A oclusão produz isquemia transmural, que é o que gera o supradesnivelamento
+característico do segmento ST no ECG de superfície. É um diagnóstico <strong>tempo-dependente</strong>:
+o miocárdio infarta progressivamente a partir do momento da oclusão — por isso
+"tempo é músculo".</p>
 
-<h2>Recognising it on the ECG</h2>
-<p>The diagnosis is electrocardiographic. Look for new ST-segment elevation at the
-J-point in two contiguous leads:</p>
+<h2>Reconhecendo no ECG</h2>
+<p>O diagnóstico é eletrocardiográfico. Procure novo supradesnivelamento do segmento
+ST no ponto J em duas derivações contíguas:</p>
 <ul>
-  <li>&ge; 1 mm in the limb leads and most precordial leads;</li>
-  <li>&ge; 2 mm (men &ge; 40y), &ge; 2.5 mm (men &lt; 40y), or &ge; 1.5 mm (women) in V2&ndash;V3;</li>
-  <li>reciprocal ST depression supports a true occlusion rather than a mimic.</li>
+  <li>&ge; 1 mm nas derivações dos membros e na maioria das precordiais;</li>
+  <li>&ge; 2 mm (homens &ge; 40 anos), &ge; 2,5 mm (homens &lt; 40 anos), ou &ge; 1,5 mm (mulheres) em V2&ndash;V3;</li>
+  <li>infradesnivelamento recíproco do ST reforça uma oclusão verdadeira, e não um simulador de IAM.</li>
 </ul>
-<p>Territories: inferior (II, III, aVF), anterior/septal (V1&ndash;V4), lateral
-(I, aVL, V5&ndash;V6). New left bundle branch block with a compatible presentation,
-and posterior MI (tall R + ST depression in V1&ndash;V3), are important "STEMI-equivalents."</p>
+<p>Territórios: inferior (II, III, aVF), anterosseptal (V1&ndash;V4), lateral
+(I, aVL, V5&ndash;V6). Bloqueio de ramo esquerdo novo com quadro clínico compatível,
+e o IAM posterior (R alto + infra de ST em V1&ndash;V3), são importantes "equivalentes de IAMCSST."</p>
 
-<h2>Immediate management</h2>
-<p>The single most important intervention is <strong>prompt reperfusion</strong>.
-Primary percutaneous coronary intervention (PCI) is preferred when it can be
-delivered within guideline timelines (first-medical-contact-to-device &le; 120 min);
-otherwise give fibrinolysis and transfer. Alongside reperfusion: aspirin, a second
-antiplatelet agent, anticoagulation, and analgesia, with oxygen only if hypoxaemic.</p>
+<h2>Conduta imediata</h2>
+<p>A intervenção mais importante é a <strong>reperfusão precoce</strong>. A
+angioplastia coronária primária (ICP primária) é preferida quando pode ser
+realizada dentro do prazo recomendado pelas diretrizes (primeiro contato médico
+até o dispositivo &le; 120 min); caso contrário, administre fibrinólise e transfira
+o paciente. Junto à reperfusão: aspirina (AAS), um segundo antiagregante
+plaquetário, anticoagulação e analgesia, com oxigênio apenas se houver hipoxemia.</p>
 
-<p class="rohy-lesson-note"><em>Work through the questions below, then reflect in the
-clinical-reasoning survey.</em></p>
+<p class="rohy-lesson-note"><em>Responda às perguntas abaixo e depois reflita na
+pesquisa de raciocínio clínico.</em></p>
 `.trim();
 
 // 10 MCQs — a mix of basic knowledge and "problems in STEMI" (pitfalls,
@@ -61,114 +63,114 @@ clinical-reasoning survey.</em></p>
 // explanation. Apostrophes are avoided so the attribute stays clean.
 const MCQ_QUESTIONS = [
     {
-        question: 'What is the underlying pathophysiology of a STEMI?',
+        question: 'Qual é a fisiopatologia subjacente do IAMCSST?',
         options: [
-            'Complete thrombotic occlusion of a coronary artery',
-            'Partial, non-occlusive coronary thrombus',
-            'Coronary vasospasm without thrombus',
-            'Demand ischaemia from tachycardia',
+            'Oclusão trombótica completa de uma artéria coronária',
+            'Trombo coronário parcial, não oclusivo',
+            'Vasoespasmo coronário sem trombo',
+            'Isquemia por desbalanço de demanda causada por taquicardia',
         ],
         correctIndex: 0,
-        explanation: 'STEMI results from complete, usually thrombotic, occlusion of a coronary artery causing transmural ischaemia. Partial occlusion typically produces NSTEMI/unstable angina.',
+        explanation: 'O IAMCSST resulta de oclusão completa, geralmente trombótica, de uma artéria coronária, causando isquemia transmural. A oclusão parcial costuma produzir IAMSSST/angina instável.',
     },
     {
-        question: 'ST elevation must be present in how many leads to meet STEMI criteria?',
-        options: ['Any single lead', 'Two contiguous leads', 'Any three leads', 'All leads in one territory'],
+        question: 'O supradesnivelamento do ST precisa estar presente em quantas derivações para preencher os critérios de IAMCSST?',
+        options: ['Em uma única derivação isolada', 'Em duas derivações contíguas', 'Em quaisquer três derivações', 'Em todas as derivações de um território'],
         correctIndex: 1,
-        explanation: 'The threshold is new ST elevation at the J-point in at least two anatomically contiguous leads.',
+        explanation: 'O critério é novo supradesnivelamento do ST no ponto J em pelo menos duas derivações anatomicamente contíguas.',
     },
     {
-        question: 'An inferior STEMI is best identified in which leads?',
-        options: ['V1 to V4', 'I, aVL, V5, V6', 'II, III, aVF', 'aVR and V1'],
+        question: 'Um IAMCSST de parede inferior é mais bem identificado em quais derivações?',
+        options: ['V1 a V4', 'I, aVL, V5, V6', 'II, III, aVF', 'aVR e V1'],
         correctIndex: 2,
-        explanation: 'Leads II, III and aVF look at the inferior wall, usually supplied by the right coronary artery.',
+        explanation: 'As derivações II, III e aVF observam a parede inferior, geralmente irrigada pela artéria coronária direita.',
     },
     {
-        question: 'Which is the preferred reperfusion strategy when it can be delivered in time?',
-        options: ['Fibrinolysis', 'Primary PCI', 'Dual antiplatelets alone', 'Elective angiography in 72 hours'],
+        question: 'Qual é a estratégia de reperfusão preferida quando pode ser realizada dentro do prazo?',
+        options: ['Fibrinólise', 'ICP primária (angioplastia primária)', 'Dupla antiagregação plaquetária isolada', 'Angiografia eletiva em 72 horas'],
         correctIndex: 1,
-        explanation: 'Primary PCI is preferred when first-medical-contact-to-device time is within guideline limits (about 120 minutes); otherwise give fibrinolysis and transfer.',
+        explanation: 'A ICP primária é preferida quando o tempo entre o primeiro contato médico e o dispositivo está dentro do limite recomendado pelas diretrizes (cerca de 120 minutos); caso contrário, administre fibrinólise e transfira o paciente.',
     },
     {
-        question: 'In a patient with an inferior STEMI, why should you obtain a right-sided ECG?',
+        question: 'Em um paciente com IAMCSST de parede inferior, por que você deve obter um ECG de derivações direitas?',
         options: [
-            'To exclude a pulmonary embolism',
-            'To detect right ventricular infarction',
-            'To confirm atrial fibrillation',
-            'To measure the QT interval',
+            'Para excluir embolia pulmonar',
+            'Para detectar infarto de ventrículo direito',
+            'Para confirmar fibrilação atrial',
+            'Para medir o intervalo QT',
         ],
         correctIndex: 1,
-        explanation: 'Inferior STEMI can involve the right ventricle (ST elevation in V4R). RV infarction is preload-dependent, so nitrates can cause dangerous hypotension.',
+        explanation: 'O IAMCSST de parede inferior pode envolver o ventrículo direito (supra de ST em V4R). O infarto de VD é dependente de pré-carga, portanto os nitratos podem causar hipotensão perigosa.',
     },
     {
-        question: 'Which drug is relatively contraindicated in suspected right ventricular infarction?',
-        options: ['Aspirin', 'Nitroglycerin', 'Heparin', 'Morphine'],
+        question: 'Qual medicamento é relativamente contraindicado na suspeita de infarto de ventrículo direito?',
+        options: ['Aspirina (AAS)', 'Nitroglicerina', 'Heparina', 'Morfina'],
         correctIndex: 1,
-        explanation: 'RV infarction is preload-dependent; nitrates reduce preload and can precipitate profound hypotension.',
+        explanation: 'O infarto de VD é dependente de pré-carga; os nitratos reduzem a pré-carga e podem precipitar hipotensão profunda.',
     },
     {
-        question: 'New left bundle branch block with an ischaemic presentation should be treated as:',
+        question: 'Um novo bloqueio de ramo esquerdo com quadro clínico isquêmico deve ser tratado como:',
         options: [
-            'A benign finding needing no action',
-            'A STEMI-equivalent warranting urgent reperfusion assessment',
-            'A reason to withhold aspirin',
-            'An indication for immediate fibrinolysis regardless of PCI access',
+            'Um achado benigno que não exige conduta',
+            'Um equivalente de IAMCSST que exige avaliação urgente de reperfusão',
+            'Um motivo para não administrar aspirina',
+            'Uma indicação de fibrinólise imediata independentemente do acesso à ICP',
         ],
         correctIndex: 1,
-        explanation: 'New or presumed-new LBBB with a compatible clinical picture is treated as a STEMI-equivalent and prompts urgent reperfusion evaluation.',
+        explanation: 'Um BRE novo ou presumivelmente novo com quadro clínico compatível é tratado como equivalente de IAMCSST e motiva avaliação urgente de reperfusão.',
     },
     {
-        question: 'Which ECG pattern suggests a posterior STEMI?',
+        question: 'Qual padrão eletrocardiográfico sugere IAMCSST de parede posterior?',
         options: [
-            'ST elevation in V1 to V3',
-            'Tall R waves and ST depression in V1 to V3',
-            'Diffuse concave ST elevation with PR depression',
-            'Deep Q waves in aVR only',
+            'Supradesnivelamento do ST em V1 a V3',
+            'Ondas R altas e infradesnivelamento do ST em V1 a V3',
+            'Supradesnivelamento difuso e côncavo do ST com infra de PR',
+            'Ondas Q profundas apenas em aVR',
         ],
         correctIndex: 1,
-        explanation: 'Posterior infarction is mirrored anteriorly as tall R waves and horizontal ST depression in V1 to V3; posterior leads (V7 to V9) confirm it.',
+        explanation: 'O infarto posterior se reflete na parede anterior como ondas R altas e infradesnivelamento horizontal do ST em V1 a V3; as derivações posteriores (V7 a V9) confirmam o achado.',
     },
     {
-        question: 'A common mechanical complication in the days after a STEMI is:',
+        question: 'Uma complicação mecânica comum nos dias seguintes a um IAMCSST é:',
         options: [
-            'Aortic dissection',
-            'Papillary muscle rupture causing acute mitral regurgitation',
-            'Pulmonary fibrosis',
-            'Constrictive pericarditis',
+            'Dissecção de aorta',
+            'Ruptura de músculo papilar causando insuficiência mitral aguda',
+            'Fibrose pulmonar',
+            'Pericardite constritiva',
         ],
         correctIndex: 1,
-        explanation: 'Papillary muscle rupture, ventricular septal rupture and free-wall rupture are feared mechanical complications, typically in the first days post-infarct.',
+        explanation: 'Ruptura de músculo papilar, ruptura do septo interventricular e ruptura de parede livre são complicações mecânicas temidas, tipicamente nos primeiros dias após o infarto.',
     },
     {
-        question: 'Which is the most appropriate use of oxygen in an acute STEMI?',
+        question: 'Qual é o uso mais apropriado de oxigênio em um IAMCSST agudo?',
         options: [
-            'High-flow oxygen for every patient',
-            'Only when the patient is hypoxaemic (e.g. SpO2 below 90%)',
-            'Never, oxygen is harmful in STEMI',
-            'Only if the patient reports breathlessness',
+            'Oxigênio em alto fluxo para todo paciente',
+            'Apenas quando o paciente está hipoxêmico (ex.: SpO2 abaixo de 90%)',
+            'Nunca — oxigênio é prejudicial no IAMCSST',
+            'Apenas se o paciente relatar falta de ar',
         ],
         correctIndex: 1,
-        explanation: 'Routine supplemental oxygen in non-hypoxaemic patients confers no benefit and may cause harm; give oxygen only for hypoxaemia.',
+        explanation: 'A oxigenoterapia suplementar de rotina em pacientes não hipoxêmicos não traz benefício e pode causar dano; administre oxigênio apenas em caso de hipoxemia.',
     },
 ];
 
 const SURVEY_QUESTIONS = [
     {
-        questionText: 'Briefly outline your reasoning for the first 10 minutes of managing a patient with chest pain and ST elevation.',
+        questionText: 'Descreva brevemente seu raciocínio para os primeiros 10 minutos no manejo de um paciente com dor torácica e supradesnivelamento do ST.',
         questionType: 'free_text',
         options: null,
         isRequired: true,
     },
     {
-        questionText: 'How confident are you in interpreting a 12-lead ECG for STEMI?',
+        questionText: 'Qual é o seu grau de confiança para interpretar um ECG de 12 derivações em busca de IAMCSST?',
         questionType: 'single_choice',
-        options: ['Not confident', 'Somewhat confident', 'Confident', 'Very confident'],
+        options: ['Nada confiante', 'Pouco confiante', 'Confiante', 'Muito confiante'],
         isRequired: true,
     },
     {
-        questionText: 'Which factors do you weigh when choosing between primary PCI and fibrinolysis?',
+        questionText: 'Quais fatores você considera ao escolher entre ICP primária e fibrinólise?',
         questionType: 'multiple_choice',
-        options: ['Time from symptom onset', 'Expected time to PCI', 'Bleeding risk', 'Availability of a cath lab'],
+        options: ['Tempo desde o início dos sintomas', 'Tempo estimado até a ICP', 'Risco de sangramento', 'Disponibilidade de hemodinâmica'],
         isRequired: false,
     },
 ];
@@ -188,7 +190,7 @@ async function seedCohort(cohort) {
                (cohort_id, tenant_id, title, description, content_type, order_index, is_published, is_free)
              VALUES (?,?,?,?,?,?,1,1)`,
             [cohort.id, cohort.tenant_id, LESSON_TITLE,
-             'Recognise ST-elevation MI on the ECG, act on it, and reason through the pitfalls.',
+             'Reconheça o infarto com supradesnivelamento do ST no ECG, aja de forma correta e raciocine sobre as armadilhas clínicas.',
              'text', 0]
         );
 
@@ -196,7 +198,7 @@ async function seedCohort(cohort) {
         await dbAdapter.run(
             `INSERT INTO lesson_sections (lesson_id, title, type, content, order_index)
              VALUES (?,?,?,?,?)`,
-            [lessonId, 'Overview', 'text', INTRO_HTML, 0]
+            [lessonId, 'Visão Geral', 'text', INTRO_HTML, 0]
         );
 
         // Section 2 — the 10-question MCQ block (a single lecture-mcq stepper).
@@ -204,7 +206,7 @@ async function seedCohort(cohort) {
         await dbAdapter.run(
             `INSERT INTO lesson_sections (lesson_id, title, type, content, order_index)
              VALUES (?,?,?,?,?)`,
-            [lessonId, 'Check your knowledge', 'text', mcqHtml, 1]
+            [lessonId, 'Teste seus conhecimentos', 'text', mcqHtml, 1]
         );
 
         // Survey (published) + questions + attach to the course.
@@ -212,7 +214,7 @@ async function seedCohort(cohort) {
             `INSERT INTO surveys (tenant_id, title, description, created_by_id, is_published, is_anonymous)
              VALUES (?,?,?,?,1,0)`,
             [cohort.tenant_id, SURVEY_TITLE,
-             'A short reflection on how you reason through an acute STEMI.',
+             'Uma breve reflexão sobre como você raciocina diante de um IAM agudo com supra de ST.',
              cohort.owner_user_id]
         );
         for (let i = 0; i < SURVEY_QUESTIONS.length; i++) {

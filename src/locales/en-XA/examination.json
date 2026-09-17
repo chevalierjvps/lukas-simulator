@@ -289,5 +289,15 @@
   "vital_per_min": "[{value}/ɱíñ·]",
   "vital_rr": "[ŔŔ·]",
   "vital_spo2": "[ŠþÓ₂·]",
-  "vital_temp": "[Ţéɱþ·]"
+  "vital_temp": "[Ţéɱþ·]",
+  "wheel_hint_auscultation": "[Ĺíšţéñ··]",
+  "wheel_hint_inspection": "[Ĺóóķ·]",
+  "wheel_hint_palpation": "[Ƒééĺ·]",
+  "wheel_hint_percussion": "[Ţáþ·]",
+  "wheel_hint_special": "[Máñéúṽéŕš··]",
+  "wheel_verb_auscultation": "[Áúšçúĺţáţé··]",
+  "wheel_verb_inspection": "[Íñšþéçţ··]",
+  "wheel_verb_palpation": "[Þáĺþáţé··]",
+  "wheel_verb_percussion": "[Þéŕçúšš··]",
+  "wheel_verb_special": "[Šþéçíáĺ··]"
 }

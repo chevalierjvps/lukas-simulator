@@ -37,6 +37,7 @@ export const LLM_PROVIDERS = {
     openrouter: { name: 'OpenRouter',                 defaultBase: 'https://openrouter.ai/api/v1',                                        needsKey: true,  modelRequired: true,  keyPrefix: 'sk-or-',  apiShape: 'openai',    group: 'cloud' },
     groq:       { name: 'Groq',                        defaultBase: 'https://api.groq.com/openai/v1',                                      needsKey: true,  modelRequired: true,  keyPrefix: 'gsk_',    apiShape: 'openai',    group: 'cloud' },
     together:   { name: 'Together AI',                 defaultBase: 'https://api.together.xyz/v1',                                         needsKey: true,  modelRequired: true,  keyPrefix: '',        apiShape: 'openai',    group: 'cloud' },
+    nvidia:     { name: 'NVIDIA NIM',                   defaultBase: 'https://integrate.api.nvidia.com/v1',                                 needsKey: true,  modelRequired: true,  keyPrefix: 'nvapi-',  apiShape: 'openai',    group: 'cloud' },
     azure:      { name: 'Azure OpenAI',               defaultBase: 'https://YOUR-RESOURCE.openai.azure.com/openai/deployments/YOUR-DEPLOYMENT', needsKey: true, modelRequired: false, keyPrefix: '',    apiShape: 'openai',    group: 'cloud' },
     custom:     { name: 'Custom OpenAI-Compatible',   defaultBase: 'http://localhost:8000/v1',                                            needsKey: false, modelRequired: false, keyPrefix: '',        apiShape: 'openai',    group: 'other' }
 };
@@ -105,6 +106,15 @@ export const LLM_MODELS = {
         { id: 'meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8', label: 'Llama 4 Maverick',    tier: 'flagship' },
         { id: 'meta-llama/Llama-4-Scout-17B-16E-Instruct',         label: 'Llama 4 Scout',       tier: 'balanced' },
         { id: 'meta-llama/Llama-3.3-70B-Instruct-Turbo',           label: 'Llama 3.3 70B Turbo', tier: 'fast'     }
+    ],
+    // Verified live against this deployment's own NIM key (2026-09-06) by
+    // calling /v1/chat/completions directly — build.nvidia.com's catalog
+    // lists far more model ids than any one account actually has function
+    // deployments for, so only ids that returned 200 (not "Function ...
+    // Not found for account") are listed here.
+    nvidia: [
+        { id: 'nvidia/nemotron-3-super-120b-a12b',   label: 'Nemotron 3 Super 120B',    tier: 'flagship' },
+        { id: 'nvidia/nemotron-3.5-lightning-30b-a3b', label: 'Nemotron 3.5 Lightning', tier: 'fast'     }
     ],
     // Local tags — whatever the admin has pulled; these are common current ones.
     ollama: [

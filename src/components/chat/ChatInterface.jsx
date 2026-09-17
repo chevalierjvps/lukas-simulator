@@ -350,7 +350,7 @@ function notifySubstitutionOnce(toast, t, r) {
     toast?.info?.(t('voice_default_not_configured', { voice: r.file }));
 }
 
-export default function ChatInterface({ activeCase, onSessionStart, restoredSessionId, sessionStartTime, currentVitals, personaRefreshCounter = 0, signalCapture = null, caseEnded = false }) {
+export default function ChatInterface({ activeCase, onSessionStart, restoredSessionId, sessionStartTime, currentVitals, personaRefreshCounter = 0, signalCapture = null, caseEnded = false, patientDied = false }) {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [sessionId, setSessionId] = useState(null);
@@ -2525,6 +2525,11 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                     </div>
                 ) : (
                     <div>
+                        {activeTab === 'patient' && patientDied && (
+                            <div className="mb-2 px-3 py-2 rounded-lg bg-red-950/60 border border-red-800/60 text-red-200 text-xs">
+                                {t('patient_died_banner')}
+                            </div>
+                        )}
                         {/* Quick-reply history-taking chips — patient tab,
                             text mode, only while there's an actual
                             conversation to steer (hidden on the empty-state
@@ -2559,6 +2564,7 @@ export default function ChatInterface({ activeCase, onSessionStart, restoredSess
                             disabled={caseEnded || loading || (activeTab !== 'patient' && !agentStatus?.canChat)}
                             placeholder={
                                 listening ? (isPt ? 'Ouvindo sua voz... fale agora...' : 'Listening...') :
+                                patientDied ? t('patient_died_placeholder') :
                                 caseEnded ? t('case_ended_placeholder') :
                                 loading ? t('waiting_for_response') :
                                 activeTab !== 'patient' && !agentStatus?.canChat ? t('agent_not_available', { name: currentAgent?.name }) :

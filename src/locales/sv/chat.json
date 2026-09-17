@@ -49,6 +49,8 @@
   "no_voice_configured_agent": "Ingen röst konfigurerad för den här agentpersonan. Ange en i Inställningar → Agentpersonas.",
   "no_voice_configured_case": "Ingen röst konfigurerad. Ange en fallröst i fallredigeraren eller en standardröst på patientpersonan.",
   "on_call_responds": "Jour · svarar när du ringer",
+  "patient_died_banner": "Patienten överlevde inte och har förklarats avliden.",
+  "patient_died_placeholder": "Patienten kan inte längre svara — dödsfall konstaterat",
   "patient_generic": "patienten",
   "patient_label": "Patient",
   "patient_speaking": "Patienten talar…",

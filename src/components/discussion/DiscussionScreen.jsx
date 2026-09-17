@@ -19,7 +19,7 @@ import PatientRecordViewer from '../PatientRecordViewer';
 
 const PatientAvatar = lazy(() => import('../chat/PatientAvatar.jsx'));
 
-export default function DiscussionScreen({ sessionId, activeCase, onClose, roomNav = null, topBarControls = null }) {
+export default function DiscussionScreen({ sessionId, activeCase, onClose, roomNav = null, topBarControls = null, patientDied = false }) {
     const { t } = useTranslation('discussion');
     const { headManifest, platformAvatars, voiceSettings } = useVoice();
     const { user } = useAuth();
@@ -198,6 +198,12 @@ export default function DiscussionScreen({ sessionId, activeCase, onClose, roomN
                     </button>
                 </div>
             </header>
+
+            {patientDied && (
+                <div className="mx-6 mt-3 px-4 py-2 rounded-lg bg-red-950/50 border border-red-800/60 text-red-200 text-sm">
+                    {t('death_debrief_banner')}
+                </div>
+            )}
 
             {/* A failed discussant turn used to vanish (and be persisted as
                 tutor speech); the engine now rejects and exposes it — say so

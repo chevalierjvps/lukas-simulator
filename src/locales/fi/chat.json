@@ -49,6 +49,8 @@
   "no_voice_configured_agent": "Tälle agenttipersoonalle ei ole määritetty ääntä. Aseta se kohdassa Asetukset → Agenttipersoonat.",
   "no_voice_configured_case": "Ääntä ei ole määritetty. Aseta tapauksen ääni tapauseditorissa tai oletusääni potilaspersoonalle.",
   "on_call_responds": "Päivystää · vastaa kutsuttaessa",
+  "patient_died_banner": "Potilas ei selvinnyt ja hänet todettiin menehtyneeksi.",
+  "patient_died_placeholder": "Potilas ei voi enää vastata — kuolema todettu",
   "patient_generic": "potilas",
   "patient_label": "Potilas",
   "patient_speaking": "Potilas puhuu…",

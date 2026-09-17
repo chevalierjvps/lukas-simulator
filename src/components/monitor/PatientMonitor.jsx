@@ -30,6 +30,7 @@ import {
 import { RHYTHM_IDS, RHYTHM_LABEL_KEYS, resolveRhythm } from '../../services/rhythms';
 // Waveform physiology lives in one module, shared with the 3D room.
 import { GenerateECGRaw } from '../../services/ecgWaveform';
+import PatientDeathOverlay from './PatientDeathOverlay';
 
 /**
  * ECG GENERATION
@@ -52,6 +53,22 @@ import { GenerateECGRaw } from '../../services/ecgWaveform';
 const SAMPLE_RATE_HZ = 250;
 const SAMPLE_INTERVAL_MS = 1000 / SAMPLE_RATE_HZ; // 4 ms
 const ECG_BUFFER_LEN = 1500; // 6 seconds visible at 250 Hz
+
+// Rhythms with no effective perfusion — the monitor already zeroed HR/SpO2/BP
+// for VFib and Asystole (cardiac arrest, no pulse); PEA belongs in the same
+// bucket by definition (organized electrical activity, no measurable pulse)
+// but was previously missing here, so it displayed as if perfusing normally.
+// This set also drives the death timer below.
+const ARREST_RHYTHMS = ['Asystole', 'VFib', 'PEA'];
+
+// A learner facing a sustained lethal rhythm with no successful resuscitation
+// eventually loses the patient — before this, CRÍTICO was the simulator's
+// ceiling state and the patient kept chatting indefinitely no matter how long
+// the arrest went unaddressed, which isn't medically coherent (see Jvps'
+// note). This is a training-pressure constant, not a clinical claim: real
+// codes run far longer than 2 minutes. The clock resets on any rhythm change
+// away from arrest (i.e. successful conversion/ROSC).
+const DEATH_THRESHOLD_SECONDS = 120;
 
 
 
@@ -225,7 +242,7 @@ const canonicalRhythm = (value) => {
 // the host so the debrief can still query the session — ending the CASE and
 // ending the SESSION are different lifecycles, and the monitor follows the
 // former.
-export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdmin: isAdminProp = false, caseEnded = false, caseEndedAt = null }) {
+export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdmin: isAdminProp = false, caseEnded = false, caseEndedAt = null, onPatientDeath = () => {} }) {
    const { t } = useTranslation('monitor');
    const toast = useToast();
    const { isAdmin: isAdminAuth } = useAuth();
@@ -244,6 +261,14 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
    
    // --- Simulation State ---
    const [isPlaying, setIsPlaying] = useState(true);
+
+   // Death sequence: seconds continuously spent in an ARREST_RHYTHMS state
+   // without conversion (see DEATH_THRESHOLD_SECONDS), whether the overlay is
+   // currently showing, and a fire-once guard so a slow re-render near the
+   // threshold can't trigger the sequence twice.
+   const arrestSecondsRef = useRef(0);
+   const deathFiredRef = useRef(false);
+   const [deathOverlay, setDeathOverlay] = useState(null); // { rhythm } | null
 
    // Load saved settings on mount
    const savedSettings = loadSavedSettings();
@@ -1008,19 +1033,34 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
          const p = simulationParams.current;
          const rhythmType = rhythm; // Closure capture or ref? Rhythm needs to be in ref too if used here
 
-         if (rhythmType === 'Asystole' || rhythmType === 'VFib') {
-            // Cardiac arrest state - no perfusion
-            setDisplayVitals(prev => ({ 
-               ...prev, 
-               hr: 0, 
-               spo2: "?", 
-               bpSys: "?", 
+         if (ARREST_RHYTHMS.includes(rhythmType)) {
+            // Cardiac arrest / pulseless state - no perfusion
+            setDisplayVitals(prev => ({
+               ...prev,
+               hr: 0,
+               spo2: "?",
+               bpSys: "?",
                bpDia: "?",
                etco2: Math.max(0, (prev.etco2 || 38) - 5) // EtCO2 drops without perfusion
                // temp stays at current value (doesn't change immediately)
             }));
+
+            // Death timer: this loop ticks every 2s, so +2 per tick. Any
+            // rhythm change away from ARREST_RHYTHMS (below) resets it — a
+            // successful conversion/ROSC buys the patient a fresh clock.
+            arrestSecondsRef.current += 2;
+            if (arrestSecondsRef.current >= DEATH_THRESHOLD_SECONDS && !deathFiredRef.current) {
+               deathFiredRef.current = true;
+               changed('status', 'outcome', 'crítico', 'óbito', 'sustained_unresuscitated_arrest');
+               // Unaddressed VF/PEA deteriorates to asystole — also the
+               // rhythm that gives the death overlay a clean flatline to
+               // show no matter which arrest rhythm actually caused it.
+               setRhythm('Asystole');
+               setDeathOverlay({ rhythm: rhythmType });
+            }
             return;
          }
+         arrestSecondsRef.current = 0;
 
          // Calculate Noise
          const noiseHR = Math.floor(Math.random() * 5) - 2; // -2 to +2
@@ -1384,7 +1424,15 @@ export default function PatientMonitor({ _caseParams, caseData, sessionId, isAdm
    }, []);
 
    return (
-      <div ref={containerRef} className="flex flex-col h-full bg-black text-gray-100 font-sans overflow-hidden select-none">
+      <div ref={containerRef} className="relative flex flex-col h-full bg-black text-gray-100 font-sans overflow-hidden select-none">
+
+         {deathOverlay && (
+            <PatientDeathOverlay
+               rhythm={deathOverlay.rhythm}
+               timeLabel={formatElapsedTime(elapsedTime)}
+               onDone={() => onPatientDeath(deathOverlay.rhythm)}
+            />
+         )}
 
          {/* HEADER — three-zone grid. The middle column is a reserved dock
              for the Oyon capture pill: the pill itself stays mounted ONCE at

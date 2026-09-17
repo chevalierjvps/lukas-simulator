@@ -22,6 +22,12 @@ pub struct AppState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        // Auto-update: checks the GitHub Releases "latest" pointer (see
+        // tauri.conf.json's plugins.updater.endpoints) and, when the app
+        // relaunches after an install, tauri_plugin_process gives the
+        // frontend `relaunch()` to restart into the new version cleanly.
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
             let app_data_dir = app.path().app_data_dir().unwrap_or_else(|_| std::path::PathBuf::from("./data"));
             let db_path = app_data_dir.join("osiris.db");

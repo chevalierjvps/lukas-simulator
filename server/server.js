@@ -19,6 +19,7 @@ import dbAdapter from './dbAdapter.js';
 import { runSeeders, needsSeeding } from './seeders/index.js';
 import { ensureCaseCodes } from './seeders/cases.js';
 import seedStemiCourse from './seedStemiCourse.js';
+import seedStemiCourseEs from './seedStemiCourseEs.js';
 import { seedLanguageCases } from './seedLanguageCases.js';
 import { seedLlmDefaults } from './seeders/llmSettings.js';
 import { loadKokoro, kokoroIdleUnloadMs } from './services/kokoroTts.js';
@@ -303,6 +304,9 @@ async function initializeAndStart() {
     // Idempotently fill the default "Basic course" with STEMI lesson content +
     // a clinical-reasoning survey (no-op once seeded). Non-fatal on failure.
     await seedStemiCourse();
+    // Spanish sibling of the above — same cohort, separate lesson/survey
+    // (guarded by its own title). See seedStemiCourseEs.js header for why.
+    await seedStemiCourseEs();
 
     // Idempotently seed the native German / Spanish / Italian cases and link
     // them into the single default "Basic course" alongside the English default

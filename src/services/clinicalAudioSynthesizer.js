@@ -335,6 +335,35 @@ export const ClinicalAudio = {
             osc.start(now);
             osc.stop(now + 0.4);
         } catch { /* AudioContext muted */ }
+    },
+
+    /**
+     * Play the sustained monotone a bedside monitor emits on flatline —
+     * a continuous ~840Hz tone, held for `durationSec` then released.
+     */
+    playFlatlineTone(durationSec = 4) {
+        try {
+            const ctx = getAudioContext();
+            if (!ctx) return;
+
+            const now = ctx.currentTime;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(840, now);
+
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.25, now + 0.05);
+            gain.gain.setValueAtTime(0.25, now + durationSec - 0.2);
+            gain.gain.linearRampToValueAtTime(0, now + durationSec);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start(now);
+            osc.stop(now + durationSec);
+        } catch { /* AudioContext muted */ }
     }
 };
 

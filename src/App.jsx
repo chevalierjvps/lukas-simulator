@@ -15,6 +15,7 @@ import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { useCaseLanguageSync } from './hooks/useCaseLanguageSync';
 import TopBarControls from './components/common/TopBarControls';
 import ErrorBoundary from './components/common/ErrorBoundary.jsx';
+import UpdateChecker from './components/UpdateChecker.jsx';
 // Lazy so the TipTap/react-query lessons bundle stays out of the main chunk,
 // loading only when a user opens the lessons room.
 const LessonsRoomContainer = lazy(() => import('./components/lessons/LessonsRoomContainer'));
@@ -169,6 +170,11 @@ function MainApp() {
    // session clock at this value instead of Date.now(), so "Back to patient"
    // from the debrief shows the elapsed time AT the end, not end + debrief.
    const [caseEndedAt, setCaseEndedAt] = useState(null);
+   // Set once PatientMonitor's death sequence fires (sustained unresuscitated
+   // arrest — see ARREST_RHYTHMS/DEATH_THRESHOLD_SECONDS there). Always
+   // implies caseEnded=true, but distinguishes "the patient died" from "the
+   // learner clicked End & Debrief" for the chat/debrief copy.
+   const [patientDied, setPatientDied] = useState(false);
    const [showEndConfirm, setShowEndConfirm] = useState(false);
    const [showHelpCenter, setShowHelpCenter] = useState(false);
    const [showTutorial, setShowTutorial] = useState(false);
@@ -713,6 +719,28 @@ function MainApp() {
       navigateToRoom('consultant');
    };
 
+   // Auto "End & Debrief" fired by PatientMonitor once its death overlay has
+   // played out (sustained unresuscitated arrest). Mirrors handleEndSession's
+   // server/alarm/navigation steps but also stamps patientDied, so the chat
+   // and debrief room can tell "the patient died" apart from "the learner
+   // chose to stop" without re-deriving it from rhythm state.
+   const handlePatientDeath = (rhythm) => {
+      if (!sessionId) return;
+      EventLogger.log('ENDED_SESSION', 'session', {
+         objectId: sessionId,
+         objectName: 'Patient Death (Auto)',
+         component: COMPONENTS.APP,
+         result: rhythm,
+      });
+      endSessionOnServer(sessionId);
+      notifications.ackAll?.();
+      setShowEndConfirm(false);
+      setCaseEnded(true);
+      setCaseEndedAt(Date.now());
+      setPatientDied(true);
+      navigateToRoom('consultant');
+   };
+
    const handleLoadCase = (caseData) => {
       // If a session is already running, end it server-side before loading
       // the new case. Without this the prior session is orphaned with
@@ -733,6 +761,7 @@ function MainApp() {
       setSessionId(null); // Will be set by ChatInterface when session starts
       setCaseEnded(false);
       setCaseEndedAt(null);
+      setPatientDied(false);
       setShowFullPageSettings(false);
       // Log case loaded event
       EventLogger.caseLoaded(caseData?.id, caseData?.name);
@@ -1198,6 +1227,7 @@ function MainApp() {
                sessionId={sessionId}
                activeCase={activeCase}
                caseEnded={caseEnded}
+               patientDied={patientDied}
                onClose={() => navigateToRoom('chat')}
                roomNav={
                   <RoomNavigator
@@ -1290,6 +1320,7 @@ function MainApp() {
                      onSessionStart={setSessionId}
                      restoredSessionId={sessionId}
                      caseEnded={caseEnded}
+                     patientDied={patientDied}
                      personaRefreshCounter={personaRefreshCounter}
                      signalCapture={signalCapture}
                   />
@@ -1311,6 +1342,7 @@ function MainApp() {
                isAdmin={isAdmin()}
                caseEnded={caseEnded}
                caseEndedAt={caseEndedAt}
+               onPatientDeath={handlePatientDeath}
             />
          </div>
 
@@ -1346,6 +1378,10 @@ function MainApp() {
                navigate={navigateToRoom}
             />
          )}
+
+         {/* Desktop auto-update check. Renders nothing; no-ops on the web
+             build. See src/services/autoUpdater.js. */}
+         <UpdateChecker />
 
          {/* In-app Help & Support (Stage 4). The drawer is always mounted
              and self-hides on !open. The first-run onboarding tour shows

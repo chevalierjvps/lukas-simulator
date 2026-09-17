@@ -49,6 +49,8 @@
   "no_voice_configured_agent": "No se configuró ninguna voz para esta persona del agente. Establezca una en Configuración → Personas de Agente.",
   "no_voice_configured_case": "No se configuró ninguna voz. Establezca una voz de caso en el editor de casos o una voz predeterminada en la persona del Paciente.",
   "on_call_responds": "De guardia · responde cuando le llamas",
+  "patient_died_banner": "El paciente no sobrevivió y fue declarado fallecido.",
+  "patient_died_placeholder": "El paciente ya no puede responder — defunción declarada",
   "patient_generic": "el paciente",
   "patient_label": "Paciente",
   "patient_speaking": "Paciente hablando…",
